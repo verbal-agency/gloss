@@ -81,7 +81,8 @@ print(response.meta)
 #       "type": "counterfactual_divergence",
 #       "flagged": true,
 #       "score": 0.31,
-#       "summary": "Response diverged by 0.31 when opinion framing was changed."
+#       "summary": "Response diverged by 0.31 when opinion framing was changed.",
+#       "detail": {}
 #     }
 #   ],
 #   "normalized_query": "Do vaccines cause autism?",
@@ -119,18 +120,29 @@ If no `X-Session-ID` header is provided, a new session is created for each reque
 | `TIER_DISAGREEMENT` | `true` | |
 | `TIER_TEMPORAL` | `true` | |
 
-## Token cost implications
+## Latency and cost
 
-The full pipeline adds overhead, but tiers 1–2 only activate on triggered queries:
+Vigilance is not free. The numbers below are **measured** by driving the full pipeline with a constant-latency simulated LLM: call counts are exact; wall-clock multiples reflect the pipeline's sequential/parallel structure (real-world multiples will vary with provider latency per call). Reproduce with:
 
-| Scenario | Extra calls | Typical overhead |
-|---|---|---|
-| Neutral query, no opinion signal | 0 | ~50 tokens (normalization only) |
-| Opinion-primed query | +2 parallel calls | ~3x tokens, ~1.3x wall-clock latency |
-| High-stakes domain (medical/legal/financial/technical) | +1–2 calls | +300–500 tokens |
-| Multi-turn with temporal monitoring | +1 async background call | No added latency |
+```bash
+python -m eval.latency_harness
+```
 
-Average across a typical assistant conversation: **~1.3–1.5x token cost**.
+| Scenario | Upstream LLM calls (blocking + background) | Embedding calls | Wall-clock vs. direct call |
+|---|---|---|---|
+| Neutral query, nothing triggered | 2 + 1 | 1 | ~2x |
+| High-stakes domain, no opinion signal | 4 + 1 | 1 | ~3x |
+| Opinion-primed query | 7 + 1 | 2 | ~5x |
+| Opinion-primed + high-stakes (worst case) | 10 + 1 | 2 | ~5x |
+| Multi-turn, temporal check passes | 2 + 1 | 1 | ~2x |
+| Multi-turn, drift flagged | 3 + 1 | 1 | ~3x |
+
+Notes:
+- Even untriggered queries pay ~2x wall-clock, because query normalization is itself a serial LLM call before the target call.
+- Token cost scales roughly with the blocking-call count, since most pipeline calls carry the conversation context. Budget accordingly for high-traffic use.
+- The `usage` field on responses reflects the returned exchange (tokenizer-estimated), not the aggregate cost of pipeline-internal calls.
+- Each tier can be disabled independently via the `TIER_*` environment variables to trade coverage for cost.
+- `stream: true` is rejected with a 400: the pipeline must score the complete response before returning it.
 
 ## Running the eval
 

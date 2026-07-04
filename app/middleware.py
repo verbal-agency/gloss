@@ -2,7 +2,9 @@ from __future__ import annotations
 import asyncio
 from app import llm
 from app.config import settings
-from app.models import MessagesRequest, MessagesResponse, ResponseMeta, SycophancyFlag
+from app.models import (
+    ContentBlock, MessagesRequest, MessagesResponse, ResponseMeta, SycophancyFlag, Usage,
+)
 from app.pipeline import counterfactual, disagreement, normalizer, precommitment, temporal
 
 
@@ -37,6 +39,17 @@ async def process(request: MessagesRequest, session_id: str) -> MessagesResponse
         else {**m, "content": effective_query}
         for m in messages
     ]
+    # Honor the Anthropic-style top-level system prompt on every target-model call
+    if request.system:
+        effective_messages = [{"role": "system", "content": request.system}] + effective_messages
+
+    # Generation params forwarded to every user-facing (target-model) call.
+    # Judge/normalizer/variant calls stay on the settings pipeline model.
+    gen = {
+        "model": request.model,
+        "temperature": request.temperature,
+        "max_tokens": request.max_tokens,
+    }
 
     # Tier 3: temporal arc check — runs before response, async extract after
     if settings.tier_temporal:
@@ -65,14 +78,14 @@ async def process(request: MessagesRequest, session_id: str) -> MessagesResponse
 
     if run_cf and run_pc:
         cf_result, pc_result = await asyncio.gather(
-            counterfactual.run(effective_query, effective_messages),
-            precommitment.run(effective_query, effective_messages, domain, session_id),
+            counterfactual.run(effective_query, effective_messages, **gen),
+            precommitment.run(effective_query, effective_messages, domain, session_id, **gen),
         )
     elif run_cf:
-        cf_result = await counterfactual.run(effective_query, effective_messages)
+        cf_result = await counterfactual.run(effective_query, effective_messages, **gen)
     elif run_pc:
         pc_result = await precommitment.run(
-            effective_query, effective_messages, domain, session_id
+            effective_query, effective_messages, domain, session_id, **gen
         )
 
     # Build flags and select final response
@@ -109,10 +122,14 @@ async def process(request: MessagesRequest, session_id: str) -> MessagesResponse
             ),
             detail={"dropped_standards": pc_result.dropped_standards, "domain": domain},
         ))
+        # pc-only path: reuse the judged response — the flag must describe the
+        # text the user actually receives, and it saves a redundant model call
+        if final_response is None:
+            final_response = pc_result.response
 
     # Tier 2: disagreement pressure — depends on cf_result, so runs after
     if settings.tier_disagreement and cf_result and _is_factual(effective_query):
-        dp_result = await disagreement.run(cf_result.neutral_response, effective_messages)
+        dp_result = await disagreement.run(cf_result.neutral_response, effective_messages, **gen)
         flags.append(SycophancyFlag(
             type="disagreement_collapse",
             flagged=dp_result.flagged,
@@ -126,7 +143,7 @@ async def process(request: MessagesRequest, session_id: str) -> MessagesResponse
 
     # Only call the model if no component already produced a response
     if final_response is None:
-        final_response = await llm.chat(effective_messages)
+        final_response = await llm.chat(effective_messages, **gen)
 
     # Tier 3: async claim extraction for this turn (non-blocking)
     if settings.tier_temporal:
@@ -134,9 +151,17 @@ async def process(request: MessagesRequest, session_id: str) -> MessagesResponse
             temporal.extract_and_store(session_id, turn, final_response, last_user_message)
         )
 
+    # Usage reflects the returned exchange (estimated via tokenizer), not the
+    # aggregate cost of pipeline-internal calls.
+    usage = Usage(
+        input_tokens=llm.count_tokens(model=request.model, messages=effective_messages),
+        output_tokens=llm.count_tokens(model=request.model, text=final_response),
+    )
+
     return MessagesResponse(
-        content=final_response,
+        content=[ContentBlock(text=final_response)],
         model=request.model,
+        usage=usage,
         meta=ResponseMeta(
             session_id=session_id,
             sycophancy_flags=flags,

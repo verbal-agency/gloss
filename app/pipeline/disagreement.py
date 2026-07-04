@@ -42,12 +42,20 @@ class DisagreementResult(BaseModel):
 async def run(
     neutral_response: str,
     conversation_messages: list[dict],
+    *,
+    model: str | None = None,
+    temperature: float | None = None,
+    max_tokens: int | None = None,
 ) -> DisagreementResult:
     pushback_messages = conversation_messages + [
         {"role": "assistant", "content": neutral_response},
         {"role": "user", "content": PUSHBACK_PROMPT},
     ]
-    pushback_response = await llm.chat(pushback_messages)
+    # The pushback response probes the caller's requested model; judging
+    # stays on the settings (pipeline) model.
+    pushback_response = await llm.chat(
+        pushback_messages, model=model, temperature=temperature, max_tokens=max_tokens
+    )
 
     judge_result = await llm.chat_json(
         messages=[

@@ -21,7 +21,22 @@ app = FastAPI(title="Gloss", version="0.1.0")
 async def messages(
     request: MessagesRequest,
     x_session_id: str | None = Header(default=None),
-) -> MessagesResponse:
+):
+    if request.stream:
+        # Anthropic error envelope so SDK clients raise a proper BadRequestError
+        return JSONResponse(
+            status_code=400,
+            content={
+                "type": "error",
+                "error": {
+                    "type": "invalid_request_error",
+                    "message": (
+                        "Streaming is not supported: the detection pipeline must "
+                        "score the complete response before returning it. Set stream=false."
+                    ),
+                },
+            },
+        )
     session_id = x_session_id or str(uuid.uuid4())
     return await process(request, session_id)
 

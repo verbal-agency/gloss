@@ -73,10 +73,28 @@ class ResponseMeta(BaseModel):
     signals_removed: list[str] = Field(default_factory=list)
 
 
+class ContentBlock(BaseModel):
+    type: Literal["text"] = "text"
+    text: str
+
+
+class Usage(BaseModel):
+    input_tokens: int
+    output_tokens: int
+
+
 class MessagesResponse(BaseModel):
+    """Anthropic Messages API response shape, plus a Gloss `meta` extension field.
+
+    The Anthropic SDK tolerates unknown extra fields, so `meta` rides along
+    without breaking client-side parsing.
+    """
     id: str = Field(default_factory=lambda: f"msg_{uuid.uuid4().hex[:12]}")
     type: str = "message"
     role: Literal["assistant"] = "assistant"
-    content: str
+    content: list[ContentBlock]
     model: str
+    stop_reason: str = "end_turn"
+    stop_sequence: str | None = None
+    usage: Usage
     meta: ResponseMeta

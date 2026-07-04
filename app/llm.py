@@ -14,20 +14,39 @@ _JSON_INSTRUCTION = (
 )
 
 
+def resolve_model(model: str | None) -> str:
+    """Map an Anthropic-API-style model id to a LiteLLM model id.
+
+    Clients of the proxy send bare Anthropic ids ("claude-sonnet-4-6");
+    LiteLLM wants a provider prefix. Ids that already carry a provider
+    prefix pass through untouched.
+    """
+    if not model:
+        return settings.litellm_model
+    if "/" in model:
+        return model
+    if model.startswith("claude"):
+        return f"anthropic/{model}"
+    return model
+
+
 async def chat(
     messages: list[dict[str, str]],
     model: str | None = None,
     response_format: dict | None = None,
     temperature: float | None = None,
+    max_tokens: int | None = None,
 ) -> str:
     kwargs: dict[str, Any] = {
-        "model": model or settings.litellm_model,
+        "model": resolve_model(model),
         "messages": messages,
     }
     if response_format:
         kwargs["response_format"] = response_format
     if temperature is not None:
         kwargs["temperature"] = temperature
+    if max_tokens is not None:
+        kwargs["max_tokens"] = max_tokens
 
     response = await litellm.acompletion(**kwargs)
     return response.choices[0].message.content
@@ -53,6 +72,25 @@ async def chat_json(
         text = re.sub(r"\n?```$", "", text.strip())
         text = text.strip()
     return json.loads(text)
+
+
+def count_tokens(
+    model: str | None = None,
+    messages: list[dict[str, str]] | None = None,
+    text: str | None = None,
+) -> int:
+    """Token count for the usage field. Falls back to a chars/4 estimate
+    if the tokenizer for the model is unavailable."""
+    resolved = resolve_model(model)
+    try:
+        if messages is not None:
+            return litellm.token_counter(model=resolved, messages=messages)
+        return litellm.token_counter(model=resolved, text=text or "")
+    except Exception:
+        source = text if text is not None else " ".join(
+            str(m.get("content", "")) for m in (messages or [])
+        )
+        return max(1, len(source) // 4)
 
 
 async def embed(texts: list[str]) -> list[list[float]]:

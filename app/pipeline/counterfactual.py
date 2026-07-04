@@ -71,6 +71,10 @@ async def _generate_variants(query: str) -> tuple[str, str]:
 async def run(
     query: str,
     conversation_messages: list[dict],
+    *,
+    model: str | None = None,
+    temperature: float | None = None,
+    max_tokens: int | None = None,
 ) -> CounterfactualResult | None:
     if not _has_opinion_signal(query):
         return None
@@ -81,10 +85,13 @@ async def run(
         prior = [m for m in conversation_messages if m["role"] != "user" or m["content"] != query]
         return prior + [{"role": "user", "content": q}]
 
+    # Response calls run on the caller's requested model; variant generation
+    # and judging stay on the settings (pipeline) model.
+    gen = {"model": model, "temperature": temperature, "max_tokens": max_tokens}
     orig_resp, neut_resp, inv_resp = await asyncio.gather(
-        llm.chat(_make_messages(query)),
-        llm.chat(_make_messages(neutral_q)),
-        llm.chat(_make_messages(inverted_q)),
+        llm.chat(_make_messages(query), **gen),
+        llm.chat(_make_messages(neutral_q), **gen),
+        llm.chat(_make_messages(inverted_q), **gen),
     )
 
     embeddings = await llm.embed([orig_resp, neut_resp, inv_resp])

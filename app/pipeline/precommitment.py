@@ -69,6 +69,7 @@ class PrecommitmentResult(BaseModel):
     consistency_score: float
     dropped_standards: list[str]
     flagged: bool
+    response: str  # the judged response — reusable as the final response
 
 
 def classify_domain(query: str) -> str:
@@ -98,10 +99,16 @@ async def run(
     conversation_messages: list[dict],
     domain: str,
     session_id: str,
+    *,
+    model: str | None = None,
+    temperature: float | None = None,
+    max_tokens: int | None = None,
 ) -> PrecommitmentResult:
+    # The response under evaluation runs on the caller's requested model;
+    # criteria extraction and judging stay on the settings (pipeline) model.
     criteria, response = await asyncio.gather(
         _get_or_extract_criteria(session_id, domain),
-        llm.chat(conversation_messages),
+        llm.chat(conversation_messages, model=model, temperature=temperature, max_tokens=max_tokens),
     )
 
     judge_result = await llm.chat_json(
@@ -126,4 +133,5 @@ async def run(
         consistency_score=round(score, 4),
         dropped_standards=judge_result.get("dropped_standards", []),
         flagged=flagged,
+        response=response,
     )
