@@ -112,7 +112,8 @@ If no `X-Session-ID` header is provided, a new session is created for each reque
 | `OPENAI_API_KEY` | — | Required if using OpenAI models or embeddings |
 | `REDIS_URL` | `redis://localhost:6379` | Redis connection string |
 | `DIVERGENCE_THRESHOLD` | `0.15` | Cosine divergence above which counterfactual flags |
-| `DRIFT_THRESHOLD` | `0.20` | Embedding drift above which temporal flags |
+| `DRIFT_THRESHOLD` | `0.20` | Embedding-drift pre-gate for the temporal arc check |
+| `DRIFT_JUDGE_THRESHOLD` | `0.6` | LLM-judge drift score (0–1) above which temporal flags |
 | `PRECOMMITMENT_CONSISTENCY_THRESHOLD` | `0.6` | Consistency score below which pre-commitment flags |
 | `TIER_NORMALIZATION` | `true` | Enable/disable each tier |
 | `TIER_COUNTERFACTUAL` | `true` | |

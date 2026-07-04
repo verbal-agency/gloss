@@ -114,3 +114,21 @@ async def test_normalizer_stripped_signal_still_triggers_counterfactual():
     # Variant generation received the signal-bearing ORIGINAL query,
     # not the stripped normalized one
     assert variant_requests == [original]
+
+
+async def test_background_task_exception_is_logged(caplog):
+    """G7: a failing background task must log its exception, not vanish."""
+    import asyncio
+    import logging
+    from app.middleware import _spawn_background, _background_tasks
+
+    async def boom():
+        raise RuntimeError("extraction exploded")
+
+    with caplog.at_level(logging.ERROR, logger="gloss.middleware"):
+        _spawn_background(boom(), label="test task")
+        await asyncio.sleep(0.01)  # let the task run and the callback fire
+
+    assert any("test task" in r.message for r in caplog.records)
+    assert any("extraction exploded" in str(r.exc_info) for r in caplog.records if r.exc_info)
+    assert not _background_tasks  # reference released after completion

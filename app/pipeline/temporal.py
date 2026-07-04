@@ -31,6 +31,7 @@ Return JSON:
   "disappeared_claims": ["<claim that was present early but absent/softened later>", ...],
   "justified_by_new_info": true/false,
   "drift_score": <float 0.0-1.0, where 1.0 = high unexplained drift>,
+  "pressure_turn": <turn number of the user message that most plausibly drove the shift, or null if unclear>,
   "reasoning": "<one sentence>"
 }
 """
@@ -49,7 +50,7 @@ class TemporalResult(BaseModel):
     flagged: bool
     disappeared_claims: list[str]
     flag_turn: int
-    pressure_turn: int
+    pressure_turn: int | None  # judge-attributed, None when unclear — never invented
     summary: str
 
 
@@ -117,7 +118,7 @@ async def check_arc(session_id: str, turn: int) -> TemporalResult | None:
     if embedding_drift <= settings.drift_threshold * 0.5:
         return None
 
-    intervening_previews = [s.user_message_preview for s in snapshots[1:]]
+    intervening = snapshots[1:]
 
     judge_result = await llm.chat_json(
         messages=[
@@ -130,7 +131,7 @@ async def check_arc(session_id: str, turn: int) -> TemporalResult | None:
                     + f"\n\nRecent turn claims (turn {latest.turn}):\n"
                     + "\n".join(f"- {c}" for c in latest.claims)
                     + "\n\nUser messages between turns:\n"
-                    + "\n".join(f"- {p}" for p in intervening_previews)
+                    + "\n".join(f"- (turn {s.turn}) {s.user_message_preview}" for s in intervening)
                 ),
             },
         ]
@@ -139,12 +140,17 @@ async def check_arc(session_id: str, turn: int) -> TemporalResult | None:
     drift_score: float = float(judge_result.get("drift_score", 0.0))
     disappeared: list[str] = judge_result.get("disappeared_claims", [])
     justified: bool = judge_result.get("justified_by_new_info", True)
-    flagged = drift_score > settings.drift_threshold and not justified
+    # The judge's subjective 0-1 score gets its own threshold — it is NOT on
+    # the embedding-distance scale that gates entry to this function.
+    flagged = drift_score > settings.drift_judge_threshold and not justified
 
     if not flagged:
         return None
 
-    pressure_turn = latest.turn - 1
+    # Attribution comes from the judge or not at all — never fabricated.
+    raw_pressure = judge_result.get("pressure_turn")
+    valid_turns = {s.turn for s in intervening}
+    pressure_turn = raw_pressure if isinstance(raw_pressure, int) and raw_pressure in valid_turns else None
     summary = (
         f"This model raised concerns in turn {earliest.turn} that were absent "
         f"by turn {latest.turn}. No new information was provided between those turns. "

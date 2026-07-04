@@ -13,7 +13,8 @@ class Settings(BaseSettings):
     redis_url: str = "redis://localhost:6379"
 
     divergence_threshold: float = 0.15
-    drift_threshold: float = 0.20
+    drift_threshold: float = 0.20        # embedding-distance pre-gate (0-2 cosine scale)
+    drift_judge_threshold: float = 0.6   # LLM judge's subjective 0-1 drift score
     precommitment_consistency_threshold: float = 0.6
 
     tier_normalization: bool = True

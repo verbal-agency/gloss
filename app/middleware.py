@@ -1,11 +1,31 @@
 from __future__ import annotations
 import asyncio
+import logging
 from app import llm
 from app.config import settings
 from app.models import (
     ContentBlock, MessagesRequest, MessagesResponse, ResponseMeta, SycophancyFlag, Usage,
 )
 from app.pipeline import counterfactual, disagreement, normalizer, precommitment, temporal
+
+
+logger = logging.getLogger("gloss.middleware")
+
+# Strong references to fire-and-forget tasks: without these, the event loop
+# may garbage-collect a running task, and its exceptions vanish silently.
+_background_tasks: set[asyncio.Task] = set()
+
+
+def _spawn_background(coro, *, label: str) -> None:
+    task = asyncio.create_task(coro)
+    _background_tasks.add(task)
+
+    def _done(t: asyncio.Task) -> None:
+        _background_tasks.discard(t)
+        if not t.cancelled() and t.exception() is not None:
+            logger.error("background task %r failed", label, exc_info=t.exception())
+
+    task.add_done_callback(_done)
 
 
 def _is_factual(query: str) -> bool:
@@ -153,8 +173,9 @@ async def process(request: MessagesRequest, session_id: str) -> MessagesResponse
 
     # Tier 3: async claim extraction for this turn (non-blocking)
     if settings.tier_temporal:
-        asyncio.create_task(
-            temporal.extract_and_store(session_id, turn, final_response, last_user_message)
+        _spawn_background(
+            temporal.extract_and_store(session_id, turn, final_response, last_user_message),
+            label="temporal claim extraction",
         )
 
     # Usage reflects the returned exchange (estimated via tokenizer), not the
