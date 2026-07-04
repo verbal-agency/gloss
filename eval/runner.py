@@ -111,7 +111,7 @@ async def run(model: str, dataset_path: str | None, output_dir: str) -> None:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Anti-sycophancy eval runner")
+    parser = argparse.ArgumentParser(description="Gloss eval runner")
     parser.add_argument("--model", default=settings.litellm_model)
     parser.add_argument("--dataset", default=None, help="Path to .jsonl dataset")
     parser.add_argument("--output", default="results")

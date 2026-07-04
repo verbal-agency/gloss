@@ -1,4 +1,6 @@
-# Anti-Sycophancy Adversarial Layer — Design Document
+# Gloss — Design Document
+
+**Gloss** is a runtime layer that detects and corrects LLM sycophancy through the model's public API. The name is the mechanism: to *gloss over* is to smooth past a flaw with a specious, agreeable interpretation — exactly the failure this catches — while a *gloss* is the honest annotation it adds in return.
 
 **Sycophancy** is when a model prioritizes approval over accuracy or honesty. It's a training artifact. Models are fine-tuned on human feedback. They learn to agree because humans tend to rate agreeable responses higher.
 
@@ -44,6 +46,39 @@ All three share a root cause (training on human approval) and the same effect (u
 | Framing capture | Model accepts flawed premises | Requires evaluating premises, not just answers | Hard — needs domain reasoning |
 
 The counterfactual approach handles reactive sycophancy cleanly. The other two are open problems — worth naming and scoping explicitly, even if this project focuses on the tractable case.
+
+---
+
+## The cognitive analog: an externalized vigilance reflex
+
+Sycophancy has a human parallel, and naming it precisely explains the architecture.
+
+When a person self-corrects, or scrutinizes a claim someone else makes, they run one of two distinct cognitive mechanisms:
+
+- **Self-correction** is *metacognitive error-monitoring* — the felt "wait, that's not right" that compares confidence against actual evidence. Its defining weakness: **fluency dampens it.** The more smoothly a thought comes out, the weaker the error signal. We don't check what feels obvious.
+- **Inspecting another's claim** is *epistemic vigilance* (Sperber et al.). Its defining fact: the default is **acceptance** — to comprehend a claim is to momentarily believe it, and *un*-believing is a second, effortful step. Vigilance is a costly override that only fires when something cues it: the source has an incentive, the claim is too convenient, it clashes with prior knowledge.
+
+Both are cue-triggered overrides of a default, and both are costly — which is why humans skip them constantly.
+
+**Sycophancy is pernicious because it inverts the cue.** The situations most likely to produce it — the user states a strong preference, claims authority, raises emotional stakes — are exactly the situations where human vigilance *drops*. We defer to confident, authoritative, invested interlocutors. The reflex fails precisely when it is most needed, because the trigger has been hijacked.
+
+This yields the first design principle: **decouple the check from the cue.** You cannot rely on a signal to trigger inspection when that signal is the very thing being exploited. The inspection has to run unconditionally, or on *inverted* cues — the louder the confidence, the harder you look.
+
+### Why the layer is a second observer, not model introspection
+
+The failure being corrected is a *self*-correction failure: the model cannot reliably monitor its own output, because sycophantic answers are maximally fluent — they are exactly what the user wanted — and fluency is what dampens the error signal. Asking the model to introspect ("are you sure?") applies the same approval-seeking bias to the critique.
+
+So the layer does not try to teach the model a reflex. It **externalizes the monitor**: it is a *second observer* that treats the model's output as another party's claim and applies the epistemic-vigilance mechanism the model cannot apply to itself. The problem is framed as a self-deficit; the solution is structurally an other-inspection mechanism. We are not making the model think harder about its own fluent output — we are adding a second party that still has the reflex the first one lost.
+
+This reframes the whole pipeline as the human vigilance reflex, **decomposed and made unconditional**:
+
+| Human vigilance move | Mechanism in this layer |
+|---|---|
+| Strip the cues that hijack vigilance (authority, confidence, stakes) | Query normalization |
+| "Consider the opposite" — forced, not hoped-for | Counterfactual pairs |
+| Pre-register what would change your mind, *before* exposure | Pre-commitment extraction |
+| The internalized challenger, instantiated | Disagreement pressure |
+| "Does this cohere with what I said before?" | Temporal consistency |
 
 ---
 
@@ -416,3 +451,15 @@ Query normalization is the prevention complement to detection. Instead of measur
 **The line between pressure and context**: authority claims are sometimes legitimately informational. "As a nurse, I need to know the interaction between X and Y" tells the model to respond at a clinical level of detail — that's genuine context, not pressure. The distinction is whether the authority claim is load-bearing for the *type of answer needed* vs. whether it's load-bearing for the *conclusion the user wants validated*. This is a hard classification problem in edge cases; the safe default is to normalize and log.
 
 **Limitation**: normalization removes detectable surface signals, but social pressure also arrives through subtler routes — conversational tone, accumulated turns of the user seeming satisfied, the structure of the question itself. Normalization handles the tractable cases; temporal drift monitoring is needed for the rest.
+
+---
+
+## The name
+
+The project was originally "anti-sycophancy layer" — accurate but negatively framed, and it named the goal rather than what the system emits. The system doesn't produce candor; it produces a verdict about the *absence* of it (a flag, a divergence score, a summary). So the name should describe the artifact, not the aspiration.
+
+**Gloss** does both:
+- To *gloss over* is to smooth past a flaw with a specious, agreeable interpretation — the failure this catches.
+- A *gloss* is a marginal annotation explaining a text — the honest note this attaches in return.
+
+Both senses trace to the same root (Greek *glōssa*, "tongue/language" → the marginal note explaining a hard word → "glossary"); the "smooth past it" sense grew from the idea of a commentator explaining difficulties away, later reinforced by the unrelated *gloss* meaning "surface shine." So the one word names both the sin and the artifact.

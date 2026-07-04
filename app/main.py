@@ -10,7 +10,7 @@ from app.models import (
 )
 from app.pipeline import adversarial, counterfactual, disagreement, normalizer, precommitment, temporal
 
-app = FastAPI(title="Anti-Sycophancy Proxy", version="0.1.0")
+app = FastAPI(title="Gloss", version="0.1.0")
 
 
 # ---------------------------------------------------------------------------

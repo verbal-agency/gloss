@@ -1,4 +1,6 @@
-# Anti-Sycophancy Layer
+# Gloss
+
+*Catches when a model glosses over the truth to tell you what you want to hear.*
 
 A pluggable middleware service that detects and corrects LLM sycophancy at runtime — no model access required, works via any provider's public API.
 
@@ -32,7 +34,7 @@ Tiers 1 and 2 parallelize their LLM calls — wall-clock latency is the max of t
 
 ```bash
 git clone <repo>
-cd anti-sycophancy
+cd gloss
 pip install -e ".[dev]"
 cp .env.example .env
 # Edit .env — set your API key and preferred model
