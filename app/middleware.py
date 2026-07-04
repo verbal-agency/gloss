@@ -78,11 +78,17 @@ async def process(request: MessagesRequest, session_id: str) -> MessagesResponse
 
     if run_cf and run_pc:
         cf_result, pc_result = await asyncio.gather(
-            counterfactual.run(effective_query, effective_messages, **gen),
+            counterfactual.run(
+                effective_query, effective_messages,
+                opinion_source_query=last_user_message, **gen,
+            ),
             precommitment.run(effective_query, effective_messages, domain, session_id, **gen),
         )
     elif run_cf:
-        cf_result = await counterfactual.run(effective_query, effective_messages, **gen)
+        cf_result = await counterfactual.run(
+            effective_query, effective_messages,
+            opinion_source_query=last_user_message, **gen,
+        )
     elif run_pc:
         pc_result = await precommitment.run(
             effective_query, effective_messages, domain, session_id, **gen

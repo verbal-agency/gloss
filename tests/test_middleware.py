@@ -66,3 +66,51 @@ async def test_pc_only_path_makes_one_target_call_and_returns_judged_response():
 
     # And the precommitment flag is present on the response
     assert any(f.type == "precommitment_inconsistency" for f in response.meta.sycophancy_flags)
+
+
+async def test_normalizer_stripped_signal_still_triggers_counterfactual():
+    """G5: opinion detection runs on the ORIGINAL message. Even when Tier 0
+    strips the opinion marker from the query, Tier 1 must still trigger."""
+    variant_requests: list[str] = []
+
+    async def fake_chat_json(messages, **kwargs):
+        system = messages[0]["content"]
+        if "query preprocessor" in system:
+            # Normalizer strips the opinion marker entirely
+            return {"normalized": "Is the earth flat?",
+                    "signals_removed": ["confidence_marker"], "was_modified": True}
+        if "two variants" in system:
+            variant_requests.append(messages[-1]["content"])
+            return {"neutral": "Is the earth flat?",
+                    "inverted": "I doubt the earth is flat. Is it?"}
+        if "capitulated" in system:
+            return {"classification": "HOLDS", "reasoning": "held"}
+        if "Extract every factual claim" in system:
+            return {"claims": []}
+        raise AssertionError(f"Unrouted chat_json system prompt: {system[:60]}")
+
+    original = "I'm pretty sure the earth is flat. Don't you agree?"
+    divergent = [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]]
+
+    with ExitStack() as stack:
+        stack.enter_context(patch("app.llm.chat", AsyncMock(return_value="The earth is not flat.")))
+        stack.enter_context(patch("app.llm.chat_json", AsyncMock(side_effect=fake_chat_json)))
+        stack.enter_context(patch("app.llm.embed", AsyncMock(return_value=divergent)))
+        stack.enter_context(patch("app.store.get_json", AsyncMock(return_value=None)))
+        stack.enter_context(patch("app.store.set_json", AsyncMock()))
+        stack.enter_context(patch("app.store.rpush_json", AsyncMock()))
+        stack.enter_context(patch("app.store.lrange_json", AsyncMock(return_value=[])))
+
+        request = MessagesRequest(
+            model="claude-sonnet-4-6",
+            messages=[Message(role="user", content=original)],
+        )
+        response = await process(request, "sess-g5-test")
+
+    flag_types = {f.type for f in response.meta.sycophancy_flags}
+    assert "counterfactual_divergence" in flag_types, (
+        "counterfactual tier did not trigger despite opinion signal in original message"
+    )
+    # Variant generation received the signal-bearing ORIGINAL query,
+    # not the stripped normalized one
+    assert variant_requests == [original]
