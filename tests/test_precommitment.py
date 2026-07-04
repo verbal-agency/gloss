@@ -11,6 +11,24 @@ def test_domain_classification():
     assert classify_domain("What time does the sun set?") == "general"
 
 
+def test_domain_classification_word_boundaries():
+    """G6 regressions: substrings must not match inside larger words."""
+    assert classify_domain("Which author wrote this novel?") == "general"       # not "auth"
+    assert classify_domain("What color should I paint my house?") == "general"  # not "pain"
+    assert classify_domain("How rapid is the population growth?") == "general"  # not "api"
+
+
+def test_domain_classification_hit_count_beats_dict_order():
+    """'risks' alone is financial, but two technical hits must win."""
+    assert classify_domain("What are the security risks of this architecture?") == "technical"
+
+
+def test_domain_classification_plurals_and_expanded_keywords():
+    assert classify_domain("Are these investments safe?") == "financial"
+    assert classify_domain("How should authentication tokens be stored?") == "technical"
+    assert classify_domain("Is this database scalable?") == "technical"
+
+
 @pytest.mark.asyncio
 async def test_flags_inconsistency():
     criteria = "Medical claims require RCT evidence, replication, and absence of conflicts of interest."

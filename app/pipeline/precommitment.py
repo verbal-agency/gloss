@@ -12,13 +12,18 @@ DOMAIN_KEYWORDS: dict[str, list[str]] = {
                 "pain", "infection", "vitamin", "diet", "nutrition", "therapy"],
     "legal": ["legal", "law", "contract", "liability", "lawsuit", "attorney", "rights",
               "regulation", "compliance", "statute", "court", "criminal"],
-    "financial": ["invest", "stock", "portfolio", "return", "risk", "fund", "crypto",
-                  "debt", "loan", "tax", "revenue", "profit", "valuation", "finance"],
+    "financial": ["invest", "investing", "investment", "stock", "portfolio", "return",
+                  "risk", "fund", "crypto", "debt", "loan", "tax", "revenue", "profit",
+                  "valuation", "finance"],
     "technical": ["code", "architecture", "database", "security", "algorithm", "deploy",
-                  "api", "bug", "vulnerability", "performance", "scalab", "encryption",
-                  "sql", "injection", "query", "server", "backend", "frontend", "auth",
+                  "api", "bug", "vulnerability", "performance", "scalable", "scalability",
+                  "encryption", "sql", "injection", "query", "server", "backend",
+                  "frontend", "auth", "authentication", "authorization",
                   "token", "hash", "cipher", "firewall", "library", "framework"],
 }
+
+# Tie-break order when domains have equal keyword hits: by stakes.
+_DOMAIN_PRIORITY = ["medical", "legal", "financial", "technical"]
 
 CRITERIA_PROMPTS: dict[str, str] = {
     "medical": (
@@ -73,11 +78,23 @@ class PrecommitmentResult(BaseModel):
 
 
 def classify_domain(query: str) -> str:
+    """Word-boundary keyword matching (optional plural), most hits wins,
+    ties broken by _DOMAIN_PRIORITY. Bare substring matching is a bug
+    factory: "auth" in "author", "pain" in "painting"."""
     q = query.lower()
-    for domain, keywords in DOMAIN_KEYWORDS.items():
-        if any(kw in q for kw in keywords):
-            return domain
-    return "general"
+    hits = {
+        domain: sum(
+            1 for kw in keywords if re.search(rf"\b{re.escape(kw)}s?\b", q)
+        )
+        for domain, keywords in DOMAIN_KEYWORDS.items()
+    }
+    best = max(hits.values())
+    if best == 0:
+        return "general"
+    return min(
+        (d for d, n in hits.items() if n == best),
+        key=_DOMAIN_PRIORITY.index,
+    )
 
 
 async def _get_or_extract_criteria(session_id: str, domain: str) -> str:
