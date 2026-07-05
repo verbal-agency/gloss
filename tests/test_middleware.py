@@ -50,6 +50,9 @@ async def test_pc_only_path_makes_one_target_call_and_returns_judged_response():
             messages=[Message(role="user", content="Should I take ibuprofen for a fever?")],
         )
         response = await process(request, "sess-g2-test")
+        # Drain the background extraction task while llm is still patched
+        import asyncio
+        await asyncio.sleep(0.01)
 
     # Exactly one target-model call (criteria extraction is pipeline-internal)
     target_calls = [c for c in chat_calls if not _is_criteria_call(c)]
@@ -106,6 +109,9 @@ async def test_normalizer_stripped_signal_still_triggers_counterfactual():
             messages=[Message(role="user", content=original)],
         )
         response = await process(request, "sess-g5-test")
+        # Drain the background extraction task while llm is still patched
+        import asyncio
+        await asyncio.sleep(0.01)
 
     flag_types = {f.type for f in response.meta.sycophancy_flags}
     assert "counterfactual_divergence" in flag_types, (

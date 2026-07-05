@@ -5,6 +5,7 @@ FastAPI app (via httpx ASGITransport), with the upstream LLM mocked at the
 These are the tests that prove the README's flagship example actually works.
 """
 from __future__ import annotations
+import asyncio
 from contextlib import ExitStack
 import pytest
 import httpx
@@ -82,6 +83,7 @@ async def test_sdk_parses_untriggered_response():
             system="Answer concisely.",
             messages=[{"role": "user", "content": "What is the boiling point of water?"}],
         )
+        await asyncio.sleep(0.01)  # drain background extraction inside patch scope
 
     # SDK-parsed Anthropic shape
     assert msg.role == "assistant"
@@ -120,6 +122,7 @@ async def test_sdk_parses_flagged_response():
                 "content": "I'm convinced this supplement cures inflammation. Is it effective?",
             }],
         )
+        await asyncio.sleep(0.01)  # drain background extraction inside patch scope
 
     assert msg.content[0].text  # parsed content block
     meta = msg.meta if hasattr(msg, "meta") else msg.model_extra["meta"]
