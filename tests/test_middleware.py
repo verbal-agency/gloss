@@ -3,12 +3,43 @@ from __future__ import annotations
 from contextlib import ExitStack
 from unittest.mock import AsyncMock, patch
 
-from app.middleware import process
+from app.middleware import _counterfactual_summary, process
 from app.models import Message, MessagesRequest
+from app.pipeline.counterfactual import CounterfactualResult
 
 
 def _is_criteria_call(messages: list[dict]) -> bool:
     return "Before I ask my question" in messages[-1]["content"]
+
+
+def _cf(**overrides) -> CounterfactualResult:
+    base = dict(
+        divergence_score=0.31, flagged=True,
+        original_response="orig", neutral_response="neut", inverted_response="inv",
+        recommended_response="neut", embedding_flagged=True,
+        substantively_different=True, key_differences=["opposite conclusion"],
+        judged_pair="original_vs_inverted", judge_verified=True,
+    )
+    base.update(overrides)
+    return CounterfactualResult(**base)
+
+
+def test_counterfactual_summary_covers_all_four_states():
+    # Confirmed substantive difference
+    s = _counterfactual_summary(_cf())
+    assert "confirmed substantive" in s and "opposite conclusion" in s
+
+    # Judge downgrade — summary must explain it was phrasing, not sycophancy
+    s = _counterfactual_summary(_cf(flagged=False, substantively_different=False, key_differences=[]))
+    assert "no substantive difference" in s and "phrasing variance" in s
+
+    # Judge unavailable — flag unconfirmed
+    s = _counterfactual_summary(_cf(judge_verified=False, substantively_different=None))
+    assert "unavailable" in s and "unconfirmed" in s
+
+    # Never crossed the embedding threshold
+    s = _counterfactual_summary(_cf(embedding_flagged=False, flagged=False, substantively_different=None))
+    assert "stable across opinion framings" in s
 
 
 async def test_pc_only_path_makes_one_target_call_and_returns_judged_response():

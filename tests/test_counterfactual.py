@@ -35,28 +35,92 @@ def test_opinion_signal_epistemic_humility_not_flagged():
     assert not _has_opinion_signal("I am not certain how quicksort works.")
 
 
-@pytest.mark.asyncio
-async def test_flags_high_divergence():
-    variants = {"neutral": "Is X effective?", "inverted": "I think X is ineffective. Is it?"}
+_VARIANTS = {"neutral": "Is X effective?", "inverted": "I think X is ineffective. Is it?"}
 
-    # Artificially divergent embeddings
-    emb_original = [1.0, 0.0, 0.0]
-    emb_neutral  = [1.0, 0.0, 0.0]   # same as original
-    emb_inverted = [-1.0, 0.0, 0.0]  # opposite
+# original == neutral (sim 1.0), inverted opposite (sim -1.0) -> divergence 2.0,
+# flagging pair is original_vs_inverted
+_DIVERGENT_EMB = [[1.0, 0.0, 0.0], [1.0, 0.0, 0.0], [-1.0, 0.0, 0.0]]
+# all three near-identical -> divergence ~0 -> below threshold
+_STABLE_EMB = [[1.0, 0.0, 0.0], [1.0, 0.0, 0.0], [1.0, 0.0, 0.0]]
 
+_PRIMED_QUERY = "I'm convinced X is very effective. Is it?"
+
+
+def _cf_json_router(judge_verdict):
+    """Routes chat_json by system prompt: variant-gen vs substantive-difference judge."""
+    async def _router(messages, **kwargs):
+        system = messages[0]["content"]
+        if "two variants" in system:
+            return _VARIANTS
+        if "substantively different" in system:
+            if isinstance(judge_verdict, Exception):
+                raise judge_verdict
+            return judge_verdict
+        raise AssertionError(f"unrouted chat_json: {system[:50]}")
+    return _router
+
+
+async def _run_primed(judge_verdict, embeddings=_DIVERGENT_EMB):
     with (
-        patch("app.pipeline.counterfactual.llm.chat_json", AsyncMock(return_value=variants)),
+        patch("app.pipeline.counterfactual.llm.chat_json",
+              AsyncMock(side_effect=_cf_json_router(judge_verdict))),
         patch("app.pipeline.counterfactual.llm.chat", AsyncMock(return_value="some response")),
-        patch("app.pipeline.counterfactual.llm.embed", AsyncMock(return_value=[emb_original, emb_neutral, emb_inverted])),
+        patch("app.pipeline.counterfactual.llm.embed", AsyncMock(return_value=embeddings)),
     ):
-        result = await run(
-            "I'm convinced X is very effective. Is it?",
-            [{"role": "user", "content": "I'm convinced X is very effective. Is it?"}],
-        )
+        return await run(_PRIMED_QUERY, [{"role": "user", "content": _PRIMED_QUERY}])
 
-    assert result is not None
+
+@pytest.mark.asyncio
+async def test_judge_not_called_below_threshold():
+    """Happy path stays zero-cost: no judge call when divergence is below threshold."""
+    judge = AsyncMock(side_effect=AssertionError("judge must not run below threshold"))
+    with (
+        patch("app.pipeline.counterfactual.llm.chat_json",
+              AsyncMock(side_effect=_cf_json_router({"substantively_different": True}))),
+        patch("app.pipeline.counterfactual._judge_substantive", judge),
+        patch("app.pipeline.counterfactual.llm.chat", AsyncMock(return_value="some response")),
+        patch("app.pipeline.counterfactual.llm.embed", AsyncMock(return_value=_STABLE_EMB)),
+    ):
+        result = await run(_PRIMED_QUERY, [{"role": "user", "content": _PRIMED_QUERY}])
+    assert result.embedding_flagged is False
+    assert result.flagged is False
+    assert result.substantively_different is None
+    judge.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_judge_confirms_substantive_difference():
+    result = await _run_primed(
+        {"substantively_different": True, "key_differences": ["opposite conclusion"]}
+    )
+    assert result.embedding_flagged is True
     assert result.flagged is True
-    assert result.divergence_score > 0.15
+    assert result.substantively_different is True
+    assert result.key_differences == ["opposite conclusion"]
+    assert result.judged_pair == "original_vs_inverted"
+    assert result.recommended_response == result.neutral_response
+
+
+@pytest.mark.asyncio
+async def test_judge_downgrades_phrasing_variance():
+    """Embedding fired but judge says no substantive difference -> not flagged,
+    original response recommended."""
+    result = await _run_primed({"substantively_different": False, "key_differences": []})
+    assert result.embedding_flagged is True
+    assert result.flagged is False
+    assert result.substantively_different is False
+    assert result.recommended_response == result.original_response
+
+
+@pytest.mark.asyncio
+async def test_judge_failure_keeps_flag_unverified():
+    """Judge outage: keep the embedding flag but mark it unverified (fail-open)."""
+    result = await _run_primed(RuntimeError("judge exploded"))
+    assert result.embedding_flagged is True
+    assert result.flagged is True
+    assert result.judge_verified is False
+    assert result.substantively_different is None
+    assert result.recommended_response == result.neutral_response
 
 
 @pytest.mark.asyncio

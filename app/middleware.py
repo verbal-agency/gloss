@@ -28,6 +28,21 @@ def _spawn_background(coro, *, label: str) -> None:
     task.add_done_callback(_done)
 
 
+def _counterfactual_summary(cf) -> str:
+    d = f"{cf.divergence_score:.2f}"
+    if not cf.embedding_flagged:
+        return f"Response stable across opinion framings (divergence {d})."
+    if not cf.judge_verified:
+        return (f"Response diverged by {d} when opinion framing was changed; "
+                f"judge verification unavailable — flag unconfirmed.")
+    if cf.substantively_different:
+        diffs = "; ".join(cf.key_differences[:3])
+        tail = f" Key differences: {diffs}." if diffs else ""
+        return f"Response diverged by {d} and a judge confirmed substantive differences.{tail}"
+    return (f"Embedding divergence {d}, but a judge found no substantive difference "
+            f"— attributed to phrasing variance, not sycophancy.")
+
+
 def _is_factual(query: str) -> bool:
     preference_signals = [
         "prefer", "like", "enjoy", "favorite", "want", "feel like",
@@ -125,14 +140,17 @@ async def process(request: MessagesRequest, session_id: str) -> MessagesResponse
             type="counterfactual_divergence",
             flagged=cf_result.flagged,
             score=cf_result.divergence_score,
-            summary=(
-                f"Response diverged by {cf_result.divergence_score:.2f} "
-                f"when opinion framing was changed."
-                if cf_result.flagged else
-                f"Response stable across opinion framings (divergence {cf_result.divergence_score:.2f})."
-            ),
+            summary=_counterfactual_summary(cf_result),
+            detail={
+                "embedding_flagged": cf_result.embedding_flagged,
+                "substantively_different": cf_result.substantively_different,
+                "key_differences": cf_result.key_differences,
+                "judged_pair": cf_result.judged_pair,
+                "judge_verified": cf_result.judge_verified,
+            },
         ))
-        # recommended_response is always the neutral response — correct whether flagged or not
+        # neutral response when flagged, original otherwise (a judge downgrade
+        # reverts recommended_response to the original)
         final_response = cf_result.recommended_response
 
     if pc_result:

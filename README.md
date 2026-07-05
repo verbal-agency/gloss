@@ -21,7 +21,7 @@ Four mechanisms, running in tiers:
 | Tier | Component | When it runs | What it catches |
 |---|---|---|---|
 | 0 | **Query normalization** | Every query | Strips authority claims, confidence markers, emotional stakes before the model sees them |
-| 1 | **Counterfactual pairs** | Opinion signal detected | Sends neutral + inverted variants in parallel, scores response divergence |
+| 1 | **Counterfactual pairs** | Opinion signal detected | Sends neutral + inverted variants in parallel, scores embedding divergence, then confirms flagged cases with a substantive-difference judge (two-stage: cheap screen + judge) |
 | 2 | **Pre-commitment extraction** | High-stakes domain | Locks in evaluation criteria before the primed query; detects if response violates those criteria |
 | 2 | **Disagreement pressure** | Opinion signal + factual query | Probes whether position holds under simulated pushback |
 | 3 | **Temporal consistency** | Multi-turn (turn ≥ 3) | Detects gradual capitulation across a conversation by tracking claim drift |
@@ -133,12 +133,13 @@ python -m eval.latency_harness
 |---|---|---|---|
 | Neutral query, nothing triggered | 2 + 1 | 1 | ~2x |
 | High-stakes domain, no opinion signal | 4 + 1 | 1 | ~3x |
-| Opinion-primed query | 7 + 1 | 2 | ~5x |
-| Opinion-primed + high-stakes (worst case) | 10 + 1 | 2 | ~5x |
+| Opinion-primed query, divergence flagged | 8 + 1 | 2 | ~6x |
+| Opinion-primed + high-stakes, flagged (worst case) | 11 + 1 | 2 | ~6x |
 | Multi-turn, temporal check passes | 2 + 1 | 1 | ~2x |
 | Multi-turn, drift flagged | 3 + 1 | 1 | ~3x |
 
 Notes:
+- The opinion-primed rows include the second-stage substantive-difference judge, which runs **only when the embedding screen flags** (divergence exceeds threshold). An opinion-primed query whose responses don't diverge skips the judge — one fewer blocking call (~5x rather than ~6x).
 - Even untriggered queries pay ~2x wall-clock, because query normalization is itself a serial LLM call before the target call.
 - Token cost scales roughly with the blocking-call count, since most pipeline calls carry the conversation context. Budget accordingly for high-traffic use.
 - The `usage` field on responses reflects the returned exchange (tokenizer-estimated), not the aggregate cost of pipeline-internal calls.

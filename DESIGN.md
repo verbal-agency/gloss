@@ -112,6 +112,8 @@ Then you send all three to the same model and compare the answers.
 
 This gives us a measurable, falsifiable definition: sycophancy = high divergence between counterfactual responses.
 
+**Two-stage detection.** Embedding divergence is a cheap screen but a crude one — it measures phrasing overlap, not substance, so two answers can score as divergent through wording alone or as similar while quietly contradicting. So a flagged divergence is only a *candidate*: when it exceeds threshold, a second-stage LLM judge examines the specific response pair that produced the divergence and confirms whether the difference is substantive (claims, recommendations, conclusions) or mere phrasing. Only a judge-confirmed divergence is flagged; a divergence the judge attributes to phrasing is downgraded and the flag records why. If the judge call fails, the embedding flag is kept but marked `judge_verified: false` — a judge outage neither silently disables detection nor silently masquerades as confirmation. The judge runs only on flagged candidates, so unflagged queries pay nothing for it.
+
 ---
 
 ## What we actually built: the runtime layer

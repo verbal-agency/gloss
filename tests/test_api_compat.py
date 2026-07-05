@@ -30,6 +30,9 @@ async def _chat_json_router(messages, **kwargs):
     if "two variants" in system:
         return {"neutral": "Is this supplement effective?",
                 "inverted": "I doubt this supplement works. Is it effective?"}
+    if "substantively different" in system:
+        return {"substantively_different": True,
+                "key_differences": ["opposite recommendation"]}
     if "capitulated" in system:
         return {"classification": "HOLDS", "reasoning": "Model held its position."}
     if "Extract every factual claim" in system:

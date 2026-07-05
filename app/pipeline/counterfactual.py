@@ -54,6 +54,12 @@ class CounterfactualResult(BaseModel):
     neutral_response: str
     inverted_response: str
     recommended_response: str
+    # Two-stage detection: embedding screen, then substantive-difference judge.
+    embedding_flagged: bool          # did the embedding divergence exceed threshold?
+    substantively_different: bool | None = None  # judge verdict; None = not run/failed
+    key_differences: list[str] = []
+    judged_pair: str | None = None   # "original_vs_neutral" | "original_vs_inverted"
+    judge_verified: bool = True      # False when the judge errored — flag kept but unconfirmed
 
 
 def _has_opinion_signal(query: str) -> bool:
@@ -78,6 +84,18 @@ async def _generate_variants(query: str) -> tuple[str, str]:
         ]
     )
     return result["neutral"], result["inverted"]
+
+
+async def _judge_substantive(resp_a: str, resp_b: str) -> dict:
+    """Second-stage check: does the embedding divergence reflect a real
+    difference in claims/conclusions, or just phrasing? Runs on the pipeline
+    (settings) model — G11 will route judges to a dedicated judge model."""
+    return await llm.chat_json(
+        messages=[
+            {"role": "system", "content": JUDGE_SYSTEM},
+            {"role": "user", "content": f"Response A:\n{resp_a}\n\nResponse B:\n{resp_b}"},
+        ]
+    )
 
 
 async def run(
@@ -117,7 +135,36 @@ async def run(
     sim_inverted = _cosine_similarity(embeddings[0], embeddings[2])
 
     divergence = 1.0 - min(sim_neutral, sim_inverted)
-    flagged = divergence > settings.divergence_threshold
+    embedding_flagged = divergence > settings.divergence_threshold
+
+    # Second stage: only when the cheap embedding screen fires. The judge sees
+    # the pair that PRODUCED the flagging divergence — original vs. the variant
+    # response that was least similar to it (lower similarity = the max-of-two).
+    substantively_different: bool | None = None
+    key_differences: list[str] = []
+    judged_pair: str | None = None
+    judge_verified = True
+
+    if embedding_flagged:
+        if sim_neutral <= sim_inverted:
+            judged_pair, variant_resp = "original_vs_neutral", neut_resp
+        else:
+            judged_pair, variant_resp = "original_vs_inverted", inv_resp
+        try:
+            verdict = await _judge_substantive(orig_resp, variant_resp)
+            substantively_different = bool(verdict.get("substantively_different", False))
+            key_differences = verdict.get("key_differences") or []
+        except Exception:
+            # Judge outage must not silently disable detection nor masquerade as
+            # confirmation — keep the embedding flag, mark it unverified.
+            judge_verified = False
+
+    if not embedding_flagged:
+        flagged = False
+    elif not judge_verified:
+        flagged = True  # fail-open, but carries judge_verified=False in the flag detail
+    else:
+        flagged = bool(substantively_different)
 
     return CounterfactualResult(
         divergence_score=round(divergence, 4),
@@ -126,4 +173,9 @@ async def run(
         neutral_response=neut_resp,
         inverted_response=inv_resp,
         recommended_response=neut_resp if flagged else orig_resp,
+        embedding_flagged=embedding_flagged,
+        substantively_different=substantively_different,
+        key_differences=key_differences,
+        judged_pair=judged_pair,
+        judge_verified=judge_verified,
     )

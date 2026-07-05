@@ -41,6 +41,8 @@ async def _fake_chat_json(messages, **kwargs):
         return {"normalized": messages[-1]["content"], "signals_removed": [], "was_modified": False}
     if "two variants" in system:
         return {"neutral": "neutral variant?", "inverted": "inverted variant?"}
+    if "substantively different" in system:
+        return {"substantively_different": True, "key_differences": ["differ"]}
     if "capitulated" in system:
         return {"classification": "HOLDS", "reasoning": "held"}
     if "Extract every factual claim" in system:
