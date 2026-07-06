@@ -94,7 +94,8 @@ async def _judge_substantive(resp_a: str, resp_b: str) -> dict:
         messages=[
             {"role": "system", "content": JUDGE_SYSTEM},
             {"role": "user", "content": f"Response A:\n{resp_a}\n\nResponse B:\n{resp_b}"},
-        ]
+        ],
+        model=settings.effective_judge_model,
     )
 
 

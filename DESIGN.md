@@ -114,6 +114,34 @@ This gives us a measurable, falsifiable definition: sycophancy = high divergence
 
 **Two-stage detection.** Embedding divergence is a cheap screen but a crude one — it measures phrasing overlap, not substance, so two answers can score as divergent through wording alone or as similar while quietly contradicting. So a flagged divergence is only a *candidate*: when it exceeds threshold, a second-stage LLM judge examines the specific response pair that produced the divergence and confirms whether the difference is substantive (claims, recommendations, conclusions) or mere phrasing. Only a judge-confirmed divergence is flagged; a divergence the judge attributes to phrasing is downgraded and the flag records why. If the judge call fails, the embedding flag is kept but marked `judge_verified: false` — a judge outage neither silently disables detection nor silently masquerades as confirmation. The judge runs only on flagged candidates, so unflagged queries pay nothing for it.
 
+```mermaid
+flowchart TD
+    A[User query arrives at Tier 1] --> B{"Opinion signal in the<br/>ORIGINAL user message?"}
+    B -->|No| Z["Tier skipped —<br/>return normal response"]
+    B -->|Yes| C["Generate neutral + inverted variants<br/>(pipeline model)"]
+    C --> D["Fire 3 responses in parallel:<br/>original / neutral / inverted<br/>(target model)"]
+    D --> E["Embed all 3<br/>divergence = 1 − min(sim_neutral, sim_inverted)"]
+    E --> F{"divergence > threshold?"}
+
+    F -->|"No (stable)"| G["NOT FLAGGED · return ORIGINAL<br/>judge never runs → 0 added cost<br/>substantively_different = null"]
+
+    F -->|"Yes (candidate)"| H["Stage 2: substantive-difference judge<br/>on the flagging pair —<br/>original vs. least-similar variant"]
+    H --> I{"Judge outcome"}
+
+    I -->|"call failed / bad JSON"| J["FLAGGED · return NEUTRAL<br/>judge_verified = false<br/>(fail-open, marked unconfirmed)"]
+    I -->|"substantively different"| K["FLAGGED · return NEUTRAL<br/>judge_verified = true<br/>key_differences recorded"]
+    I -->|"phrasing only"| L["DOWNGRADED → NOT FLAGGED<br/>return ORIGINAL<br/>summary: phrasing variance"]
+
+    classDef flag fill:#fde4e4,stroke:#c0392b,color:#000
+    classDef clean fill:#e3f6e3,stroke:#27ae60,color:#000
+    classDef neutral fill:#eef2f7,stroke:#5b6b7b,color:#000
+    class J,K flag
+    class G,L,Z clean
+    class H,I neutral
+```
+
+Green terminals return the user's original response; red terminals substitute the neutral-variant response. Both `G` (never diverged) and `L` (diverged but only in phrasing) return the original without flagging — `detail.embedding_flagged` distinguishes them downstream.
+
 ---
 
 ## What we actually built: the runtime layer
@@ -290,7 +318,7 @@ These are gaps in the current code that should be addressed before the service i
 - How do we measure semantic divergence? Embedding distance is simple but may miss subtle shifts in emphasis or hedging. An LLM judge is more accurate but adds cost and latency.
 - What's the right response to detected sycophancy? Substitute the neutral answer? Warn the user? Show both?
 - Are there categories of questions where sycophancy is expected and acceptable (preferences, values) vs. where it's harmful (facts, analysis)?
-- Pre-commitment extraction solves for reasoning drift — but the LLM judge evaluating consistency may itself be biased. How do we score criteria adherence reliably?
+- Pre-commitment extraction solves for reasoning drift — but the LLM judge evaluating consistency may itself be biased. How do we score criteria adherence reliably? *(Partial mitigation implemented: the `JUDGE_MODEL` setting routes all scoring judges — counterfactual substantive-difference, pre-commitment consistency, disagreement classification, temporal arc — to a separate model, so the model under test no longer grades itself. Defaults to the target model, so the circularity is only broken when explicitly configured; and a shared training lineage between target and judge can still correlate their biases.)*
 - Disagreement pressure: how do we distinguish "the model updated because I gave it new information framed as pushback" from "the model capitulated"? The text of the pushback is identical; only the model's reasoning can distinguish them.
 
 **Epistemic omission (partially tractable — see countermeasures section below)**

@@ -108,6 +108,7 @@ If no `X-Session-ID` header is provided, a new session is created for each reque
 |---|---|---|
 | `LITELLM_MODEL` | `anthropic/claude-sonnet-4-6` | Target model (any LiteLLM-supported provider/model) |
 | `LITELLM_EMBEDDING_MODEL` | `openai/text-embedding-3-small` | Embedding model for divergence scoring |
+| `JUDGE_MODEL` | *(unset → same as target)* | Model for the scoring judges. Set to a different model/provider to stop the model under test from grading its own sycophancy |
 | `ANTHROPIC_API_KEY` | — | Required if using Anthropic models |
 | `OPENAI_API_KEY` | — | Required if using OpenAI models or embeddings |
 | `REDIS_URL` | `redis://localhost:6379` | Redis connection string |

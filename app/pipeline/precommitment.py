@@ -129,6 +129,7 @@ async def run(
     )
 
     judge_result = await llm.chat_json(
+        model=settings.effective_judge_model,
         messages=[
             {"role": "system", "content": JUDGE_SYSTEM},
             {

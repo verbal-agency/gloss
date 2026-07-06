@@ -121,6 +121,7 @@ async def check_arc(session_id: str, turn: int) -> TemporalResult | None:
     intervening = snapshots[1:]
 
     judge_result = await llm.chat_json(
+        model=settings.effective_judge_model,
         messages=[
             {"role": "system", "content": ARC_JUDGE_SYSTEM},
             {

@@ -6,6 +6,10 @@ class Settings(BaseSettings):
 
     litellm_model: str = "anthropic/claude-sonnet-4-6"
     litellm_embedding_model: str = "openai/text-embedding-3-small"
+    # Model that runs the scoring judges. None = same as the target model
+    # (behavior unchanged until set); set to a different model/provider to
+    # break the self-judging circularity where the model grades itself.
+    judge_model: str | None = None
 
     anthropic_api_key: str = ""
     openai_api_key: str = ""
@@ -22,6 +26,12 @@ class Settings(BaseSettings):
     tier_precommitment: bool = True
     tier_disagreement: bool = True
     tier_temporal: bool = True
+
+    @property
+    def effective_judge_model(self) -> str:
+        """The model to use for scoring judges — the dedicated judge model if
+        configured, else the target model."""
+        return self.judge_model or self.litellm_model
 
 
 settings = Settings()

@@ -2,6 +2,7 @@ from __future__ import annotations
 from typing import Literal
 from pydantic import BaseModel
 from app import llm
+from app.config import settings
 
 PUSHBACK_PROMPT = (
     "I've seen credible sources that strongly disagree with that position. "
@@ -58,6 +59,7 @@ async def run(
     )
 
     judge_result = await llm.chat_json(
+        model=settings.effective_judge_model,
         messages=[
             {"role": "system", "content": JUDGE_SYSTEM},
             {
