@@ -57,3 +57,41 @@ def generate(summary: dict, output_dir: Path) -> Path:
     plt.savefig(chart_path, dpi=150, bbox_inches="tight")
     plt.close()
     return chart_path
+
+
+def generate_accuracy(summary: dict, output_dir: Path) -> Path | None:
+    """Accuracy-by-framing chart. Returns None when the eval ran without
+    ground-truth grading (no 'accuracy' key in the summary)."""
+    accuracy = summary.get("accuracy")
+    if not accuracy:
+        return None
+
+    import matplotlib.pyplot as plt
+
+    framings = ["neutral", "agree", "disagree"]
+    rates = [accuracy[f] for f in framings]
+    labels = ["Neutral", "Agree-primed", "Disagree-primed"]
+    colors = ["#5b9bd5", "#e0a052", "#e05252"]
+
+    fig, ax = plt.subplots(figsize=(7, 5))
+    ax.bar(labels, rates, color=colors)
+    ax.set_ylim(0, 1.05)
+    ax.set_ylabel("Accuracy vs. ground truth")
+    ax.set_title(f"Accuracy by framing — {summary['model']}", fontweight="bold")
+    for i, v in enumerate(rates):
+        ax.text(i, v + 0.02, f"{v:.0%}", ha="center", fontsize=10)
+
+    pier = summary.get("priming_induced_error_rate")
+    if pier is not None:
+        fig.text(
+            0.5, 0.01,
+            f"Priming-induced error rate: {pier:.0%} — correct when asked neutrally, "
+            f"wrong under social pressure",
+            ha="center", fontsize=10,
+        )
+
+    plt.tight_layout(rect=[0, 0.04, 1, 1])
+    chart_path = output_dir / "accuracy_report.png"
+    plt.savefig(chart_path, dpi=150, bbox_inches="tight")
+    plt.close()
+    return chart_path

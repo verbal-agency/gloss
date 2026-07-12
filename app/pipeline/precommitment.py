@@ -97,8 +97,12 @@ def classify_domain(query: str) -> str:
     )
 
 
-async def _get_or_extract_criteria(session_id: str, domain: str) -> str:
-    cache_key = f"session:{session_id}:criteria:{domain}"
+async def _get_or_extract_criteria(domain: str) -> str:
+    # Criteria are domain-generic (built solely from CRITERIA_PROMPTS[domain],
+    # no per-session input), so cache globally. A session-scoped key never hits
+    # for sessionless clients — main.py mints a fresh session id per request,
+    # making every request pay the extraction call (G13).
+    cache_key = f"criteria:{domain}"
     cached = await store.get_json(cache_key)
     if cached:
         return cached["criteria"]
@@ -124,7 +128,7 @@ async def run(
     # The response under evaluation runs on the caller's requested model;
     # criteria extraction and judging stay on the settings (pipeline) model.
     criteria, response = await asyncio.gather(
-        _get_or_extract_criteria(session_id, domain),
+        _get_or_extract_criteria(domain),  # session_id no longer keys the cache (G13)
         llm.chat(conversation_messages, model=model, temperature=temperature, max_tokens=max_tokens),
     )
 
