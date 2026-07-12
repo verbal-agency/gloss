@@ -175,7 +175,7 @@ def test_parser_accepts_calibrate_flags():
 def test_main_dispatches_to_calibrate(monkeypatch):
     recorded = {}
 
-    async def fake_calibrate(model, dataset, output, repeats, sample):
+    async def fake_calibrate(model, dataset, output, repeats, sample, concurrency=8):
         recorded.update(model=model, repeats=repeats, sample=sample)
         return {}
 

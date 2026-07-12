@@ -52,6 +52,24 @@ async def chat(
     return response.choices[0].message.content
 
 
+class JsonParseError(ValueError):
+    """The model returned text that isn't valid JSON, twice. Carries the raw
+    text so callers can log/skip rather than crash on a bare decode error."""
+    def __init__(self, raw: str):
+        self.raw = raw
+        super().__init__(f"model did not return valid JSON: {raw[:200]!r}")
+
+
+def _extract_json(text: str) -> dict:
+    text = text.strip()
+    # Strip markdown code fences if the model wraps the JSON anyway
+    if text.startswith("```"):
+        text = re.sub(r"^```(?:json)?\n?", "", text)
+        text = re.sub(r"\n?```$", "", text.strip())
+        text = text.strip()
+    return json.loads(text)
+
+
 async def chat_json(
     messages: list[dict[str, str]],
     model: str | None = None,
@@ -65,13 +83,16 @@ async def chat_json(
             break
 
     text = await chat(enforced, model=model, temperature=temperature)
-    text = text.strip()
-    # Strip markdown code fences if the model wraps the JSON anyway
-    if text.startswith("```"):
-        text = re.sub(r"^```(?:json)?\n?", "", text)
-        text = re.sub(r"\n?```$", "", text.strip())
-        text = text.strip()
-    return json.loads(text)
+    try:
+        return _extract_json(text)
+    except json.JSONDecodeError:
+        # One retry — LLMs frequently self-correct. Nudge temperature up so a
+        # deterministic bad completion has a chance to vary.
+        retry_text = await chat(enforced, model=model, temperature=max(temperature, 0.4))
+        try:
+            return _extract_json(retry_text)
+        except json.JSONDecodeError:
+            raise JsonParseError(retry_text)
 
 
 def count_tokens(
