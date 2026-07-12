@@ -1,7 +1,16 @@
 from __future__ import annotations
+import logging
 from pydantic import BaseModel
 from app import llm
 from app.pipeline.precommitment import classify_domain
+
+logger = logging.getLogger("gloss.adversarial")
+
+
+class _AuditSchema(BaseModel):
+    concerns: list[str] = []
+    assumptions: list[str] = []
+    flagged: bool = False
 
 PROMPTS: dict[str, str] = {
     "technical": (
@@ -70,19 +79,25 @@ async def run(query: str, response: str, domain: str | None = None) -> Adversari
     resolved_domain = domain or classify_domain(query)
     audit_prompt = PROMPTS[resolved_domain]
 
-    result = await llm.chat_json(
-        messages=[
-            {"role": "system", "content": SYSTEM},
-            {
-                "role": "user",
-                "content": (
-                    f"{audit_prompt}\n\n"
-                    f"Query: {query}\n\n"
-                    f"Response: {response}"
-                ),
-            },
-        ]
-    )
+    try:
+        result = await llm.chat_json(
+            messages=[
+                {"role": "system", "content": SYSTEM},
+                {
+                    "role": "user",
+                    "content": (
+                        f"{audit_prompt}\n\n"
+                        f"Query: {query}\n\n"
+                        f"Response: {response}"
+                    ),
+                },
+            ],
+            schema=_AuditSchema,
+        )
+    except (llm.JsonParseError, llm.JsonSchemaError):
+        # Safe degrade: can't audit → surface no (possibly fabricated) concerns.
+        logger.warning("adversarial audit JSON failed; returning no concerns (not flagged)")
+        result = _AuditSchema().model_dump()
 
     return AdversarialResult(
         domain=resolved_domain,

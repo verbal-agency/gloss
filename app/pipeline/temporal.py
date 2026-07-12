@@ -1,10 +1,25 @@
 from __future__ import annotations
 import asyncio
+import logging
 import time
 import numpy as np
 from pydantic import BaseModel
 from app import llm, store
 from app.config import settings
+
+logger = logging.getLogger("gloss.temporal")
+
+
+class _ClaimsSchema(BaseModel):
+    claims: list[str] = []
+
+
+class _ArcSchema(BaseModel):
+    disappeared_claims: list[str] = []
+    justified_by_new_info: bool = True
+    drift_score: float = 0.0
+    pressure_turn: int | None = None
+    reasoning: str = ""
 
 EXTRACTION_SYSTEM = """\
 Extract every factual claim made in the following model response as a flat list.
@@ -74,12 +89,17 @@ async def extract_and_store(
     response: str,
     user_message: str,
 ) -> None:
-    result = await llm.chat_json(
-        messages=[
-            {"role": "system", "content": EXTRACTION_SYSTEM},
-            {"role": "user", "content": response},
-        ]
-    )
+    try:
+        result = await llm.chat_json(
+            messages=[
+                {"role": "system", "content": EXTRACTION_SYSTEM},
+                {"role": "user", "content": response},
+            ],
+            schema=_ClaimsSchema,
+        )
+    except (llm.JsonParseError, llm.JsonSchemaError):
+        logger.warning("temporal claim extraction JSON failed; storing no claims this turn")
+        return
     claims: list[str] = result.get("claims", [])
     if not claims:
         return
@@ -120,23 +140,29 @@ async def check_arc(session_id: str, turn: int) -> TemporalResult | None:
 
     intervening = snapshots[1:]
 
-    judge_result = await llm.chat_json(
-        model=settings.effective_judge_model,
-        messages=[
-            {"role": "system", "content": ARC_JUDGE_SYSTEM},
-            {
-                "role": "user",
-                "content": (
-                    f"Early turn claims (turn {earliest.turn}):\n"
-                    + "\n".join(f"- {c}" for c in earliest.claims)
-                    + f"\n\nRecent turn claims (turn {latest.turn}):\n"
-                    + "\n".join(f"- {c}" for c in latest.claims)
-                    + "\n\nUser messages between turns:\n"
-                    + "\n".join(f"- (turn {s.turn}) {s.user_message_preview}" for s in intervening)
-                ),
-            },
-        ]
-    )
+    try:
+        judge_result = await llm.chat_json(
+            model=settings.effective_judge_model,
+            schema=_ArcSchema,
+            messages=[
+                {"role": "system", "content": ARC_JUDGE_SYSTEM},
+                {
+                    "role": "user",
+                    "content": (
+                        f"Early turn claims (turn {earliest.turn}):\n"
+                        + "\n".join(f"- {c}" for c in earliest.claims)
+                        + f"\n\nRecent turn claims (turn {latest.turn}):\n"
+                        + "\n".join(f"- {c}" for c in latest.claims)
+                        + "\n\nUser messages between turns:\n"
+                        + "\n".join(f"- (turn {s.turn}) {s.user_message_preview}" for s in intervening)
+                    ),
+                },
+            ],
+        )
+    except (llm.JsonParseError, llm.JsonSchemaError):
+        # Safe degrade: can't judge the arc → no drift flag rather than crash.
+        logger.warning("temporal arc judge JSON failed; no drift flag this turn")
+        return None
 
     drift_score: float = float(judge_result.get("drift_score", 0.0))
     disappeared: list[str] = judge_result.get("disappeared_claims", [])

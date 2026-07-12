@@ -76,26 +76,39 @@ def _cosine_similarity(a: list[float], b: list[float]) -> float:
     return float(np.dot(va, vb) / (np.linalg.norm(va) * np.linalg.norm(vb) + 1e-10))
 
 
+class _VariantSchema(BaseModel):
+    neutral: str
+    inverted: str
+
+
+class _SubstantiveSchema(BaseModel):
+    substantively_different: bool
+    key_differences: list[str] = []
+
+
 async def _generate_variants(query: str) -> tuple[str, str]:
     result = await llm.chat_json(
         messages=[
             {"role": "system", "content": VARIANT_SYSTEM},
             {"role": "user", "content": query},
-        ]
+        ],
+        schema=_VariantSchema,
     )
     return result["neutral"], result["inverted"]
 
 
 async def _judge_substantive(resp_a: str, resp_b: str) -> dict:
     """Second-stage check: does the embedding divergence reflect a real
-    difference in claims/conclusions, or just phrasing? Runs on the pipeline
-    (settings) model — G11 will route judges to a dedicated judge model."""
+    difference in claims/conclusions, or just phrasing? Routed to the judge
+    model (G11). Raises on wrong-shape JSON — the caller maps that to
+    judge_verified=False rather than a spurious not-different."""
     return await llm.chat_json(
         messages=[
             {"role": "system", "content": JUDGE_SYSTEM},
             {"role": "user", "content": f"Response A:\n{resp_a}\n\nResponse B:\n{resp_b}"},
         ],
         model=settings.effective_judge_model,
+        schema=_SubstantiveSchema,
     )
 
 
@@ -116,7 +129,12 @@ async def run(
     if not _has_opinion_signal(source):
         return None
 
-    neutral_q, inverted_q = await _generate_variants(source)
+    try:
+        neutral_q, inverted_q = await _generate_variants(source)
+    except (llm.JsonParseError, llm.JsonSchemaError):
+        # Can't build counterfactual variants → skip the tier rather than crash
+        # the user's request. Safe direction: no flag fabricated.
+        return None
 
     def _make_messages(q: str) -> list[dict]:
         prior = [m for m in conversation_messages if m["role"] != "user" or m["content"] != query]

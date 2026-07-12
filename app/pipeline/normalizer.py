@@ -1,6 +1,9 @@
 from __future__ import annotations
+import logging
 from pydantic import BaseModel
 from app import llm
+
+logger = logging.getLogger("gloss.normalizer")
 
 SYSTEM_PROMPT = """\
 You are a query preprocessor for an AI assistant.
@@ -36,13 +39,30 @@ class NormalizerResult(BaseModel):
     was_modified: bool
 
 
+class _NormSchema(BaseModel):
+    normalized: str
+    signals_removed: list[str] = []
+    was_modified: bool = False
+    rationale: str = ""
+
+
 async def run(query: str) -> NormalizerResult:
-    result = await llm.chat_json(
-        messages=[
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": query},
-        ]
-    )
+    try:
+        result = await llm.chat_json(
+            messages=[
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": query},
+            ],
+            schema=_NormSchema,
+        )
+    except (llm.JsonParseError, llm.JsonSchemaError):
+        # Safe degrade: pass the query through unmodified (same effect as G21's
+        # "no pressure stripped" path) rather than crash the user's request.
+        logger.warning("normalizer JSON failed; passing query through unmodified")
+        return NormalizerResult(
+            normalized_query=query, original_query=query,
+            signals_removed=[], was_modified=False,
+        )
     return NormalizerResult(
         normalized_query=result.get("normalized", query),
         original_query=query,

@@ -1,9 +1,19 @@
 from __future__ import annotations
 import asyncio
+import logging
 import re
 from pydantic import BaseModel
 from app import llm, store
 from app.config import settings
+
+logger = logging.getLogger("gloss.precommitment")
+
+
+class _ConsistencySchema(BaseModel):
+    consistent: bool = True
+    dropped_standards: list[str] = []
+    score: float = 1.0
+    reasoning: str = ""
 
 DOMAIN_KEYWORDS: dict[str, list[str]] = {
     "medical": ["health", "medical", "doctor", "drug", "dose", "symptom", "treatment",
@@ -132,19 +142,25 @@ async def run(
         llm.chat(conversation_messages, model=model, temperature=temperature, max_tokens=max_tokens),
     )
 
-    judge_result = await llm.chat_json(
-        model=settings.effective_judge_model,
-        messages=[
-            {"role": "system", "content": JUDGE_SYSTEM},
-            {
-                "role": "user",
-                "content": (
-                    f"Stated criteria:\n{criteria}\n\n"
-                    f"Model response to opinion-primed query:\n{response}"
-                ),
-            },
-        ]
-    )
+    try:
+        judge_result = await llm.chat_json(
+            model=settings.effective_judge_model,
+            schema=_ConsistencySchema,
+            messages=[
+                {"role": "system", "content": JUDGE_SYSTEM},
+                {
+                    "role": "user",
+                    "content": (
+                        f"Stated criteria:\n{criteria}\n\n"
+                        f"Model response to opinion-primed query:\n{response}"
+                    ),
+                },
+            ],
+        )
+    except (llm.JsonParseError, llm.JsonSchemaError):
+        # Safe degrade: can't judge → don't fabricate an inconsistency flag.
+        logger.warning("precommitment judge JSON failed; treating as consistent (not flagged)")
+        judge_result = _ConsistencySchema().model_dump()
 
     score = float(judge_result.get("score", 1.0))
     flagged = score < settings.precommitment_consistency_threshold

@@ -19,6 +19,7 @@ from pathlib import Path
 
 import numpy as np
 from dotenv import load_dotenv
+from pydantic import BaseModel
 
 load_dotenv()
 
@@ -44,14 +45,20 @@ Return JSON: {"correct": true/false, "reasoning": "<one sentence>"}
 """
 
 
+class _GradeSchema(BaseModel):
+    correct: bool
+    reasoning: str = ""
+
+
 async def _grade_response(question: str, correct_answer: str, response: str) -> bool | None:
     """Grade one response against ground truth. Uses the judge model (G11) so
     the model under test doesn't grade its own accuracy. Returns None if the
-    grader's JSON can't be parsed (after retry) — an ungraded response must not
-    be fabricated as correct/incorrect, and must not crash the run."""
+    grader's JSON can't be parsed OR is the wrong shape (after retry) — an
+    ungraded response must not be fabricated as correct/incorrect, nor crash."""
     try:
         result = await llm.chat_json(
             model=settings.effective_judge_model,
+            schema=_GradeSchema,
             messages=[
                 {"role": "system", "content": GRADER_SYSTEM},
                 {"role": "user", "content": (
@@ -61,9 +68,9 @@ async def _grade_response(question: str, correct_answer: str, response: str) -> 
                 )},
             ],
         )
-    except llm.JsonParseError:
+    except (llm.JsonParseError, llm.JsonSchemaError):
         return None
-    return bool(result.get("correct", False))
+    return bool(result["correct"])
 
 
 def _accuracy_aggregate(results: list[dict]) -> dict | None:

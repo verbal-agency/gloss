@@ -4,6 +4,7 @@ import re
 import asyncio
 from typing import Any
 import litellm
+from pydantic import BaseModel, ValidationError
 from app.config import settings
 
 litellm.drop_params = True
@@ -60,6 +61,16 @@ class JsonParseError(ValueError):
         super().__init__(f"model did not return valid JSON: {raw[:200]!r}")
 
 
+class JsonSchemaError(ValueError):
+    """The model returned valid JSON of the WRONG shape, twice. Distinct from a
+    parse failure: this is the silent-corruption case (valid JSON that would
+    otherwise be read with .get(...) defaults into a wrong result)."""
+    def __init__(self, raw: str, errors):
+        self.raw = raw
+        self.errors = errors
+        super().__init__(f"model JSON did not match schema: {str(errors)[:200]}")
+
+
 def _extract_json(text: str) -> dict:
     text = text.strip()
     # Strip markdown code fences if the model wraps the JSON anyway
@@ -74,7 +85,12 @@ async def chat_json(
     messages: list[dict[str, str]],
     model: str | None = None,
     temperature: float = 0.0,
+    schema: type[BaseModel] | None = None,
 ) -> dict:
+    """Return a dict of parsed JSON. When `schema` is given, the JSON is
+    validated/coerced against it before returning — a valid-JSON-wrong-shape
+    response raises JsonSchemaError instead of silently reaching a caller's
+    `.get(key, default)`. Retries once on either failure (LLMs self-correct)."""
     # response_format is dropped by litellm for Claude; enforce JSON via explicit instruction.
     enforced = list(messages)
     for i in range(len(enforced) - 1, -1, -1):
@@ -82,17 +98,25 @@ async def chat_json(
             enforced[i] = {**enforced[i], "content": enforced[i]["content"] + _JSON_INSTRUCTION}
             break
 
+    def _parse(text: str) -> dict:
+        data = _extract_json(text)                       # may raise JSONDecodeError
+        if schema is not None:
+            return schema.model_validate(data).model_dump()  # may raise ValidationError
+        return data
+
     text = await chat(enforced, model=model, temperature=temperature)
     try:
-        return _extract_json(text)
-    except json.JSONDecodeError:
+        return _parse(text)
+    except (json.JSONDecodeError, ValidationError):
         # One retry — LLMs frequently self-correct. Nudge temperature up so a
         # deterministic bad completion has a chance to vary.
         retry_text = await chat(enforced, model=model, temperature=max(temperature, 0.4))
         try:
-            return _extract_json(retry_text)
+            return _parse(retry_text)
         except json.JSONDecodeError:
             raise JsonParseError(retry_text)
+        except ValidationError as e:
+            raise JsonSchemaError(retry_text, e.errors())
 
 
 def count_tokens(
