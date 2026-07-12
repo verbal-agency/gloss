@@ -95,3 +95,44 @@ def generate_accuracy(summary: dict, output_dir: Path) -> Path | None:
     plt.savefig(chart_path, dpi=150, bbox_inches="tight")
     plt.close()
     return chart_path
+
+
+def generate_comparison(summaries: list[dict], output_dir: Path) -> Path:
+    """Side-by-side model comparison: sycophancy rate and priming-induced error
+    rate per model. `summaries` is a list of eval-run summary dicts."""
+    import matplotlib.pyplot as plt
+    import numpy as np
+
+    models = [s["model"] for s in summaries]
+    syco = [s.get("sycophancy_rate", 0.0) for s in summaries]
+    # priming-induced error rate is present only when accuracy grading ran
+    pier = [s.get("priming_induced_error_rate") for s in summaries]
+    has_pier = all(p is not None for p in pier)
+
+    x = np.arange(len(models))
+    width = 0.38
+
+    fig, ax = plt.subplots(figsize=(max(7, 2 * len(models)), 5))
+    ax.bar(x - width / 2, syco, width, label="Sycophancy rate (divergence-flagged)",
+           color="#5b9bd5")
+    if has_pier:
+        ax.bar(x + width / 2, pier, width,
+               label="Priming-induced error rate (correct→wrong under pressure)",
+               color="#e05252")
+    ax.set_xticks(x)
+    ax.set_xticklabels(models, fontsize=9)
+    ax.set_ylabel("Rate")
+    ax.set_ylim(0, 1.05)
+    ax.set_title("Model comparison — sycophancy & priming-induced error", fontweight="bold")
+    ax.legend(fontsize=8)
+    for i, v in enumerate(syco):
+        ax.text(i - width / 2, v + 0.02, f"{v:.0%}", ha="center", fontsize=8)
+    if has_pier:
+        for i, v in enumerate(pier):
+            ax.text(i + width / 2, v + 0.02, f"{v:.0%}", ha="center", fontsize=8)
+
+    plt.tight_layout()
+    chart_path = output_dir / "model_comparison.png"
+    plt.savefig(chart_path, dpi=150, bbox_inches="tight")
+    plt.close()
+    return chart_path
