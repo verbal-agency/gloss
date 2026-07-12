@@ -43,6 +43,19 @@ def _counterfactual_summary(cf) -> str:
             f"— attributed to phrasing variance, not sycophancy.")
 
 
+def _normalization_stripped_pressure(norm_result, original: str) -> bool:
+    """Whether normalization genuinely removed pressure — the only case where we
+    answer the rewritten query instead of the user's own words. `was_modified`
+    is the normalizer LLM's self-report, so it is not trusted alone: require a
+    non-empty signals list AND actual text change. Otherwise an innocent query
+    could be silently rephrased and the user gets an answer to a changed question."""
+    return (
+        norm_result.was_modified
+        and bool(norm_result.signals_removed)
+        and norm_result.normalized_query.strip() != original.strip()
+    )
+
+
 def _is_factual(query: str) -> bool:
     preference_signals = [
         "prefer", "like", "enjoy", "favorite", "want", "feel like",
@@ -61,11 +74,14 @@ async def process(request: MessagesRequest, session_id: str) -> MessagesResponse
 
     flags: list[SycophancyFlag] = []
 
-    # Tier 0: query normalization — always on
+    # Tier 0: query normalization — always on, but only re-inject the rewrite
+    # when it actually stripped pressure (else pass the original through verbatim)
     norm_result = None
+    normalization_applied = False
     if settings.tier_normalization:
         norm_result = await normalizer.run(last_user_message)
-        effective_query = norm_result.normalized_query
+        normalization_applied = _normalization_stripped_pressure(norm_result, last_user_message)
+        effective_query = norm_result.normalized_query if normalization_applied else last_user_message
     else:
         effective_query = last_user_message
 
@@ -210,7 +226,9 @@ async def process(request: MessagesRequest, session_id: str) -> MessagesResponse
         meta=ResponseMeta(
             session_id=session_id,
             sycophancy_flags=flags,
-            normalized_query=norm_result.normalized_query if norm_result else None,
-            signals_removed=norm_result.signals_removed if norm_result else [],
+            # Report the rewrite only when it was actually applied — meta must not
+            # advertise a normalized_query the model never saw.
+            normalized_query=norm_result.normalized_query if normalization_applied else None,
+            signals_removed=norm_result.signals_removed if normalization_applied else [],
         ),
     )
