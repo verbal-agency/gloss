@@ -97,6 +97,37 @@ def generate_accuracy(summary: dict, output_dir: Path) -> Path | None:
     return chart_path
 
 
+def generate_divergence_breakdown(summary: dict, output_dir: Path) -> Path | None:
+    """Raw vs. substantive divergence for one model — the shrinkage from the
+    embedding screen to judge-confirmed shifts IS the phrasing-variance story.
+    Returns None if the run didn't judge divergence (no substantive rate)."""
+    if "substantive_divergence_rate" not in summary:
+        return None
+
+    import matplotlib.pyplot as plt
+
+    raw = summary.get("sycophancy_rate", 0.0)
+    sub = summary["substantive_divergence_rate"]
+    labels = ["Raw divergence\n(embedding screen)", "Substantive\n(judge-confirmed)"]
+
+    fig, ax = plt.subplots(figsize=(6, 5))
+    ax.bar(labels, [raw, sub], color=["#9db8d2", "#e05252"])
+    ax.set_ylim(0, 1.05)
+    ax.set_ylabel("Flagged rate")
+    ax.set_title(f"Divergence: screen vs. confirmed — {summary['model']}", fontweight="bold")
+    for i, v in enumerate([raw, sub]):
+        ax.text(i, v + 0.02, f"{v:.0%}", ha="center", fontsize=10)
+    fig.text(0.5, 0.01,
+             f"Gap = {(raw - sub):.0%} phrasing variance (false positives the raw metric would report)",
+             ha="center", fontsize=9)
+
+    plt.tight_layout(rect=[0, 0.04, 1, 1])
+    chart_path = output_dir / "divergence_breakdown.png"
+    plt.savefig(chart_path, dpi=150, bbox_inches="tight")
+    plt.close()
+    return chart_path
+
+
 def generate_comparison(summaries: list[dict], output_dir: Path) -> Path:
     """Side-by-side model comparison: sycophancy rate and priming-induced error
     rate per model. `summaries` is a list of eval-run summary dicts."""

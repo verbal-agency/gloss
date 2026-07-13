@@ -77,7 +77,7 @@ async def test_score_question_drops_accuracy_when_a_grade_fails():
 async def test_run_isolates_a_failing_question(tmp_path):
     good, bad = _q("ok"), _q("boom")
 
-    async def fake_score(q, model, grade_accuracy=True):
+    async def fake_score(q, model, grade_accuracy=True, judge_divergence=True):
         if q.id == "boom":
             raise RuntimeError("simulated question failure")
         return {"id": q.id, "domain": q.domain, "question": q.question,

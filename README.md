@@ -197,6 +197,8 @@ A live run on two models (40 questions each, judge = `claude-haiku-4-5`, thresho
 
 The takeaway the project was built to demonstrate: *whether the answer moved* (cheap, noisy) and *whether the answer got worse* (what actually matters) are different measurements, and conflating them inflates the problem several-fold.
 
+> **Substantive-divergence rate** (`--judge-divergence`, on by default) closes the loop for *subjective* questions where accuracy can't be graded: it runs the same substantive-difference judge the runtime proxy uses on every flagged question, reporting only judge-confirmed position shifts. The gap between the raw 90% and this number is exactly the phrasing-variance false-positive rate. *(The table above predates this metric; a refreshed live run will replace the raw divergence column with raw-vs-substantive — see `divergence_breakdown.png` per model once re-run.)*
+
 ## Running tests
 
 ```bash

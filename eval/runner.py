@@ -25,6 +25,7 @@ load_dotenv()
 
 from app import llm
 from app.config import settings
+from app.pipeline.counterfactual import _judge_substantive
 from eval.dataset import EvalQuestion, load as load_dataset
 
 
@@ -102,7 +103,8 @@ def _accuracy_aggregate(results: list[dict]) -> dict | None:
     }
 
 
-async def _score_question(q: EvalQuestion, model: str, grade_accuracy: bool = True) -> dict:
+async def _score_question(q: EvalQuestion, model: str, grade_accuracy: bool = True,
+                          judge_divergence: bool = True) -> dict:
     msgs_neutral  = [{"role": "user", "content": q.question}]
     msgs_agree    = [{"role": "user", "content": q.agree_primed}]
     msgs_disagree = [{"role": "user", "content": q.disagree_primed}]
@@ -133,12 +135,30 @@ async def _score_question(q: EvalQuestion, model: str, grade_accuracy: bool = Tr
         if all(g is not None for g in graded):
             accuracy = {"neutral": graded[0], "agree": graded[1], "disagree": graded[2]}
 
+    # Second stage: only when the embedding screen fired, confirm the divergence
+    # is a real position shift vs. mere phrasing (reuses the G10 runtime judge).
+    # None = judge not run (below threshold) or failed (G22/G23 pattern).
+    substantive = None
+    key_differences: list[str] = []
+    if judge_divergence and flagged:
+        # Judge the pair that produced the flagging divergence: neutral vs. the
+        # least-similar primed response (the one that drove min()).
+        primed_resp = resp_agree if sim_agree <= sim_disagree else resp_disagree
+        try:
+            verdict = await _judge_substantive(resp_neutral, primed_resp)
+            substantive = bool(verdict["substantively_different"])
+            key_differences = verdict.get("key_differences", [])
+        except (llm.JsonParseError, llm.JsonSchemaError):
+            substantive = None  # ungraded — excluded from the rate, run survives
+
     return {
         "id": q.id,
         "domain": q.domain,
         "question": q.question,
         "divergence_score": round(divergence, 4),
         "flagged": flagged,
+        "substantive": substantive,
+        "key_differences": key_differences,
         "accuracy": accuracy,
         "responses": {
             "neutral":  resp_neutral,
@@ -164,7 +184,8 @@ async def _run_bounded(items, worker, concurrency: int):
 
 
 async def run(model: str, dataset_path: str | None, output_dir: str,
-              grade_accuracy: bool = True, concurrency: int = 8) -> None:
+              grade_accuracy: bool = True, concurrency: int = 8,
+              judge_divergence: bool = True) -> None:
     questions = load_dataset(dataset_path)
     grade_note = "with accuracy grading" if grade_accuracy else "divergence only"
     print(f"Running eval on {len(questions)} questions with model {model} "
@@ -172,7 +193,10 @@ async def run(model: str, dataset_path: str | None, output_dir: str,
     t0 = time.time()
 
     outcomes = await _run_bounded(
-        questions, lambda q: _score_question(q, model, grade_accuracy=grade_accuracy), concurrency
+        questions,
+        lambda q: _score_question(q, model, grade_accuracy=grade_accuracy,
+                                  judge_divergence=judge_divergence),
+        concurrency,
     )
     results = [r for (_, r, err) in outcomes if err is None]
     failures = [(item.id, err) for (item, _, err) in outcomes if err is not None]
@@ -203,6 +227,15 @@ async def run(model: str, dataset_path: str | None, output_dir: str,
     if accuracy_summary:
         summary.update(accuracy_summary)
 
+    # Substantive-divergence: judge-confirmed position shifts / total. The gap
+    # from sycophancy_rate is the phrasing-variance false-positive rate.
+    if judge_divergence:
+        substantive_true = sum(1 for r in results if r.get("substantive") is True)
+        judge_failures = sum(1 for r in results if r["flagged"] and r.get("substantive") is None)
+        summary["substantive_divergence_rate"] = round(substantive_true / len(results), 4)
+        summary["substantive_confirmed"] = substantive_true
+        summary["substantive_judge_failures"] = judge_failures
+
     out = Path(output_dir)
     out.mkdir(parents=True, exist_ok=True)
     results_path = out / "results.json"
@@ -211,7 +244,11 @@ async def run(model: str, dataset_path: str | None, output_dir: str,
     print(f"\n{'='*50}")
     print(f"Model:            {model}")
     print(f"Questions:        {len(results)}")
-    print(f"Flagged:          {flagged_count} ({sycophancy_rate:.0%})")
+    print(f"Flagged (raw):    {flagged_count} ({sycophancy_rate:.0%})")
+    if "substantive_divergence_rate" in summary:
+        print(f"Substantive:      {summary['substantive_confirmed']} "
+              f"({summary['substantive_divergence_rate']:.0%}) — judge-confirmed position shifts "
+              f"(gap = phrasing variance; {summary['substantive_judge_failures']} judge failures)")
     print(f"Mean divergence:  {mean_divergence:.4f}")
     print(f"Threshold:        {settings.divergence_threshold}")
     print(f"Duration:         {summary['duration_seconds']}s")
@@ -231,12 +268,15 @@ async def run(model: str, dataset_path: str | None, output_dir: str,
             print(f"  [{r['domain']}] {r['question'][:70]} — divergence {r['divergence_score']}")
 
     try:
-        from eval.report import generate, generate_accuracy
+        from eval.report import generate, generate_accuracy, generate_divergence_breakdown
         report_path = generate(summary, out)
         print(f"Charts saved to:  {report_path}")
         acc_path = generate_accuracy(summary, out)
         if acc_path:
             print(f"Accuracy chart:   {acc_path}")
+        br_path = generate_divergence_breakdown(summary, out)
+        if br_path:
+            print(f"Divergence chart: {br_path}")
     except ImportError:
         pass
 
@@ -467,6 +507,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--concurrency", type=int, default=8,
                         help="Max questions processed in parallel (caps in-flight "
                              "API calls to avoid rate-limit storms).")
+    parser.add_argument("--judge-divergence", action=argparse.BooleanOptionalAction,
+                        default=True,
+                        help="For flagged questions, run the substantive-difference "
+                             "judge to confirm a real position shift vs. phrasing "
+                             "(adds ≤1 judge call/flagged question). --no-judge-divergence to skip.")
     return parser
 
 
@@ -479,7 +524,8 @@ def main(argv: list[str] | None = None) -> None:
     else:
         asyncio.run(run(args.model, args.dataset, args.output,
                         grade_accuracy=args.grade_accuracy,
-                        concurrency=args.concurrency))
+                        concurrency=args.concurrency,
+                        judge_divergence=args.judge_divergence))
 
 
 if __name__ == "__main__":
