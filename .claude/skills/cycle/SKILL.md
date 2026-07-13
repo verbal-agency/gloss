@@ -41,8 +41,39 @@ missing, report that and stop: there is no loop to run.
    measured baselines from this cycle; drop work this cycle absorbed; keep the
    executable format (Why / Verify first / Do / Done when / Out of scope).
 7. **Stop for review** — ALL changes left uncommitted. End with: (a) what
-   changed, (b) proposed commit message (no co-author trailer), (c) note that
+   changed, (b) a proposed commit message (no co-author trailer), (c) note that
    the next goal is rewritten and the loop resumes with the next cycle.
+
+   **Commit-message style — G-anchor + TWO body sections (narrative + technical index):**
+   Every proposed commit message has three parts. REMEDIATION.md is
+   **gitignored**, so the commit message is the ONLY permanent record — it must
+   carry both the human story and the precise technical trace.
+
+   1. **Subject:** `G<n>: <plain-language summary>` — the G-number anchors the
+      commit to the decision record (durable trace of where each choice entered
+      the code, vital for debugging); the summary is readable, not jargon.
+   2. **Narrative (prose):** lead with the *why* in plain language — the
+      problem, the dev story — understandable with no goal file open. This is
+      the part a human reads to follow the reasoning.
+   3. **`Technical:` footer (terse index):** the precise anchors — files/
+      functions touched, cross-goal refs (`G10` judge, `G23` schema), the exact
+      mechanism. This is the part you grep/trace when debugging.
+
+   Example:
+   ```
+   G24: add substantive-divergence metric to the eval
+
+   Raw divergence flags any wording change, so it overstated sycophancy
+   badly (90% on Sonnet, but its top-divergence answers were all correct).
+   This adds a judge stage that confirms whether the position actually
+   shifted, so the eval reports real shifts vs. mere rephrasing.
+
+   Technical:
+   - _score_question: run _judge_substantive (G10) on flagged questions,
+     via judge_model (G11) + _SubstantiveSchema (G23)
+   - summary.substantive_divergence_rate = confirmed / total
+   - --judge-divergence flag (default on); generate_divergence_breakdown chart
+   ```
 
 ## Hard rules
 
