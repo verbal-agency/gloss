@@ -38,47 +38,51 @@ async def _score(judge_verdict, embeddings=_DIVERGENT):
         return await runner._score_question(_q(), "m", grade_accuracy=False, judge_divergence=True)
 
 
-async def test_phrasing_only_flag_is_not_substantive():
-    r = await _score({"substantively_different": False, "key_differences": []})
-    assert r["flagged"] is True          # raw divergence still flags
-    assert r["substantive"] is False     # but judge says phrasing only
+async def test_low_divergence_flip_is_caught():
+    """G25: the judge runs even when cosine says stable, so a subtle flip below
+    the old threshold is now caught — the exact gpt-4o 0.122 false-negative class."""
+    r = await _score({"flipped": True, "key_differences": ["reversal"]}, embeddings=_STABLE)
+    assert r["flagged"] is False   # cheap cosine signal said stable (telemetry)
+    assert r["flipped"] is True    # judge caught the real reversal
+    assert r["key_differences"] == ["reversal"]
 
 
-async def test_confirmed_shift_is_substantive():
-    r = await _score({"substantively_different": True, "key_differences": ["flip"]})
-    assert r["flagged"] is True
-    assert r["substantive"] is True
-    assert r["key_differences"] == ["flip"]
+async def test_phrasing_only_is_not_a_flip():
+    r = await _score({"flipped": False, "substantively_different": False})
+    assert r["flagged"] is True     # cosine over-fired (telemetry)
+    assert r["flipped"] is False    # judge: no real flip
 
 
-async def test_judge_failure_leaves_substantive_none():
+async def test_judge_failure_leaves_flip_none():
     r = await _score(llm.JsonSchemaError("junk", []))
-    assert r["flagged"] is True
-    assert r["substantive"] is None      # ungraded, not fabricated
+    assert r["flipped"] is None     # ungraded, not fabricated
+    assert r["substantive"] is None
 
 
-async def test_below_threshold_never_calls_judge():
-    judge = AsyncMock(side_effect=AssertionError("judge must not run below threshold"))
+async def test_judge_runs_regardless_of_divergence():
+    """The judge is no longer gated on the cheap signal — it runs on every question."""
+    judge = AsyncMock(return_value={"flipped": False})
     with (
         patch("eval.runner.llm.chat", AsyncMock(return_value="resp")),
         patch("eval.runner.llm.embed", AsyncMock(return_value=_STABLE)),
         patch("eval.runner._judge_substantive", judge),
     ):
-        r = await runner._score_question(_q(), "m", grade_accuracy=False, judge_divergence=True)
-    assert r["flagged"] is False
-    assert r["substantive"] is None
-    judge.assert_not_called()
+        await runner._score_question(_q(), "m", grade_accuracy=False, judge_divergence=True)
+    judge.assert_called_once()
 
 
-async def test_run_aggregates_substantive_rate(tmp_path):
-    # 3 questions: 1 confirmed-substantive, 1 phrasing-only, 1 below-threshold
+async def test_run_aggregates_stance_flip_rate(tmp_path):
+    # 3 questions: 1 flip, 1 no-flip, 1 judge-failure
     scored = [
-        {"id": "a", "domain": "g", "question": "?", "divergence_score": 0.9,
-         "flagged": True, "substantive": True, "key_differences": [], "accuracy": None, "responses": {}},
-        {"id": "b", "domain": "g", "question": "?", "divergence_score": 0.5,
-         "flagged": True, "substantive": False, "key_differences": [], "accuracy": None, "responses": {}},
-        {"id": "c", "domain": "g", "question": "?", "divergence_score": 0.02,
-         "flagged": False, "substantive": None, "key_differences": [], "accuracy": None, "responses": {}},
+        {"id": "a", "domain": "g", "question": "?", "divergence_score": 0.1,
+         "flagged": False, "flipped": True, "substantive": True, "key_differences": [],
+         "accuracy": None, "responses": {}},
+        {"id": "b", "domain": "g", "question": "?", "divergence_score": 0.9,
+         "flagged": True, "flipped": False, "substantive": False, "key_differences": [],
+         "accuracy": None, "responses": {}},
+        {"id": "c", "domain": "g", "question": "?", "divergence_score": 0.5,
+         "flagged": True, "flipped": None, "substantive": None, "key_differences": [],
+         "accuracy": None, "responses": {}},
     ]
 
     async def fake_score(q, model, grade_accuracy=True, judge_divergence=True):
@@ -93,17 +97,17 @@ async def test_run_aggregates_substantive_rate(tmp_path):
 
     import json
     s = json.loads((tmp_path / "results.json").read_text())
-    assert s["sycophancy_rate"] == round(2 / 3, 4)            # 2 flagged / 3
-    assert s["substantive_divergence_rate"] == round(1 / 3, 4)  # 1 confirmed / 3
-    assert s["substantive_confirmed"] == 1
-    assert s["substantive_judge_failures"] == 0
+    assert s["stance_flip_rate"] == round(1 / 3, 4)   # 1 flip / 3
+    assert s["stance_flips"] == 1
+    assert s["judge_failures"] == 1                    # the None
+    assert s["sycophancy_rate"] == round(2 / 3, 4)     # cosine telemetry: 2 flagged / 3
 
 
 def test_breakdown_chart_renders(tmp_path):
     pytest.importorskip("matplotlib")
     from eval.report import generate_divergence_breakdown
     path = generate_divergence_breakdown(
-        {"model": "m", "sycophancy_rate": 0.9, "substantive_divergence_rate": 0.3}, tmp_path)
+        {"model": "m", "sycophancy_rate": 0.9, "stance_flip_rate": 0.3}, tmp_path)
     assert path is not None and Path(path).exists()
-    # no substantive rate -> no chart
+    # no stance-flip rate -> no chart
     assert generate_divergence_breakdown({"model": "m", "sycophancy_rate": 0.9}, tmp_path) is None

@@ -30,7 +30,7 @@ async def _fake_chat(messages, **kwargs):
     raise AssertionError(f"unrouted chat call: {content[:60]}")
 
 
-def _chat_json_router(substantively_different: bool):
+def _chat_json_router(verdict: dict):
     async def _router(messages, **kwargs):
         system = messages[0]["content"]
         if "query preprocessor" in system:
@@ -39,9 +39,8 @@ def _chat_json_router(substantively_different: bool):
                     "signals_removed": [], "was_modified": False}
         if "two variants" in system:
             return {"neutral": NEUTRAL_Q, "inverted": INVERTED_Q}
-        if "substantively different" in system:
-            return {"substantively_different": substantively_different,
-                    "key_differences": ["dates disagree"] if substantively_different else []}
+        if "substantively different" in system:      # the counterfactual flip judge
+            return verdict
         if "capitulated" in system:
             return {"classification": "HOLDS", "reasoning": "held"}
         if "Extract every factual claim" in system:
@@ -50,15 +49,15 @@ def _chat_json_router(substantively_different: bool):
     return _router
 
 
-# original far from neutral (flagging pair), close to inverted
+# high embedding divergence — but G25 no longer gates on it; the judge decides
 _EMBEDDINGS = [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.9, 0.1, 0.0]]
 
 
-async def _run_pipeline(substantively_different: bool):
+async def _run_pipeline(verdict: dict):
     with ExitStack() as stack:
         stack.enter_context(patch("app.llm.chat", AsyncMock(side_effect=_fake_chat)))
         stack.enter_context(patch("app.llm.chat_json",
-                                  AsyncMock(side_effect=_chat_json_router(substantively_different))))
+                                  AsyncMock(side_effect=_chat_json_router(verdict))))
         stack.enter_context(patch("app.llm.embed", AsyncMock(return_value=_EMBEDDINGS)))
         stack.enter_context(patch("app.store.get_json", AsyncMock(return_value=None)))
         stack.enter_context(patch("app.store.set_json", AsyncMock()))
@@ -74,7 +73,7 @@ async def _run_pipeline(substantively_different: bool):
 
 
 async def test_flagged_request_returns_neutral_variant_response():
-    response = await _run_pipeline(substantively_different=True)
+    response = await _run_pipeline({"flipped": True, "key_differences": ["dates disagree"]})
 
     assert response.content[0].text == "NEUT_RESP", (
         "flagged request must return the neutral-variant response, "
@@ -83,17 +82,18 @@ async def test_flagged_request_returns_neutral_variant_response():
     cf = next(f for f in response.meta.sycophancy_flags
               if f.type == "counterfactual_divergence")
     assert cf.flagged is True
-    assert cf.detail["judged_pair"] == "original_vs_neutral"
+    assert cf.detail["judged_pair"] == "neutral_vs_inverted"
 
 
-async def test_judge_denied_request_returns_original_response():
-    response = await _run_pipeline(substantively_different=False)
+async def test_judge_stable_request_returns_original_response():
+    # High embedding divergence, but the judge says no flip / no shift -> not flagged
+    response = await _run_pipeline({"flipped": False, "substantively_different": False})
 
     assert response.content[0].text == "ORIG_RESP", (
-        "judge-denied request must return the ORIGINAL response, "
+        "unflagged request must return the ORIGINAL response, "
         f"got {response.content[0].text!r}"
     )
     cf = next(f for f in response.meta.sycophancy_flags
               if f.type == "counterfactual_divergence")
     assert cf.flagged is False
-    assert cf.detail["embedding_flagged"] is True  # diverged, but phrasing only
+    assert cf.detail["embedding_flagged"] is True  # cheap signal over-fired (telemetry)

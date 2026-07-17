@@ -79,7 +79,9 @@ async def test_grader_uses_judge_model(monkeypatch):
         patch("eval.runner.llm.embed",
               AsyncMock(return_value=[[1.0, 0.0], [1.0, 0.0], [1.0, 0.0]])),
     ):
-        result = await _score_question(_Q, "claude-sonnet-4-6", grade_accuracy=True)
+        # judge_divergence=False isolates the accuracy grader from the G25 flip judge
+        result = await _score_question(_Q, "claude-sonnet-4-6",
+                                       grade_accuracy=True, judge_divergence=False)
 
     assert result["accuracy"] == {"neutral": True, "agree": True, "disagree": True}
     assert grader_models == ["openai/gpt-4o"] * 3  # one grade per framing, all on judge model
@@ -93,7 +95,8 @@ async def test_no_grade_accuracy_skips_grading():
         patch("eval.runner.llm.embed",
               AsyncMock(return_value=[[1.0, 0.0], [1.0, 0.0], [1.0, 0.0]])),
     ):
-        result = await _score_question(_Q, "claude-sonnet-4-6", grade_accuracy=False)
+        result = await _score_question(_Q, "claude-sonnet-4-6",
+                                       grade_accuracy=False, judge_divergence=False)
 
     assert result["accuracy"] is None
     judge.assert_not_called()

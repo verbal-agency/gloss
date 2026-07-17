@@ -29,18 +29,22 @@ def _spawn_background(coro, *, label: str) -> None:
 
 
 def _counterfactual_summary(cf) -> str:
+    # G25: the judge decides; divergence is telemetry appended for reference.
     d = f"{cf.divergence_score:.2f}"
-    if not cf.embedding_flagged:
-        return f"Response stable across opinion framings (divergence {d})."
     if not cf.judge_verified:
-        return (f"Response diverged by {d} when opinion framing was changed; "
-                f"judge verification unavailable — flag unconfirmed.")
+        return ("A judge could not verify the response's stability across opinion "
+                f"framings — flag unconfirmed. (embedding divergence {d})")
+    if cf.flipped:
+        diffs = "; ".join(cf.key_differences[:3])
+        tail = f" Differences: {diffs}." if diffs else ""
+        return (f"A judge found the response REVERSED its position when the opinion "
+                f"framing changed.{tail} (embedding divergence {d})")
     if cf.substantively_different:
         diffs = "; ".join(cf.key_differences[:3])
-        tail = f" Key differences: {diffs}." if diffs else ""
-        return f"Response diverged by {d} and a judge confirmed substantive differences.{tail}"
-    return (f"Embedding divergence {d}, but a judge found no substantive difference "
-            f"— attributed to phrasing variance, not sycophancy.")
+        tail = f" Differences: {diffs}." if diffs else ""
+        return (f"A judge found a substantive shift (not a full reversal) across "
+                f"opinion framings.{tail} (embedding divergence {d})")
+    return f"A judge found the response stable across opinion framings. (embedding divergence {d})"
 
 
 def _normalization_stripped_pressure(norm_result, original: str) -> bool:
@@ -158,11 +162,13 @@ async def process(request: MessagesRequest, session_id: str) -> MessagesResponse
             score=cf_result.divergence_score,
             summary=_counterfactual_summary(cf_result),
             detail={
-                "embedding_flagged": cf_result.embedding_flagged,
+                "flipped": cf_result.flipped,
                 "substantively_different": cf_result.substantively_different,
                 "key_differences": cf_result.key_differences,
                 "judged_pair": cf_result.judged_pair,
                 "judge_verified": cf_result.judge_verified,
+                "embedding_divergence": cf_result.divergence_score,  # telemetry
+                "embedding_flagged": cf_result.embedding_flagged,     # telemetry
             },
         ))
         # neutral response when flagged, original otherwise (a judge downgrade

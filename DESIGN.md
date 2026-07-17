@@ -112,7 +112,7 @@ Then you send all three to the same model and compare the answers.
 
 This gives us a measurable, falsifiable definition: sycophancy = high divergence between counterfactual responses.
 
-**Two-stage detection.** Embedding divergence is a cheap screen but a crude one — it measures phrasing overlap, not substance, so two answers can score as divergent through wording alone or as similar while quietly contradicting. So a flagged divergence is only a *candidate*: when it exceeds threshold, a second-stage LLM judge examines the specific response pair that produced the divergence and confirms whether the difference is substantive (claims, recommendations, conclusions) or mere phrasing. Only a judge-confirmed divergence is flagged; a divergence the judge attributes to phrasing is downgraded and the flag records why. If the judge call fails, the embedding flag is kept but marked `judge_verified: false` — a judge outage neither silently disables detection nor silently masquerades as confirmation. The judge runs only on flagged candidates, so unflagged queries pay nothing for it.
+**Detection (updated in G25).** Embedding divergence is a cheap signal but a crude one — worse than crude, it is *polarity-blind*: "X is reliable" and "X is unreliable" are embedding-close, so a genuine reversal reads as low divergence. A live run confirmed the cost — a real flip scored 0.122, under the 0.186 threshold, so a divergence-gated judge never saw it. So divergence no longer gates anything. The tier fires on the **opinion signal** (which is the thing worth checking), then a judge examines the neutral vs. inverted responses and rules on two questions: did the position **flip** (a reversal), or shift substantively without a full flip? The flag reflects the judge's verdict. Embedding divergence is still computed and recorded as **telemetry** — kept precisely so we can audit how often the judge disagrees with the cheap signal — but it is not control flow. If the judge call fails, the flag is kept and marked `judge_verified: false` — a judge outage neither silently disables detection nor silently masquerades as a clean verdict.
 
 ```mermaid
 flowchart TD
@@ -120,27 +120,27 @@ flowchart TD
     B -->|No| Z["Tier skipped —<br/>return normal response"]
     B -->|Yes| C["Generate neutral + inverted variants<br/>(pipeline model)"]
     C --> D["Fire 3 responses in parallel:<br/>original / neutral / inverted<br/>(target model)"]
-    D --> E["Embed all 3<br/>divergence = 1 − min(sim_neutral, sim_inverted)"]
-    E --> F{"divergence > threshold?"}
-
-    F -->|"No (stable)"| G["NOT FLAGGED · return ORIGINAL<br/>judge never runs → 0 added cost<br/>substantively_different = null"]
-
-    F -->|"Yes (candidate)"| H["Stage 2: substantive-difference judge<br/>on the flagging pair —<br/>original vs. least-similar variant"]
+    D --> E["Embed all 3 → divergence<br/>(TELEMETRY only — recorded, not a gate)"]
+    D --> H["Judge: neutral vs. inverted<br/>(judge model) — did the position flip?"]
+    E -.->|"logged alongside the verdict<br/>for audit"| H
     H --> I{"Judge outcome"}
 
+    I -->|"flipped (reversal)"| K["FLAGGED · return NEUTRAL<br/>judge_verified = true<br/>flipped = true, key_differences"]
+    I -->|"substantive shift,<br/>not a full flip"| M["FLAGGED · return NEUTRAL<br/>substantively_different = true"]
+    I -->|"stable position"| L["NOT FLAGGED · return ORIGINAL<br/>(embedding divergence, if any,<br/>was phrasing variance)"]
     I -->|"call failed / bad JSON"| J["FLAGGED · return NEUTRAL<br/>judge_verified = false<br/>(fail-open, marked unconfirmed)"]
-    I -->|"substantively different"| K["FLAGGED · return NEUTRAL<br/>judge_verified = true<br/>key_differences recorded"]
-    I -->|"phrasing only"| L["DOWNGRADED → NOT FLAGGED<br/>return ORIGINAL<br/>summary: phrasing variance"]
 
     classDef flag fill:#fde4e4,stroke:#c0392b,color:#000
     classDef clean fill:#e3f6e3,stroke:#27ae60,color:#000
     classDef neutral fill:#eef2f7,stroke:#5b6b7b,color:#000
-    class J,K flag
-    class G,L,Z clean
-    class H,I neutral
+    class J,K,M flag
+    class L,Z clean
+    class E,H,I neutral
 ```
 
-Green terminals return the user's original response; red terminals substitute the neutral-variant response. Both `G` (never diverged) and `L` (diverged but only in phrasing) return the original without flagging — `detail.embedding_flagged` distinguishes them downstream.
+Green terminals return the user's original response; red terminals substitute the neutral-variant response. The judge decides — the embedding divergence is computed in parallel and attached to the flag as telemetry (`detail.embedding_divergence`), never as a gate. A `stable` verdict at `L` returns the original even if divergence was high, because that divergence was phrasing variance; a `flipped` verdict at `K` flags even if divergence was low, because that is the polarity-blind case cosine misses.
+
+*Historical note:* an earlier design (G10) gated the judge behind the divergence threshold — the judge ran only on high-divergence candidates. That was tuned for precision when a screen needs recall, and it missed subtle flips (a live reversal scored 0.122, under a 0.186 threshold). G25 removed the gate: the judge runs on every opinion-primed query, and cosine became telemetry.
 
 ---
 
@@ -200,9 +200,11 @@ This is prevention, not detection. It stops framing capture and reactive sycopha
          ↓
 6. Send all variants to the LLM
          ↓
-7. Divergence scorer
-   — Compare the responses semantically
-   — How different is the substantive content?
+7. Flip judge (G25)
+   — Judge the neutral vs. inverted responses: did the position FLIP,
+     or shift substantively without a full reversal?
+   — Embedding divergence is computed in parallel as TELEMETRY, attached
+     to the flag but NOT used to gate the judge (cosine is polarity-blind)
          ↓
 8. Disagreement pressure probe (optional, high-stakes queries)
    — Take the neutral response and push back on it:
@@ -210,9 +212,9 @@ This is prevention, not detection. It stops framing capture and reactive sycopha
    — Does the model hold its position or collapse?
          ↓
 9. Output
-   — If divergence is low: no sycophancy, return normal response
-   — If divergence is high: flag it, return the neutral-query response,
-     or show the user what changed and why
+   — Judge says stable: no sycophancy, return normal response
+   — Judge says flipped / substantively shifted: flag it, return the
+     neutral-query response, or show the user what changed and why
 ```
 
 ### Across the conversation: temporal consistency monitoring
@@ -270,8 +272,8 @@ Formal verification is mathematical proof that a system satisfies a specificatio
 The evaluation tool was built first to prove the problem is real and measurable before building the runtime correction layer.
 
 - `eval/dataset.py` — 40 factual questions with known correct answers, across five domains (medical, financial, technical, legal, general). Each has an agree-primed and disagree-primed variant.
-- `eval/runner.py` — sends all three variants (neutral, agree-primed, disagree-primed) in parallel to a target model, scores cosine divergence between responses, reports sycophancy rate and worst examples.
-- `eval/report.py` — generates charts: divergence per question (with threshold line), sycophancy rate by domain.
+- `eval/runner.py` — sends all three variants (neutral, agree-primed, disagree-primed) in parallel to a target model, then a judge decides whether the position flipped. Reports the **stance-flip rate** (headline), ground-truth accuracy / priming-induced error rate (`--grade-accuracy`), and cosine divergence (telemetry). Noise-floor calibration mode (`--calibrate`); concurrency-capped and failure-isolated at scale.
+- `eval/report.py` — generates charts: divergence per question, accuracy by framing, cheap-signal-vs-stance-flip breakdown, cross-model comparison.
 
 Run: `python -m eval.runner --model anthropic/claude-sonnet-4-6 --output results/`
 
@@ -284,7 +286,7 @@ A FastAPI service at `POST /v1/messages`. Drop-in replacement for the provider A
 | `app/main.py` | FastAPI app, single proxy endpoint |
 | `app/middleware.py` | Pipeline orchestrator — tier logic, response selection |
 | `app/pipeline/normalizer.py` | Query normalization (Tier 0) |
-| `app/pipeline/counterfactual.py` | Counterfactual pairs + divergence (Tier 1) |
+| `app/pipeline/counterfactual.py` | Counterfactual pairs + flip judge (Tier 1); cosine divergence as telemetry |
 | `app/pipeline/precommitment.py` | Criteria extraction + judge (Tier 2) |
 | `app/pipeline/disagreement.py` | Pushback stability probe (Tier 2) |
 | `app/pipeline/temporal.py` | Multi-turn arc tracing (Tier 3) |
@@ -295,19 +297,20 @@ A FastAPI service at `POST /v1/messages`. Drop-in replacement for the provider A
 
 ### Tests
 
-12 unit tests in `tests/` covering all five pipeline components with mocked LLM responses. Run with `pytest tests/ -v`.
+86 tests in `tests/` — per-component unit tests plus integration (SDK-through-ASGI API compatibility, full-pipeline response selection, a 10-turn temporal arc against a stateful fake store). All mock the LLM/Redis boundary; no keys needed. Run with `pytest tests/ -q`.
 
 ---
 
-## Known implementation gaps
+## Resolved implementation gaps
 
-These are gaps in the current code that should be addressed before the service is demonstrated:
+The gaps identified in the original design have since been closed (tracked in REMEDIATION.md):
 
-- **Redundant LLM call in middleware**: when counterfactual and pre-commitment both run, the model is called an extra time at the end of `middleware.py` as a fallback. This call is unnecessary — both components already produce a response internally. Fix: extract the response from whichever component ran and skip the fallback call.
-- **No parallel tier execution in orchestrator**: tiers 1 and 2 run sequentially in `middleware.py`. When both are triggered, counterfactual and pre-commitment could run with `asyncio.gather`.
-- **No integration tests**: the unit tests mock all LLM calls. There is no test that starts the FastAPI service and sends a real HTTP request through the full pipeline.
-- **No multi-turn integration test for temporal**: the temporal unit tests mock Redis. There is no test that simulates a full conversation arc end-to-end.
-- **Domain keyword classifier is brittle**: `precommitment.classify_domain` uses substring matching. Edge cases (a query about "financial therapy" hitting both domains) are not handled. An embedding-based classifier would be more robust.
+- **Redundant LLM call in middleware** — fixed: counterfactual/pre-commitment responses are reused; the fallback fires only when no component produced one.
+- **Parallel tier execution** — fixed: tiers 1 and 2 dispatch via `asyncio.gather`.
+- **Integration tests** — added: full-pipeline and multi-turn temporal integration suites.
+- **Domain classifier brittleness** — fixed: word-boundary matching with hit-count scoring (was naive substring matching).
+
+Remaining known weaknesses are tracked as open goals — notably the opinion-signal detector's own recall (a regex that misses subtly-primed queries), the judge's circularity when target and judge share a training lineage, and the sessionless coverage gap in temporal (requires a client `X-Session-ID`).
 
 ---
 
@@ -315,7 +318,7 @@ These are gaps in the current code that should be addressed before the service i
 
 **Reactive sycophancy (tractable — core mechanisms now specified)**
 - What counts as an "opinion signal"? How do we detect priming without false positives?
-- How do we measure semantic divergence? Embedding distance is simple but may miss subtle shifts in emphasis or hedging. An LLM judge is more accurate but adds cost and latency.
+- ~~How do we measure semantic divergence?~~ *(Resolved in G25.)* Embedding distance is polarity-blind — it reads a reversal ("X is reliable" vs "unreliable") as near-identical, and a live run caught it missing a real flip that scored 0.122 under a 0.186 threshold. Resolution: a judge decides flips; cosine is kept only as telemetry to audit the judge-vs-cheap-signal gap. The remaining open question is the judge's own reliability (see circularity note below).
 - What's the right response to detected sycophancy? Substitute the neutral answer? Warn the user? Show both?
 - Are there categories of questions where sycophancy is expected and acceptable (preferences, values) vs. where it's harmful (facts, analysis)?
 - Pre-commitment extraction solves for reasoning drift — but the LLM judge evaluating consistency may itself be biased. How do we score criteria adherence reliably? *(Partial mitigation implemented: the `JUDGE_MODEL` setting routes all scoring judges — counterfactual substantive-difference, pre-commitment consistency, disagreement classification, temporal arc — to a separate model, so the model under test no longer grades itself. Defaults to the target model, so the circularity is only broken when explicitly configured; and a shared training lineage between target and judge can still correlate their biases.)*

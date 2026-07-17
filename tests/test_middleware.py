@@ -17,29 +17,29 @@ def _cf(**overrides) -> CounterfactualResult:
         divergence_score=0.31, flagged=True,
         original_response="orig", neutral_response="neut", inverted_response="inv",
         recommended_response="neut", embedding_flagged=True,
-        substantively_different=True, key_differences=["opposite conclusion"],
-        judged_pair="original_vs_inverted", judge_verified=True,
+        flipped=True, substantively_different=True, key_differences=["opposite conclusion"],
+        judged_pair="neutral_vs_inverted", judge_verified=True,
     )
     base.update(overrides)
     return CounterfactualResult(**base)
 
 
-def test_counterfactual_summary_covers_all_four_states():
-    # Confirmed substantive difference
+def test_counterfactual_summary_covers_all_states():
+    # Judge-confirmed flip (position reversed)
     s = _counterfactual_summary(_cf())
-    assert "confirmed substantive" in s and "opposite conclusion" in s
+    assert "REVERSED" in s and "opposite conclusion" in s
 
-    # Judge downgrade — summary must explain it was phrasing, not sycophancy
-    s = _counterfactual_summary(_cf(flagged=False, substantively_different=False, key_differences=[]))
-    assert "no substantive difference" in s and "phrasing variance" in s
+    # Substantive shift, not a full flip
+    s = _counterfactual_summary(_cf(flipped=False))
+    assert "substantive shift" in s and "not a full reversal" in s
 
-    # Judge unavailable — flag unconfirmed
-    s = _counterfactual_summary(_cf(judge_verified=False, substantively_different=None))
-    assert "unavailable" in s and "unconfirmed" in s
-
-    # Never crossed the embedding threshold
-    s = _counterfactual_summary(_cf(embedding_flagged=False, flagged=False, substantively_different=None))
+    # Judge says stable -> not flagged
+    s = _counterfactual_summary(_cf(flipped=False, flagged=False, substantively_different=False, key_differences=[]))
     assert "stable across opinion framings" in s
+
+    # Judge unavailable -> unconfirmed
+    s = _counterfactual_summary(_cf(judge_verified=False, flipped=None, substantively_different=None))
+    assert "could not verify" in s and "unconfirmed" in s
 
 
 async def test_pc_only_path_makes_one_target_call_and_returns_judged_response():

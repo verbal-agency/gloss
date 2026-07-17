@@ -71,55 +71,56 @@ async def _run_primed(judge_verdict, embeddings=_DIVERGENT_EMB):
 
 
 @pytest.mark.asyncio
-async def test_judge_not_called_below_threshold():
-    """Happy path stays zero-cost: no judge call when divergence is below threshold."""
-    judge = AsyncMock(side_effect=AssertionError("judge must not run below threshold"))
-    with (
-        patch("app.pipeline.counterfactual.llm.chat_json",
-              AsyncMock(side_effect=_cf_json_router({"substantively_different": True}))),
-        patch("app.pipeline.counterfactual._judge_substantive", judge),
-        patch("app.pipeline.counterfactual.llm.chat", AsyncMock(return_value="some response")),
-        patch("app.pipeline.counterfactual.llm.embed", AsyncMock(return_value=_STABLE_EMB)),
-    ):
-        result = await run(_PRIMED_QUERY, [{"role": "user", "content": _PRIMED_QUERY}])
-    assert result.embedding_flagged is False
-    assert result.flagged is False
-    assert result.substantively_different is None
-    judge.assert_not_called()
-
-
-@pytest.mark.asyncio
-async def test_judge_confirms_substantive_difference():
+async def test_judge_runs_even_when_divergence_low(monkeypatch):
+    """G25: the judge is no longer gated on cosine — it runs on every
+    opinion-primed query, so a subtle flip below the old threshold is caught."""
     result = await _run_primed(
-        {"substantively_different": True, "key_differences": ["opposite conclusion"]}
+        {"flipped": True, "key_differences": ["opposite conclusion"]},
+        embeddings=_STABLE_EMB,  # divergence ~0, below any threshold
     )
-    assert result.embedding_flagged is True
-    assert result.flagged is True
-    assert result.substantively_different is True
-    assert result.key_differences == ["opposite conclusion"]
-    assert result.judged_pair == "original_vs_inverted"
+    assert result.embedding_flagged is False   # cheap signal said "stable"
+    assert result.flipped is True              # but the judge caught the flip
+    assert result.flagged is True              # ...and we flag on the judge
     assert result.recommended_response == result.neutral_response
 
 
 @pytest.mark.asyncio
-async def test_judge_downgrades_phrasing_variance():
-    """Embedding fired but judge says no substantive difference -> not flagged,
-    original response recommended."""
-    result = await _run_primed({"substantively_different": False, "key_differences": []})
-    assert result.embedding_flagged is True
-    assert result.flagged is False
-    assert result.substantively_different is False
+async def test_judge_confirms_flip():
+    result = await _run_primed(
+        {"flipped": True, "key_differences": ["opposite conclusion"]}
+    )
+    assert result.flagged is True
+    assert result.flipped is True
+    assert result.key_differences == ["opposite conclusion"]
+    assert result.judged_pair == "neutral_vs_inverted"
+    assert result.recommended_response == result.neutral_response
+
+
+@pytest.mark.asyncio
+async def test_substantive_shift_without_full_flip_still_flags():
+    result = await _run_primed({"flipped": False, "substantively_different": True})
+    assert result.flipped is False
+    assert result.substantively_different is True
+    assert result.flagged is True
+
+
+@pytest.mark.asyncio
+async def test_stable_position_not_flagged():
+    """Judge says no flip and no substantive shift -> not flagged, original kept,
+    even if the embedding divergence was high (phrasing variance)."""
+    result = await _run_primed({"flipped": False, "substantively_different": False})
+    assert result.embedding_flagged is True    # cheap signal over-fired
+    assert result.flagged is False             # judge overruled it
     assert result.recommended_response == result.original_response
 
 
 @pytest.mark.asyncio
 async def test_judge_failure_keeps_flag_unverified():
-    """Judge outage: keep the embedding flag but mark it unverified (fail-open)."""
+    """Judge outage: flag it but mark unverified (fail-open with marker)."""
     result = await _run_primed(RuntimeError("judge exploded"))
-    assert result.embedding_flagged is True
     assert result.flagged is True
     assert result.judge_verified is False
-    assert result.substantively_different is None
+    assert result.flipped is None
     assert result.recommended_response == result.neutral_response
 
 

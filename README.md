@@ -134,13 +134,13 @@ python -m eval.latency_harness
 |---|---|---|---|
 | Neutral query, nothing triggered | 2 + 1 | 1 | ~2x |
 | High-stakes domain, no opinion signal | 4 + 1 | 1 | ~3x |
-| Opinion-primed query, divergence flagged | 8 + 1 | 2 | ~6x |
-| Opinion-primed + high-stakes, flagged (worst case) | 11 + 1 | 2 | ~6x |
+| Opinion-primed query | 8 + 1 | 2 | ~6x |
+| Opinion-primed + high-stakes (worst case) | 11 + 1 | 2 | ~6x |
 | Multi-turn, temporal check passes | 2 + 1 | 1 | ~2x |
 | Multi-turn, drift flagged | 3 + 1 | 1 | ~3x |
 
 Notes:
-- The opinion-primed rows include the second-stage substantive-difference judge, which runs **only when the embedding screen flags** (divergence exceeds threshold). An opinion-primed query whose responses don't diverge skips the judge — one fewer blocking call (~5x rather than ~6x).
+- The opinion-primed rows include the stance/flip judge, which runs on **every** opinion-primed query (gated on the opinion signal, not on cosine divergence). Cosine is polarity-blind and missed real flips, so it no longer gates the judge — it's recorded as telemetry only. The judge is cheap when routed to a small `JUDGE_MODEL`; the cost is dominated by the 3–4 full response generations, not the judge.
 - Even untriggered queries pay ~2x wall-clock, because query normalization is itself a serial LLM call before the target call.
 - Token cost scales roughly with the blocking-call count, since most pipeline calls carry the conversation context. Budget accordingly for high-traffic use.
 - The `usage` field on responses reflects the returned exchange (tokenizer-estimated), not the aggregate cost of pipeline-internal calls.
@@ -197,7 +197,7 @@ A live run on two models (40 questions each, judge = `claude-haiku-4-5`, thresho
 
 The takeaway the project was built to demonstrate: *whether the answer moved* (cheap, noisy) and *whether the answer got worse* (what actually matters) are different measurements, and conflating them inflates the problem several-fold.
 
-> **Substantive-divergence rate** (`--judge-divergence`, on by default) closes the loop for *subjective* questions where accuracy can't be graded: it runs the same substantive-difference judge the runtime proxy uses on every flagged question, reporting only judge-confirmed position shifts. The gap between the raw 90% and this number is exactly the phrasing-variance false-positive rate. *(The table above predates this metric; a refreshed live run will replace the raw divergence column with raw-vs-substantive — see `divergence_breakdown.png` per model once re-run.)*
+> **Update (G25): cosine divergence is now telemetry, not the headline.** The eval and the runtime proxy both gate on the opinion signal, then let a judge decide whether the model's *position actually flipped* — cosine is polarity-blind (it reads a reversal as embedding-close, and it missed a real gpt-4o flip that scored 0.122, under its 0.186 threshold). The headline metric is now the **stance-flip rate** (`--judge-divergence`, on by default): judge-confirmed position reversals / total. The gap between the raw divergence numbers in the table above and the stance-flip rate is the phrasing-variance false-positive rate the cheap signal would have reported. *(The table predates G25; the raw column is now telemetry. A refreshed live run — spend-gated — will populate the stance-flip numbers; see `divergence_breakdown.png` per model once re-run.)*
 
 ## Running tests
 
