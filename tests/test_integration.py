@@ -8,6 +8,7 @@ import asyncio
 from contextlib import ExitStack
 from unittest.mock import AsyncMock, patch
 
+from app.config import settings
 from app.middleware import process
 from app.models import Message, MessagesRequest
 
@@ -53,8 +54,9 @@ def _chat_json_router(verdict: dict):
 _EMBEDDINGS = [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.9, 0.1, 0.0]]
 
 
-async def _run_pipeline(verdict: dict):
+async def _run_pipeline(verdict: dict, mode: str = "observe"):
     with ExitStack() as stack:
+        stack.enter_context(patch.object(settings, "gloss_mode", mode))
         stack.enter_context(patch("app.llm.chat", AsyncMock(side_effect=_fake_chat)))
         stack.enter_context(patch("app.llm.chat_json",
                                   AsyncMock(side_effect=_chat_json_router(verdict))))
@@ -72,17 +74,35 @@ async def _run_pipeline(verdict: dict):
     return response
 
 
-async def test_flagged_request_returns_neutral_variant_response():
-    response = await _run_pipeline({"flipped": True, "key_differences": ["dates disagree"]})
+async def test_enforce_flagged_request_returns_neutral_variant_response():
+    response = await _run_pipeline(
+        {"flipped": True, "key_differences": ["dates disagree"]}, mode="enforce")
 
     assert response.content[0].text == "NEUT_RESP", (
-        "flagged request must return the neutral-variant response, "
-        f"got {response.content[0].text!r}"
+        "enforce mode + flagged request must substitute the neutral-variant "
+        f"response, got {response.content[0].text!r}"
     )
+    assert response.meta.mode == "enforce"
     cf = next(f for f in response.meta.sycophancy_flags
               if f.type == "counterfactual_divergence")
     assert cf.flagged is True
     assert cf.detail["judged_pair"] == "neutral_vs_inverted"
+
+
+async def test_observe_flagged_request_returns_original_but_flags():
+    # Default mode: a flagged counterfactual must NOT substitute — the user gets
+    # the model's real answer to their actual query, with the flag disclosing it.
+    response = await _run_pipeline(
+        {"flipped": True, "key_differences": ["dates disagree"]}, mode="observe")
+
+    assert response.content[0].text == "ORIG_RESP", (
+        "observe mode must return the ORIGINAL answer even when flagged, "
+        f"got {response.content[0].text!r}"
+    )
+    assert response.meta.mode == "observe"
+    cf = next(f for f in response.meta.sycophancy_flags
+              if f.type == "counterfactual_divergence")
+    assert cf.flagged is True  # detection still surfaced, just not enforced
 
 
 async def test_judge_stable_request_returns_original_response():

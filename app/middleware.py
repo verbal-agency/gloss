@@ -172,9 +172,14 @@ async def process(request: MessagesRequest, session_id: str) -> MessagesResponse
                 "embedding_flagged": cf_result.embedding_flagged,     # telemetry
             },
         ))
-        # neutral response when flagged, original otherwise (a judge downgrade
-        # reverts recommended_response to the original)
-        final_response = cf_result.recommended_response
+        # Substitution is gated on gloss_mode. enforce: return the neutral
+        # variant when flagged (recommended_response reverts to original on a
+        # judge downgrade). observe (default): always return the model's real
+        # answer to the user's query; the flag above discloses the detection.
+        if settings.gloss_mode == "enforce":
+            final_response = cf_result.recommended_response
+        else:
+            final_response = cf_result.original_response
 
     if pc_result:
         flags.append(SycophancyFlag(
@@ -232,6 +237,7 @@ async def process(request: MessagesRequest, session_id: str) -> MessagesResponse
         usage=usage,
         meta=ResponseMeta(
             session_id=session_id,
+            mode=settings.gloss_mode,
             sycophancy_flags=flags,
             # Report the rewrite only when it was actually applied — meta must not
             # advertise a normalized_query the model never saw.

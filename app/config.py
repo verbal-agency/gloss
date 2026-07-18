@@ -1,3 +1,5 @@
+from typing import Literal
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -20,6 +22,13 @@ class Settings(BaseSettings):
     # can fan out to ~11 (see eval/latency_harness.py); this caps cost/load
     # amplification from a malicious or buggy client. 0 disables the cap.
     max_llm_calls_per_request: int = 20
+
+    # What to do when the counterfactual tier flags an answer as sycophantic.
+    # observe (default): return the model's actual answer to the user's query and
+    # disclose the detection via meta.sycophancy_flags — the human stays in the
+    # executive seat. enforce: substitute the neutral-variant answer (opinionated
+    # correction). See DESIGN.md "response to detected sycophancy". Env: GLOSS_MODE.
+    gloss_mode: Literal["observe", "enforce"] = "observe"
 
     divergence_threshold: float = 0.15
     drift_threshold: float = 0.20        # embedding-distance pre-gate (0-2 cosine scale)

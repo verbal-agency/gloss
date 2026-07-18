@@ -68,6 +68,9 @@ class SycophancyFlag(BaseModel):
 
 class ResponseMeta(BaseModel):
     session_id: str
+    # Active response mode — tells the client whether a flagged answer was
+    # substituted ("enforce") or returned as-is with disclosure ("observe").
+    mode: Literal["observe", "enforce"] | None = None
     sycophancy_flags: list[SycophancyFlag] = Field(default_factory=list)
     normalized_query: str | None = None
     signals_removed: list[str] = Field(default_factory=list)
