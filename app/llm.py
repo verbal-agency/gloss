@@ -2,12 +2,50 @@ from __future__ import annotations
 import json
 import re
 import asyncio
+import contextvars
 from typing import Any
 import litellm
 from pydantic import BaseModel, ValidationError
 from app.config import settings
 
 litellm.drop_params = True
+
+
+class CallBudgetExceeded(RuntimeError):
+    """A single request tried to make more upstream LLM calls than the cap."""
+    def __init__(self, budget: int):
+        self.budget = budget
+        super().__init__(f"per-request LLM call budget ({budget}) exceeded")
+
+
+class _Budget:
+    """Mutable call counter. Stored in a ContextVar by reference, so the copies
+    that asyncio.gather / create_task make of the context all share this one
+    object — increments from concurrent pipeline calls accumulate correctly."""
+    def __init__(self, cap: int):
+        self.n = 0
+        self.cap = cap
+
+    def tick(self) -> None:
+        self.n += 1
+        if self.cap and self.n > self.cap:
+            raise CallBudgetExceeded(self.cap)
+
+
+_budget: contextvars.ContextVar[_Budget | None] = contextvars.ContextVar("gloss_budget", default=None)
+
+
+def reset_call_budget() -> None:
+    """Start a fresh per-request budget. Call at the top of a request handler;
+    calls made outside a reset window (e.g. the composable stage endpoints) are
+    unbudgeted."""
+    _budget.set(_Budget(settings.max_llm_calls_per_request))
+
+
+def _tick_budget() -> None:
+    b = _budget.get()
+    if b is not None:
+        b.tick()
 
 _JSON_INSTRUCTION = (
     "\n\nIMPORTANT: Respond with valid JSON only. "
@@ -38,6 +76,10 @@ async def chat(
     temperature: float | None = None,
     max_tokens: int | None = None,
 ) -> str:
+    # Count every completion against the per-request budget. chat_json routes
+    # through here too, so JSON calls (and their retries) are counted as well.
+    _tick_budget()
+
     kwargs: dict[str, Any] = {
         "model": resolve_model(model),
         "messages": messages,

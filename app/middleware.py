@@ -70,6 +70,7 @@ def _is_factual(query: str) -> bool:
 
 
 async def process(request: MessagesRequest, session_id: str) -> MessagesResponse:
+    llm.reset_call_budget()  # fresh per-request LLM-call ceiling (G17)
     messages = [m.model_dump() for m in request.messages]
     last_user_message = next(
         (m["content"] for m in reversed(messages) if m["role"] == "user"), ""

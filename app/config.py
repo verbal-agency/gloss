@@ -16,6 +16,11 @@ class Settings(BaseSettings):
 
     redis_url: str = "redis://localhost:6379"
 
+    # Ceiling on upstream LLM completion calls per inbound request — one request
+    # can fan out to ~11 (see eval/latency_harness.py); this caps cost/load
+    # amplification from a malicious or buggy client. 0 disables the cap.
+    max_llm_calls_per_request: int = 20
+
     divergence_threshold: float = 0.15
     drift_threshold: float = 0.20        # embedding-distance pre-gate (0-2 cosine scale)
     drift_judge_threshold: float = 0.6   # LLM judge's subjective 0-1 drift score
