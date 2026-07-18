@@ -124,6 +124,7 @@ If no `X-Session-ID` header is provided, a new session is created for each reque
 | `DRIFT_THRESHOLD` | `0.20` | Embedding-drift pre-gate for the temporal arc check |
 | `DRIFT_JUDGE_THRESHOLD` | `0.6` | LLM-judge drift score (0–1) above which temporal flags |
 | `PRECOMMITMENT_CONSISTENCY_THRESHOLD` | `0.6` | Consistency score below which pre-commitment flags |
+| `MAX_LLM_CALLS_PER_REQUEST` | `20` | Ceiling on upstream LLM calls per request (caps fan-out cost/load); exceed → 429. `0` disables |
 | `TIER_NORMALIZATION` | `true` | Enable/disable each tier |
 | `TIER_COUNTERFACTUAL` | `true` | |
 | `TIER_PRECOMMITMENT` | `true` | |
@@ -154,6 +155,8 @@ Notes:
 - The `usage` field on responses reflects the returned exchange (tokenizer-estimated), not the aggregate cost of pipeline-internal calls.
 - Each tier can be disabled independently via the `TIER_*` environment variables to trade coverage for cost.
 - `stream: true` is rejected with a 400: the pipeline must score the complete response before returning it.
+
+**Deployment note — cost amplification.** Because one request fans out to up to ~11 upstream calls, an untrusted or buggy client can amplify cost and load. `MAX_LLM_CALLS_PER_REQUEST` (default 20) caps the per-request fan-out — a request whose pipeline would exceed it gets a 429 rather than running unbounded. For public deployments, also put upstream rate-limiting (per-client request quotas) in front of the proxy; the per-request cap bounds a single request, not a flood of them.
 
 ## Running the eval
 

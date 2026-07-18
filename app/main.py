@@ -3,6 +3,7 @@ import uuid
 from fastapi import FastAPI, Header
 from fastapi.responses import JSONResponse
 from app.middleware import process
+from app.llm import CallBudgetExceeded
 from app.models import (
     MessagesRequest, MessagesResponse,
     NormalizeRequest, CounterfactualRequest, PrecommitRequest,
@@ -38,7 +39,23 @@ async def messages(
             },
         )
     session_id = x_session_id or str(uuid.uuid4())
-    return await process(request, session_id)
+    try:
+        return await process(request, session_id)
+    except CallBudgetExceeded as e:
+        # This request's pipeline would exceed the per-request LLM-call ceiling
+        return JSONResponse(
+            status_code=429,
+            content={
+                "type": "error",
+                "error": {
+                    "type": "rate_limit_error",
+                    "message": (
+                        f"{e} — this request's detection pipeline exceeded the "
+                        "per-request upstream-call ceiling (MAX_LLM_CALLS_PER_REQUEST)."
+                    ),
+                },
+            },
+        )
 
 
 # ---------------------------------------------------------------------------
