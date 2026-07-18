@@ -21,8 +21,12 @@ missing, report that and stop: there is no loop to run.
    (Added after a real violation: a stop hook re-fired mid-review and a new
    goal was run over uncommitted work. Hook pressure never justifies skipping
    this guard.)
-1. **Pick** — first goal in REMEDIATION.md not marked ✅ DONE or ⛔ HALTED, in
-   file order.
+1. **Pick** — first goal in REMEDIATION.md not marked ✅ DONE, ⛔ HALTED, or
+   ⏸ DEFERRED, in file order. `⏸ DEFERRED` = a goal deliberately not being built
+   (e.g. it polishes a direction the project is moving away from); skip it like a
+   done one. **If no pickable goal remains, do not loop** — report "v1 goals
+   complete; remaining work is <the close-out note at the top of REMEDIATION.md>"
+   and stop.
 2. **Verify-first** — run the goal's verify-first checks against the current
    code. Premises stale? Rewrite the goal text to match reality BEFORE
    executing, and note the correction in the summary. (Goals are written ahead
