@@ -30,6 +30,22 @@ Tiers 1 and 2 parallelize their LLM calls — wall-clock latency is the max of t
 
 ## Setup
 
+### Docker Compose (recommended)
+
+Brings up the proxy and Redis together, wired to each other:
+
+```bash
+git clone <repo>
+cd gloss
+cp .env.example .env
+# Edit .env — set your API key and preferred model
+docker compose up --build
+```
+
+The proxy is then on `http://localhost:8001`. Compose points the app at its own Redis service, so no local Redis install is needed.
+
+### Manual (Python + local Redis)
+
 **Requirements**: Python 3.10+, Redis
 
 ```bash
@@ -38,15 +54,7 @@ cd gloss
 pip install -e ".[dev]"
 cp .env.example .env
 # Edit .env — set your API key and preferred model
-```
-
-**Start Redis** (if not already running):
-```bash
-redis-server
-```
-
-**Start the proxy service**:
-```bash
+redis-server                              # in a separate shell, if not already running
 uvicorn app.main:app --reload --port 8001
 ```
 
