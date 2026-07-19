@@ -16,9 +16,13 @@ from __future__ import annotations
 import asyncio
 from dataclasses import dataclass
 
+from dotenv import load_dotenv
+
 from app.pipeline import assumptions
 from app.pipeline.assumptions import AssumptionResult
 from eval.assumptions_fixture import CLEAN, LOADED
+
+load_dotenv()  # push .env keys into the environment where litellm reads them (matches eval/runner.py)
 
 
 @dataclass
