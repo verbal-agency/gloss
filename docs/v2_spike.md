@@ -5,14 +5,14 @@ is the necessary precondition for the whole v2 input-layer direction (THESIS.md)
 
 ## Result (live run, 2026-07-18)
 
-Judge model `claude-haiku-4-5`, 20-query hand fixture (`eval/assumptions_fixture.py`).
+Judge model `claude-haiku-4-5`, 20-query hand-labeled dataset (`eval/assumptions_dataset.py`).
 
 | Metric | Result |
 |---|---|
 | Detection rate (loaded, n=10) | **100%** (10/10) — and the *correct* premise surfaced on eyeball, not just "something" |
 | False-positive rate (clean, n=10) | **0%** (0/10) — no clean query wrongly flagged |
 
-Reproduce: `JUDGE_MODEL=anthropic/claude-haiku-4-5 python -m eval.assumptions_spike`
+Reproduce: `JUDGE_MODEL=anthropic/claude-haiku-4-5 python -m eval.assumptions_eval`
 
 ## What it tells us
 
@@ -33,9 +33,9 @@ Reproduce: `JUDGE_MODEL=anthropic/claude-haiku-4-5 python -m eval.assumptions_sp
 
 ## Honest limits
 
-- **n=20, single author.** The prompt and the fixture were written by the same
+- **n=20, single author.** The prompt and the dataset were written by the same
   person, so a perfect score partly measures designer bias. Directional go, not a
-  benchmark. Before betting the build, widen the fixture (independent authorship,
+  benchmark. Before betting the build, widen the dataset (independent authorship,
   harder boundary cases, more domains) and re-measure.
 - **Coarse metric.** "detection rate" only checks that *a* questionable premise
   fired; "the right premise" was confirmed by eyeball, not automated matching.

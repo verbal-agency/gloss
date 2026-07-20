@@ -2,7 +2,7 @@
 
 Proves the extractor parses into the schema and that the go/no-go metric math is
 correct. The actual faithfulness numbers come from the live harness
-(`eval.assumptions_spike`), which is spend-gated and run separately.
+(`eval.assumptions_eval`), which is spend-gated and run separately.
 """
 from __future__ import annotations
 
@@ -10,7 +10,7 @@ from unittest.mock import AsyncMock, patch
 
 from app.pipeline import assumptions
 from app.pipeline.assumptions import AssumptionResult
-from eval.assumptions_spike import QueryOutcome, summarize
+from eval.assumptions_eval import QueryOutcome, summarize
 
 
 async def test_extract_parses_into_schema():

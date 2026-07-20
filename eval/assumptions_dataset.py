@@ -1,4 +1,4 @@
-"""G27 spike fixture — hand-built loaded vs. clean queries.
+"""G27 spike dataset — hand-labeled loaded vs. clean queries.
 
 LOADED: each carries an embedded questionable premise; `premise` names the one a
 faithful extractor should surface (for human eyeball — matching is not automated).

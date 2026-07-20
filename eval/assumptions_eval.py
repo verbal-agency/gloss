@@ -1,5 +1,6 @@
-"""G27 spike harness — run the assumption extractor over the hand fixture and
-report the two numbers that decide go/no-go on the v2 direction:
+"""Assumptions evaluation harness (built as the G27 de-risk spike; kept and grown
+from G28 on) — run the assumption extractor over the hand-labeled dataset and
+report the two numbers that decide whether the input-layer direction holds:
 
   - detection rate  (LOADED): fraction where a questionable premise WAS surfaced
                               — recall on queries that genuinely have one.
@@ -9,7 +10,7 @@ report the two numbers that decide go/no-go on the v2 direction:
 Per-query output is printed so a human can eyeball whether the RIGHT premise was
 caught (semantic matching is not automated — this is a probe, not a benchmark).
 
-Live run (spends ~20 judge-model calls): `python -m eval.assumptions_spike`
+Live run (spends ~20 judge-model calls): `python -m eval.assumptions_eval`
 """
 from __future__ import annotations
 
@@ -20,7 +21,7 @@ from dotenv import load_dotenv
 
 from app.pipeline import assumptions
 from app.pipeline.assumptions import AssumptionResult
-from eval.assumptions_fixture import CLEAN, LOADED
+from eval.assumptions_dataset import CLEAN, LOADED
 
 load_dotenv()  # push .env keys into the environment where litellm reads them (matches eval/runner.py)
 
@@ -52,7 +53,7 @@ def summarize(loaded: list[QueryOutcome], clean: list[QueryOutcome]) -> dict:
     }
 
 
-async def run_spike(model: str | None = None) -> tuple[list[QueryOutcome], list[QueryOutcome], dict]:
+async def run_eval(model: str | None = None) -> tuple[list[QueryOutcome], list[QueryOutcome], dict]:
     loaded = [
         QueryOutcome(q, await assumptions.extract(q, model=model), intended=premise)
         for q, premise in LOADED
@@ -84,5 +85,5 @@ def format_report(loaded: list[QueryOutcome], clean: list[QueryOutcome], summary
 
 
 if __name__ == "__main__":
-    loaded, clean, summary = asyncio.run(run_spike())
+    loaded, clean, summary = asyncio.run(run_eval())
     print(format_report(loaded, clean, summary))
