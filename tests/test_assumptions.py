@@ -34,19 +34,32 @@ async def test_extract_faithful_empty_questionable():
     assert result.questionable == []
 
 
-def _outcome(fired: bool) -> QueryOutcome:
+def _outcome(fired: bool, group: str = "framing") -> QueryOutcome:
     r = AssumptionResult(
         premises=["p"], questionable=["q"] if fired else [], reasoning="r"
     )
-    return QueryOutcome("query", r)
+    return QueryOutcome("query", r, group)
 
 
 def test_summarize_rates():
     # 3/4 loaded fired -> 0.75 recall; 1/4 clean fired -> 0.25 false-positive
     loaded = [_outcome(True), _outcome(True), _outcome(True), _outcome(False)]
-    clean = [_outcome(False), _outcome(False), _outcome(False), _outcome(True)]
+    clean = [_outcome(False, "neutral"), _outcome(False, "neutral"),
+             _outcome(False, "near_miss"), _outcome(True, "near_miss")]
     s = summarize(loaded, clean)
     assert s["detection_rate"] == 0.75
     assert s["false_positive_rate"] == 0.25
     assert s["detected"] == 3
     assert s["false_positives"] == 1
+
+
+def test_summarize_breaks_out_by_group():
+    # detection split by category; false-positives split by kind
+    loaded = [_outcome(True, "factual"), _outcome(False, "factual"),
+              _outcome(True, "framing"), _outcome(True, "framing")]
+    clean = [_outcome(True, "near_miss"), _outcome(False, "neutral")]
+    s = summarize(loaded, clean)
+    assert s["detection_by_category"]["factual"]["rate"] == 0.5
+    assert s["detection_by_category"]["framing"]["rate"] == 1.0
+    assert s["false_positive_by_kind"]["near_miss"]["rate"] == 1.0
+    assert s["false_positive_by_kind"]["neutral"]["rate"] == 0.0
