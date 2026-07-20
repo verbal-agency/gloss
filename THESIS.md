@@ -4,6 +4,23 @@
 useful proxy that taught us the real target. Its machinery mostly carries over;
 its **purpose** is what changes here.*
 
+## The pitch
+
+Turn the assistant into an **advisor** — one that surfaces the limited framing a
+question takes for granted (framing the model was trained to *accept*, not
+challenge) for users whose own capacity to catch that framing is atrophying. The
+line that keeps it honest: an advisor whose job is to hand judgment **back** to
+you, not to become the new authority you defer to.
+
+Located precisely: the foible is not pretraining but the RLHF-trained tendency to
+accommodate a user's premises (DESIGN.md files "framing capture" under sycophancy).
+v2 sits at the intersection of two complementary failures — a model that won't
+challenge a bad frame because accommodation is what it was optimized for, and a
+user decreasingly able to challenge it themselves. The model foible is why the gap
+exists and can't self-correct; the executive-function atrophy is why it now
+compounds. The advisor upgrade supplies the frame-challenge the model withholds,
+to the user who can no longer reliably supply it alone.
+
 ## The real problem
 
 The point was never anti-sycophancy. Sycophancy is one symptom of a larger shift:
