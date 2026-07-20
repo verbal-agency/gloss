@@ -93,3 +93,44 @@ silently ignores false-dichotomy questions would ship that blind spot to users.
 - Model-drafted + user-vetted: vetting filters designer bias, doesn't eliminate it.
 - n=55; directional, not a benchmark. "Detection" = *a* premise fired, eyeballed
   for correctness, not automated matching.
+
+---
+
+# G31 — teach structural framing bias: gap closed IN-SAMPLE
+
+**Verdict: the prompt revision closes the G28 gap on the known set — framing
+detection 60% → 95% — with zero faithfulness regression. But this is an in-sample
+result; generalization is not yet proven (see caveat).**
+
+## Result (live run, 2026-07-20)
+
+`EXTRACT_SYSTEM` revised to name two kinds of questionable premise explicitly —
+DUBIOUS CLAIM vs. NARROW FRAME (false dichotomy / presupposed solution /
+under-specified) — and to protect queries that *ask for* tradeoffs/factors as
+frame-opening, not frame-presupposing.
+
+| Metric | G28 (before) | G31 (after) |
+|---|---|---|
+| Detection — framing (n=20) | 60% | **95%** (19/20) |
+| Detection — factual (n=10) | 100% | 100% |
+| Detection — overall (n=30) | 73% | 97% (29/30) |
+| False-positive — neutral (n=12) | 0% | **0%** |
+| False-positive — near-miss (n=13) | 15% (2) | **15% (same 2)** |
+
+The one remaining framing miss ("kids watching too much TV" — presupposed-problem).
+The 2 near-miss false positives are the identical defensible cases from G28
+(screen-time "threshold", teammate "contributes too little") — no new over-firing.
+The under-specification behavior now works as intended: e.g. "pay off the mortgage
+or invest" and "guarantee 20% return" both surface "depends on the user's rate /
+risk tolerance / timeline / financial situation".
+
+## The caveat that matters (per G30 discipline)
+
+**This is in-sample.** The prompt was revised *after* seeing the G28 misses — the
+revision names the categories those misses fell into. So 95% confirms the fix
+**targets** the gap; it does **not** prove the extractor generalizes to false
+dichotomies / presupposed solutions it was not written against. The fix is
+category-level (naming types), not case-level (memorizing queries), which is more
+defensible than pure overfitting — but the generalization claim still awaits a
+**held-out** set of fresh structural-framing queries the prompt never saw. No
+faithfulness was traded to get here, which is the encouraging part.

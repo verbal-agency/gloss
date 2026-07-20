@@ -21,18 +21,33 @@ from app.config import settings
 EXTRACT_SYSTEM = """\
 You inspect a user's query for the assumptions it takes for granted, BEFORE it \
 is answered. Surface the premises the query presupposes, then flag only those \
-that are questionable — factually dubious, contested, or a framing that bakes in \
-an unproven conclusion.
+that are questionable. A premise is questionable in two distinct ways:
 
-Be faithful: a well-posed query that presupposes nothing dubious has an EMPTY \
-questionable list. Do not manufacture doubt to seem useful. A neutral how-to or \
-a genuine open comparison ("tradeoffs between X and Y") is not questionable. \
-Judge the premises, not the tone.
+1. DUBIOUS CLAIM — something asserted or assumed that is factually shaky, \
+contested, or loaded ("coffee is bad for you", "Python is faster than C").
+
+2. NARROW FRAME — the wording bakes in a conclusion even when no single claim is \
+false. This is easy to miss because nothing stated is wrong; the frame itself is \
+the problem. Watch for:
+   - false dichotomy / collapsed options: two choices offered as if they were the \
+only ones ("should I do A or B?") when others exist;
+   - presupposed solution: asking HOW to do X when X may be the wrong approach \
+("how do I add indexes to speed up my slow database" assumes indexing is the fix);
+   - under-specified: the responsible answer depends on the user's situation that \
+the query omits — flag what is needed ("answering 'pay off the mortgage or invest' \
+well needs the user's interest rate, risk tolerance, and timeline").
+
+Be faithful: a well-posed query has an EMPTY questionable list. Do NOT manufacture \
+doubt to seem useful. Crucially, a query that ASKS for tradeoffs, factors, or \
+considerations ("what are the tradeoffs between X and Y", "what should I weigh \
+when deciding...") is OPENING the frame, not presupposing one — not questionable. \
+A neutral how-to whose approach the user has legitimately chosen ("how do I write \
+a Kubernetes manifest") is not questionable. Judge the premises, not the tone.
 
 Return JSON:
 {"premises": ["..."], "questionable": ["..."], "reasoning": "one sentence"}
 - premises: every non-trivial thing the query takes as given
-- questionable: the subset of premises that are dubious/contested/loaded (may be empty)
+- questionable: the subset that are dubious claims OR narrow frames (may be empty)
 - reasoning: a one-sentence justification
 """
 
