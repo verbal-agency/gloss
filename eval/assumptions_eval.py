@@ -73,14 +73,18 @@ def summarize(loaded: list[QueryOutcome], clean: list[QueryOutcome]) -> dict:
     }
 
 
-async def run_eval(model: str | None = None) -> tuple[list[QueryOutcome], list[QueryOutcome], dict]:
+async def run_eval(
+    model: str | None = None,
+    loaded_set: list[tuple[str, str, str]] = LOADED,
+    clean_set: list[tuple[str, str]] = CLEAN,
+) -> tuple[list[QueryOutcome], list[QueryOutcome], dict]:
     loaded = [
         QueryOutcome(q, await assumptions.extract(q, model=model), cat, intended=intended)
-        for q, intended, cat in LOADED
+        for q, intended, cat in loaded_set
     ]
     clean = [
         QueryOutcome(q, await assumptions.extract(q, model=model), kind)
-        for q, kind in CLEAN
+        for q, kind in clean_set
     ]
     return loaded, clean, summarize(loaded, clean)
 
@@ -115,5 +119,17 @@ def format_report(loaded: list[QueryOutcome], clean: list[QueryOutcome], summary
 
 
 if __name__ == "__main__":
-    loaded, clean, summary = asyncio.run(run_eval())
+    import argparse
+
+    p = argparse.ArgumentParser(description="Assumptions extractor evaluation")
+    p.add_argument("--heldout", action="store_true",
+                   help="run the held-out adversarial set (eval/assumptions_heldout.py) "
+                        "instead of the main dataset — a generalization test")
+    args = p.parse_args()
+
+    if args.heldout:
+        from eval.assumptions_heldout import CLEAN as HELD_CLEAN, LOADED as HELD_LOADED
+        loaded, clean, summary = asyncio.run(run_eval(loaded_set=HELD_LOADED, clean_set=HELD_CLEAN))
+    else:
+        loaded, clean, summary = asyncio.run(run_eval())
     print(format_report(loaded, clean, summary))
