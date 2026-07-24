@@ -165,3 +165,55 @@ in-sample 8% understated the real faithfulness cost. **Verdict: the G31 concept
 generalizes on recall but not yet on faithfulness. It needs a materiality/pedantry
 guard** — flag a narrow frame only when answering within it materially misleads or
 forecloses — before the re-pose tier (G29) is built on it. Follow-on goal.
+
+---
+
+# G32 — architecture spike: frame-delta vs holistic
+
+**Verdict: NO-GO for frame-delta as primary detector. Holistic wins. Holistic is
+the G29 detector.**
+
+## What we tested
+
+Renamed generate-and-compare → **frame-delta** (`extract_frame_delta`,
+`app/pipeline/assumptions.py`). Four variants, all on the main dataset (30 loaded
+/ 25 clean). Holistic run used the decontaminated prompt (dataset-specific examples
+stripped, stakes-calibrated, lean-neutral).
+
+| Approach | Detection | False-positive |
+|---|---|---|
+| Holistic (decontaminated) | **87% (26/30)** | 4% (1/25) |
+| Frame-delta: relax/neutralize | 30% (9/30) | 0% (0/25) |
+| Frame-delta: intended-state | 50% (15/30) | 4% (1/25) |
+| Frame-delta: tightened intended-state | 53% (16/30) | 4% (1/25) |
+| Frame-delta: decomposition | 13% (4/30) | 8% (2/25) |
+
+## What frame-delta tells us
+
+The magnitude scalar (0–3: how much the answer moves when the frame is opened)
+cleanly separates loaded from clean on the clean side — clean queries max at
+magnitude 1, never reach 2. That is a real signal.
+
+But the recall gap is 34 percentage points at the threshold that keeps FP parity.
+No variant of frame-delta closed it. The decomposition approach collapsed the
+distribution (everything scored 1, loaded and clean indistinguishable).
+
+**Root failure:** many loaded queries are partially self-corrected in the original
+answer — the LLM handles the bad premise regardless of framing, so the answer-delta
+is small. Frame-delta can only flag when the answer genuinely moves; holistic can
+flag the premise before any answer is generated.
+
+## The new G29 decision
+
+During G32, the G29 design was simplified:
+- No disclosure, no contrast, no mirror/annotate/off modes
+- Reframing is **purely implicit** — answer toward the user's underlying goal;
+  the better answer is the only output
+- One combined call: detect + reframe together
+
+## Honest limits
+
+- Main dataset only; held-out not run for this comparison
+- Cost/latency not timed (frame-delta is ≥4× calls per query vs 1× holistic)
+- Decontaminated holistic not run head-to-head against contaminated in same session
+  (prior sessions reported ~95%/8% for contaminated; directional, not controlled)

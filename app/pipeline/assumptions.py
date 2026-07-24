@@ -20,34 +20,33 @@ from app.config import settings
 
 EXTRACT_SYSTEM = """\
 You inspect a user's query for the assumptions it takes for granted, BEFORE it \
-is answered. Surface the premises the query presupposes, then flag only those \
-that are questionable. A premise is questionable in two distinct ways:
+is answered. Surface the premises the query presupposes, then flag the ones a \
+knowledgeable, careful advisor would genuinely pause over before answering.
 
-1. DUBIOUS CLAIM — something asserted or assumed that is factually shaky, \
-contested, or loaded ("coffee is bad for you", "Python is faster than C").
+Apply one judgment, not a checklist: would answering the query exactly as framed \
+risk misleading the user, foreclosing a materially better option they haven't \
+considered, or building on something dubious? A premise earns a flag when a \
+thoughtful expert would want to challenge or qualify it first — whether it \
+asserts something factually shaky or contested, or the framing itself quietly \
+narrows the space (offering a few options as if they were the only ones, \
+assuming a solution the user has not justified, or posing a consequential \
+question whose honest answer depends on context the query leaves out).
 
-2. NARROW FRAME — the wording bakes in a conclusion even when no single claim is \
-false. This is easy to miss because nothing stated is wrong; the frame itself is \
-the problem. Watch for:
-   - false dichotomy / collapsed options: two choices offered as if they were the \
-only ones ("should I do A or B?") when others exist;
-   - presupposed solution: asking HOW to do X when X may be the wrong approach \
-("how do I add indexes to speed up my slow database" assumes indexing is the fix);
-   - under-specified: the responsible answer depends on the user's situation that \
-the query omits — flag what is needed ("answering 'pay off the mortgage or invest' \
-well needs the user's interest rate, risk tolerance, and timeline").
+Calibrate to stakes and consequence — this is the crux, and the same surface \
+shape can be fine or not depending on what a wrong-framed answer would cost. Do \
+NOT flag when a generic answer would serve the user perfectly well: when the \
+missing context is cheap, when the framing is a reasonable everyday \
+simplification, or when they are simply asking how to do something they have \
+sensibly chosen to do. A query that openly asks for tradeoffs, factors, or \
+considerations is already reasoning well — leave it alone.
 
-Be faithful: a well-posed query has an EMPTY questionable list. Do NOT manufacture \
-doubt to seem useful. Crucially, a query that ASKS for tradeoffs, factors, or \
-considerations ("what are the tradeoffs between X and Y", "what should I weigh \
-when deciding...") is OPENING the frame, not presupposing one — not questionable. \
-A neutral how-to whose approach the user has legitimately chosen ("how do I write \
-a Kubernetes manifest") is not questionable. Judge the premises, not the tone.
+Be faithful: a well-posed query has an EMPTY questionable list, and you must not \
+manufacture doubt to seem useful. Judge the premises, not the tone.
 
 Return JSON:
 {"premises": ["..."], "questionable": ["..."], "reasoning": "one sentence"}
 - premises: every non-trivial thing the query takes as given
-- questionable: the subset that are dubious claims OR narrow frames (may be empty)
+- questionable: the premises a careful advisor would genuinely pause over (may be empty)
 - reasoning: a one-sentence justification
 """
 
@@ -56,6 +55,73 @@ class AssumptionResult(BaseModel):
     premises: list[str]
     questionable: list[str]
     reasoning: str
+
+
+_DECOMPOSE_SYSTEM = """\
+Given a user's query, identify their underlying goal and decompose it into 2-4 \
+questions that together cover the full space of what they are trying to achieve. \
+Each question should open a different dimension of the goal — without assuming \
+any particular solution, option set, means, or causal claim. The questions \
+collectively should surface what a comprehensive expert answer would need to cover.
+Return JSON: {"questions": ["...", "...", "..."]}
+"""
+
+_MOVE_SYSTEM = """\
+You are given an original question with its answer, and a set of decomposed \
+questions with their answers that explore the same underlying goal more fully. \
+Judge how much the decomposed answers collectively change the substance — \
+surfacing better options, a different recommendation, or decisive considerations \
+the original answer missed.
+Rate magnitude 0-3: 0 = same substance (the framing cost nothing); 1 = minor extra \
+color; 2 = materially fuller/different (the framing was costing the user something); \
+3 = fundamentally different or better path (the original framing was misleading).
+Return JSON: {"magnitude": 0-3, "differences": ["..."]}
+"""
+
+
+class _Decomposed(BaseModel):
+    questions: list[str]
+
+
+class _Movement(BaseModel):
+    magnitude: int
+    differences: list[str]
+
+
+async def extract_frame_delta(
+    query: str, model: str | None = None, threshold: int = 2
+) -> AssumptionResult:
+    """Frame-delta detector (G32 spike): a frame is unproductively constrained
+    iff decomposing to the underlying goal materially moves the answer. Decompose
+    → answer all in parallel → judge aggregate movement (0-3). Flag iff magnitude
+    >= threshold; the magnitude is the rankable materiality scalar (in `reasoning`)."""
+    import asyncio
+
+    model = model or settings.effective_judge_model
+    decomposed = await llm.chat_json(
+        [{"role": "system", "content": _DECOMPOSE_SYSTEM}, {"role": "user", "content": query}],
+        model=model, schema=_Decomposed,
+    )
+    questions = decomposed["questions"]
+    answers = await asyncio.gather(
+        *[llm.chat([{"role": "user", "content": q}], model=model) for q in [query] + questions]
+    )
+    ans_orig = answers[0]
+    ans_decomposed = answers[1:]
+    combined = "\n\n".join(f"Q: {q}\nA: {a}" for q, a in zip(questions, ans_decomposed))
+    move = await llm.chat_json(
+        [{"role": "system", "content": _MOVE_SYSTEM},
+         {"role": "user", "content": f"ORIGINAL QUESTION: {query}\nORIGINAL ANSWER: {ans_orig}\n\n"
+                                     f"DECOMPOSED QUESTIONS AND ANSWERS:\n{combined}"}],
+        model=model, schema=_Movement,
+    )
+    mag = int(move["magnitude"])
+    flagged = mag >= threshold
+    return AssumptionResult(
+        premises=[],
+        questionable=move["differences"] if flagged else [],
+        reasoning=f"magnitude={mag}",
+    )
 
 
 async def extract(query: str, model: str | None = None) -> AssumptionResult:
