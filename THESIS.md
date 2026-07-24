@@ -110,15 +110,36 @@ the trust paradox (v1 finding 14) relocated to the input layer.
   the divergence/stance metrics. They become **measurement and evidence** — how we
   check whether compensation is working — not the user-facing point.
 
-## Open problems v2 must answer honestly
+## Where v2 stands
 
-- **Measurement.** "Executive function compensated/preserved" is a behavioral,
-  longitudinal property; no request-level metric captures it. A flip rate won't
-  transfer — we need a different evidence story (closer to a user study than an
-  eval run).
-- **Friction vs. value.** Even responsible compensation must not annoy. *Which*
-  queries get the treatment (targeting) is a real problem — factual, low-stakes
-  queries shouldn't be re-posed at all.
-- **Assumption deconstruction is hard.** Detecting and questioning embedded
-  premises without solving general reasoning is the central technical risk;
-  de-risk it small before betting the build on it.
+### What the build has proven
+
+- **Detection is tractable.** G27–G32 (detection spike + architecture comparison)
+  proved faithful assumption extraction is achievable: 87% recall / 4% FP on a
+  curated dev set; 100% held-out recall on an adversarial set the prompt was never
+  written against. Holistic single-call detection dominates the alternative
+  (frame-delta, best 53%) by 34 percentage points, because it can flag a premise
+  before any answer is generated — frame-delta is blind when the model self-corrects
+  within the bad frame.
+- **Structural faithfulness holds.** The repose tier's faithfulness guarantee is
+  by construction: `questionable=[]` → `reposed_query=None` → query passes through
+  unchanged. A detection-level false positive is the only path to an unwanted rewrite.
+- **Unconditional deployment is safe.** 0% FP on neutral clean queries validates
+  running the tier on every query without a targeting gate — no-op on clean input
+  is guaranteed, not hoped for.
+
+### What remains open
+
+- **Faithfulness calibration.** Held-out FP was 22% vs. 4% dev — primarily benign
+  under-specification (narrow frames where a generic answer would have served fine,
+  e.g. "highway or surface streets" flagged as a false dichotomy). The materiality
+  threshold ("flag only when answering within the frame materially misleads or
+  forecloses a better option") is correct in principle but still being calibrated
+  on unseen cases.
+- **Behavioral measurement.** "Executive function compensated" is a longitudinal,
+  behavioral claim. No request-level detection metric captures it. A real validation
+  needs something closer to a user-study protocol: compare outcomes over time for
+  users with and without the reframe tier, not a single-query benchmark.
+- **Friction vs. value.** Whether users experience reframed answers as more helpful
+  or as presumptuous is a product question, not an eval question. The tier fires
+  correctly; whether it fires *welcomingly* is unknown.

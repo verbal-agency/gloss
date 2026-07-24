@@ -217,3 +217,52 @@ During G32, the G29 design was simplified:
 - Cost/latency not timed (frame-delta is ≥4× calls per query vs 1× holistic)
 - Decontaminated holistic not run head-to-head against contaminated in same session
   (prior sessions reported ~95%/8% for contaminated; directional, not controlled)
+
+---
+
+# Measurement story: what the numbers prove
+
+These are technical validation numbers for the Gloss v2 input layer. They answer
+one question — *does the detection component work?* — not the product-level question.
+
+## What the numbers prove
+
+- **Detection reliability.** The holistic extractor reaches 87% recall / 4% FP
+  on the dev set and 100% recall / 22% FP on a held-out adversarial set the prompt
+  was never written against. Held-out recall matching or exceeding dev recall means
+  the concept transferred — the fix was category-level (naming types of bad framing),
+  not case-level (memorizing queries). That is a real generalization result.
+- **Architecture fitness.** Holistic detection dominates frame-delta by 34 percentage
+  points at the same FP rate. The root cause: frame-delta measures answer movement,
+  but capable models partially self-correct within bad frames — so the delta is small
+  even when the frame is wrong. Holistic flags the premise before any answer is
+  generated, which is why it wins.
+- **Structural faithfulness.** The repose guarantee is by construction:
+  `questionable=[]` → `reposed_query=None` → pass-through unchanged. No detection
+  false positive, no rewrite. This is the faithfulness guardrail relocated to the
+  input layer (v1 finding 14).
+
+## What the numbers do not prove
+
+- **The behavioral claim.** "Users arrive at better-grounded outcomes" is longitudinal.
+  These are single-query, single-turn metrics. They establish that the detection
+  component fires correctly; they say nothing about whether the reframed answers
+  actually improve user decisions over time or prevent executive-function atrophy.
+  A real validation would need a user-study protocol.
+- **Production faithfulness.** The held-out FP gap (4% dev → 22% held-out) shows
+  that benign under-specification — narrow frames where a generic answer would have
+  served fine — over-fires on novel cases the prompt wasn't written against. Until
+  the materiality threshold is validated on fresh held-out cases, the production FP
+  rate is uncertain.
+- **User experience.** Whether users perceive reframed answers as more helpful or
+  as presumptuous is a product-design question requiring user research, not an eval
+  question.
+
+## Dataset discipline
+
+The dev set (30 loaded / 25 clean, `eval/assumptions_dataset.py`) was used for
+detection tuning and architecture comparison. The held-out adversarial set (10
+loaded / 9 clean, `eval/assumptions_heldout.py`) was authored *after* the final
+prompt revision, in fresh domains the prompt never saw — it is the only result that
+supports a generalization claim. Future prompt changes must not be tuned against
+the held-out set; write fresh held-out cases after each revision instead.
