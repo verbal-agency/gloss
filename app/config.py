@@ -36,6 +36,7 @@ class Settings(BaseSettings):
     precommitment_consistency_threshold: float = 0.6
 
     tier_normalization: bool = True
+    tier_assumption: bool = True
     tier_counterfactual: bool = True
     tier_precommitment: bool = True
     tier_disagreement: bool = True

@@ -40,6 +40,8 @@ async def _chat_json_router(messages, **kwargs):
     if "evaluation criteria" in system:
         return {"consistent": True, "dropped_standards": [], "score": 1.0,
                 "reasoning": "Criteria applied consistently."}
+    if "assumptions it takes for granted" in system:
+        return {"premises": [], "questionable": [], "reasoning": "well-posed", "reposed_query": None}
     raise AssertionError(f"Unrouted chat_json system prompt: {system[:80]}")
 
 

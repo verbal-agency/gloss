@@ -60,6 +60,8 @@ async def test_pc_only_path_makes_one_target_call_and_returns_judged_response():
         if "query preprocessor" in system:
             return {"normalized": messages[-1]["content"],
                     "signals_removed": [], "was_modified": False}
+        if "assumptions it takes for granted" in system:
+            return {"premises": [], "questionable": [], "reasoning": "well-posed", "reposed_query": None}
         if "Extract every factual claim" in system:
             return {"claims": []}
         if "evaluation criteria" in system:
@@ -117,6 +119,8 @@ async def test_normalizer_stripped_signal_still_triggers_counterfactual():
             variant_requests.append(messages[-1]["content"])
             return {"neutral": "Is the earth flat?",
                     "inverted": "I doubt the earth is flat. Is it?"}
+        if "assumptions it takes for granted" in system:
+            return {"premises": [], "questionable": [], "reasoning": "well-posed", "reposed_query": None}
         if "capitulated" in system:
             return {"classification": "HOLDS", "reasoning": "held"}
         if "Extract every factual claim" in system:

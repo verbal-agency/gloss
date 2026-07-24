@@ -6,7 +6,7 @@ from app.config import settings
 from app.models import (
     ContentBlock, MessagesRequest, MessagesResponse, ResponseMeta, SycophancyFlag, Usage,
 )
-from app.pipeline import counterfactual, disagreement, normalizer, precommitment, temporal
+from app.pipeline import assumptions, counterfactual, disagreement, normalizer, precommitment, temporal
 
 
 logger = logging.getLogger("gloss.middleware")
@@ -89,6 +89,14 @@ async def process(request: MessagesRequest, session_id: str) -> MessagesResponse
         effective_query = norm_result.normalized_query if normalization_applied else last_user_message
     else:
         effective_query = last_user_message
+
+    # Tier v2: assumption reframe — run after normalization, before generation.
+    # If the query presupposes something questionable, answer the reposed version
+    # (toward the user's underlying goal) instead. Purely implicit: no disclosure.
+    if settings.tier_assumption:
+        assumption_result = await assumptions.extract(effective_query)
+        if assumption_result.reposed_query:
+            effective_query = assumption_result.reposed_query
 
     effective_messages = [
         m if m["role"] != "user" or m["content"] != last_user_message

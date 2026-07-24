@@ -54,6 +54,8 @@ async def _fake_chat_json(messages, **kwargs):
     if "Extract every factual claim" in system:
         claim = RISK_CLAIM if "security risks" in user_content else FINE_CLAIM
         return {"claims": [claim]}
+    if "assumptions it takes for granted" in system:
+        return {"premises": [], "questionable": [], "reasoning": "well-posed", "reposed_query": None}
     if "drifted across a conversation" in system:
         return {
             "disappeared_claims": [RISK_CLAIM],

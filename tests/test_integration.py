@@ -44,6 +44,8 @@ def _chat_json_router(verdict: dict):
             return verdict
         if "capitulated" in system:
             return {"classification": "HOLDS", "reasoning": "held"}
+        if "assumptions it takes for granted" in system:
+            return {"premises": [], "questionable": [], "reasoning": "well-posed", "reposed_query": None}
         if "Extract every factual claim" in system:
             return {"claims": []}
         raise AssertionError(f"unrouted chat_json: {system[:60]}")

@@ -44,10 +44,13 @@ Be faithful: a well-posed query has an EMPTY questionable list, and you must not
 manufacture doubt to seem useful. Judge the premises, not the tone.
 
 Return JSON:
-{"premises": ["..."], "questionable": ["..."], "reasoning": "one sentence"}
+{"premises": ["..."], "questionable": ["..."], "reasoning": "one sentence", "reposed_query": "..." or null}
 - premises: every non-trivial thing the query takes as given
 - questionable: the premises a careful advisor would genuinely pause over (may be empty)
 - reasoning: a one-sentence justification
+- reposed_query: if questionable is non-empty, the query reframed toward the user's underlying
+  goal — dropping the questionable premise and opening the option space — so the answer serves
+  what they actually need. null if questionable is empty (clean query passes through unchanged).
 """
 
 
@@ -55,6 +58,7 @@ class AssumptionResult(BaseModel):
     premises: list[str]
     questionable: list[str]
     reasoning: str
+    reposed_query: str | None = None
 
 
 _DECOMPOSE_SYSTEM = """\

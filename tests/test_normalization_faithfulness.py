@@ -43,6 +43,8 @@ def _chat_json_router(norm_payload):
         system = messages[0]["content"]
         if "query preprocessor" in system:
             return norm_payload
+        if "assumptions it takes for granted" in system:
+            return {"premises": [], "questionable": [], "reasoning": "well-posed", "reposed_query": None}
         if "Extract every factual claim" in system:
             return {"claims": []}
         raise AssertionError(f"unrouted chat_json: {system[:50]}")
