@@ -2,31 +2,34 @@
 
 *Catches when a model glosses over the truth to tell you what you want to hear.*
 
-A pluggable middleware service that detects and corrects LLM sycophancy at runtime — no model access required, works via any provider's public API.
+A pluggable middleware proxy that intercepts queries, surfaces the assumptions they presuppose, and answers toward the user's underlying goal — without requiring model access or modifying any client code.
 
 ## What it does
 
-LLMs trained on human feedback learn to prioritize approval over accuracy. This manifests in three ways:
+LLMs trained on human feedback learn to accommodate rather than challenge. This shows up in three ways:
 
 - **Reactive sycophancy** — the model changes its answer when the user expresses a preference, even if that preference is wrong
 - **Epistemic omission** — the model doesn't volunteer critical information the user didn't ask for
 - **Framing capture** — the model accepts the user's flawed premises rather than questioning them
 
-This service wraps any LLM API and runs a detection pipeline on every request. It operates as an API-compatible proxy: point your existing client at it instead of directly at the provider, and it transparently detects and corrects sycophantic responses.
+The first two are output failures — the response is wrong or incomplete. Framing capture is an input failure: the question itself is already constrained in a way the model was trained not to push back on. Detecting a bad answer after the fact can't fix this; the frame has to be addressed before generation.
 
-## Detection pipeline
+Gloss operates at both layers. At the **input layer**, it deconstructs query assumptions and re-poses the question toward the user's actual goal (the framing-capture fix). At the **output layer**, it detects reactive sycophancy and drift. It runs as an API-compatible proxy — point your existing client at it instead of directly at the provider, and it operates transparently.
 
-Four mechanisms, running in tiers:
+## Pipeline
 
-| Tier | Component | When it runs | What it catches |
-|---|---|---|---|
-| 0 | **Query normalization** | Every query | Strips authority claims, confidence markers, emotional stakes before the model sees them |
-| 1 | **Counterfactual pairs** | Opinion signal detected | Sends neutral + inverted variants in parallel, scores embedding divergence, then confirms flagged cases with a substantive-difference judge (two-stage: cheap screen + judge) |
-| 2 | **Pre-commitment extraction** | High-stakes domain | Locks in evaluation criteria before the primed query; detects if response violates those criteria |
-| 2 | **Disagreement pressure** | Opinion signal + factual query | Probes whether position holds under simulated pushback |
-| 3 | **Temporal consistency** | Multi-turn (turn ≥ 3) | Detects gradual capitulation across a conversation by tracking claim drift |
+Six mechanisms across two layers:
 
-Tiers 1 and 2 parallelize their LLM calls — wall-clock latency is the max of the parallel calls, not the sum.
+| Layer | Tier | Component | When it runs | What it does |
+|---|---|---|---|---|
+| Input | — | **Assumption reframe** | Every query | Deconstructs the assumptions a query presupposes; if any are questionable, silently re-poses the query toward the user's underlying goal before generation. No-op on clean queries — `questionable=[]` → query passes through unchanged |
+| Input | 0 | **Query normalization** | Every query | Strips authority claims, confidence markers, and emotional stakes before the model sees them |
+| Output | 1 | **Counterfactual pairs** | Opinion signal detected | Generates neutral + inverted variants in parallel; a judge confirms whether the position reversed (stance-flip), not just whether the wording moved |
+| Output | 2 | **Pre-commitment extraction** | High-stakes domain | Locks in evaluation criteria before the primed query; flags if the response silently drops those criteria |
+| Output | 2 | **Disagreement pressure** | Opinion signal + factual query | Probes whether the model's position holds under simulated pushback |
+| Output | 3 | **Temporal consistency** | Multi-turn (turn ≥ 3) | Detects gradual capitulation across a conversation by tracking which claims disappear |
+
+Output tiers 1 and 2 parallelize their LLM calls — wall-clock latency is the max of the parallel calls, not the sum.
 
 ## Setup
 
@@ -98,6 +101,22 @@ print(response.meta)
 # }
 ```
 
+**Local CLI (no server or Redis required)**:
+```bash
+python -m app.cli "Should I pay off my mortgage or invest the money?" --no-redis
+```
+```
+The right answer depends on your interest rate, expected investment returns,
+tax situation, and risk tolerance. Generally: if your mortgage rate exceeds
+your expected after-tax investment return, paying it down wins; otherwise
+investing does. Most financial advisors suggest considering both simultaneously.
+
+--- flags ---
+[counterfactual_divergence  score=0.00]  A judge found the response stable across opinion framings.
+```
+
+Options: `--model`, `--mode observe|enforce`, `--session` (for multi-turn continuity across calls), `--disable-tier <name>` (repeatable), `--verbose` (prints full `meta` JSON).
+
 **Session tracking for temporal consistency**:
 ```python
 # Pass a stable session ID across turns to enable drift monitoring
@@ -126,7 +145,8 @@ If no `X-Session-ID` header is provided, a new session is created for each reque
 | `DRIFT_JUDGE_THRESHOLD` | `0.6` | LLM-judge drift score (0–1) above which temporal flags |
 | `PRECOMMITMENT_CONSISTENCY_THRESHOLD` | `0.6` | Consistency score below which pre-commitment flags |
 | `MAX_LLM_CALLS_PER_REQUEST` | `20` | Ceiling on upstream LLM calls per request (caps fan-out cost/load); exceed → 429. `0` disables |
-| `TIER_NORMALIZATION` | `true` | Enable/disable each tier |
+| `TIER_ASSUMPTION` | `true` | Enable/disable the assumption reframe tier |
+| `TIER_NORMALIZATION` | `true` | Enable/disable each output tier |
 | `TIER_COUNTERFACTUAL` | `true` | |
 | `TIER_PRECOMMITMENT` | `true` | |
 | `TIER_DISAGREEMENT` | `true` | |
@@ -150,6 +170,7 @@ python -m eval.latency_harness
 | Multi-turn, drift flagged | 3 + 1 | 1 | ~3x |
 
 Notes:
+- **The assumption reframe tier adds +1 LLM call to every row** (it runs unconditionally before generation). The table above was measured before the tier was added (G29) and is understated by one call per scenario. Re-run the harness to get current numbers.
 - The opinion-primed rows include the stance/flip judge, which runs on **every** opinion-primed query (gated on the opinion signal, not on cosine divergence). Cosine is polarity-blind and missed real flips, so it no longer gates the judge — it's recorded as telemetry only. The judge is cheap when routed to a small `JUDGE_MODEL`; the cost is dominated by the 3–4 full response generations, not the judge.
 - Even untriggered queries pay ~2x wall-clock, because query normalization is itself a serial LLM call before the target call.
 - Token cost scales roughly with the blocking-call count, since most pipeline calls carry the conversation context. Budget accordingly for high-traffic use.
@@ -215,7 +236,7 @@ The takeaway the project was built to demonstrate: *whether the answer moved* (c
 pytest tests/ -v
 ```
 
-12 unit tests covering all pipeline components with mocked LLM responses.
+111 tests covering all pipeline components, integration paths, and the CLI — all run with mocked LLM responses, no keys required.
 
 ## Project structure
 
@@ -223,9 +244,11 @@ pytest tests/ -v
 app/
   main.py              — FastAPI proxy endpoint
   middleware.py        — Pipeline orchestrator
+  cli.py               — Local CLI (python -m app.cli)
   pipeline/
+    assumptions.py     — Assumption extraction + query reframe (v2 input layer)
     normalizer.py      — Query normalization
-    counterfactual.py  — Counterfactual pairs + divergence scoring
+    counterfactual.py  — Counterfactual pairs + stance-flip judge
     precommitment.py   — Criteria extraction + consistency judge
     disagreement.py    — Pushback stability probe
     temporal.py        — Multi-turn arc tracing
@@ -235,9 +258,10 @@ app/
   config.py            — Settings from environment
 eval/
   runner.py            — CLI eval runner
-  dataset.py           — Bundled question dataset
+  dataset.py           — Bundled question dataset (40 questions, 5 domains)
   report.py            — Chart generation
-tests/                 — Unit tests for each pipeline component
+  assumptions_eval.py  — Assumption-extraction eval harness
+tests/                 — 111 tests across all pipeline components
 ```
 
 ## Design
