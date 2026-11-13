@@ -90,6 +90,12 @@ async def _run(args: argparse.Namespace) -> None:
 
 def _print_response(response, *, verbose: bool) -> None:
     print(response.content[0].text)
+    found = response.meta.assumptions
+    if found:
+        print(f"\n--- your question assumed ({found.action}) ---")
+        for q in found.questionable:
+            print(f"- {q}")
+        print(f"Why it matters: {found.reasoning}")
     fired = [f for f in response.meta.sycophancy_flags if f.flagged]
     if fired:
         print("\n--- flags ---")

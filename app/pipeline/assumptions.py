@@ -13,10 +13,14 @@ separate detection round-trip.
 """
 from __future__ import annotations
 
+import logging
+
 from pydantic import BaseModel
 
 from app import llm
 from app.config import settings
+
+logger = logging.getLogger("gloss.assumptions")
 
 EXTRACT_SYSTEM = """\
 You inspect a user's query for the assumptions it takes for granted, BEFORE it \
@@ -144,3 +148,38 @@ async def extract(query: str, model: str | None = None) -> AssumptionResult:
         schema=AssumptionResult,
     )
     return AssumptionResult(**data)
+
+
+async def run(query: str, model: str | None = None) -> AssumptionResult | None:
+    """Pipeline entry point: `extract`, but never raises on a malformed judge
+    response. Returns None on failure or when nothing is questionable, so the
+    caller has one check. A `reposed_query` without a questionable premise is
+    ignored — the premise is the only licence to act."""
+    try:
+        result = await extract(query, model=model)
+    except (llm.JsonParseError, llm.JsonSchemaError):
+        # Safe degrade (same direction as the normalizer): the user's request
+        # proceeds untouched and nothing is fabricated.
+        logger.warning("assumption extraction JSON failed; passing query through")
+        return None
+    if not result.questionable:
+        return None
+    return result
+
+
+def annotation(result: AssumptionResult) -> str:
+    """The note given to the answering model in "annotate" mode. The user's
+    question is left exactly as asked; this asks the model to name the premise
+    in its answer so the user sees it and can disagree."""
+    premises = "\n".join(f"- {q}" for q in result.questionable)
+    goal = (f"\nA fuller statement of what they may be trying to achieve: {result.reposed_query}"
+            if result.reposed_query else "")
+    return (
+        "A reviewer read the user's latest question before you and noted that it takes "
+        f"the following for granted:\n{premises}\n"
+        f"Why this may matter: {result.reasoning}{goal}\n\n"
+        "In your answer, say briefly and plainly that the question assumes this and why "
+        "it may not hold, then help with what the user is trying to achieve, including "
+        "what they asked. Do not lecture. If the assumption is reasonable in their "
+        "situation, say so in a sentence and answer the question as asked."
+    )

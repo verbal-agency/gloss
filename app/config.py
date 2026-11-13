@@ -30,6 +30,13 @@ class Settings(BaseSettings):
     # correction). See DESIGN.md "response to detected sycophancy". Env: GLOSS_MODE.
     gloss_mode: Literal["observe", "enforce"] = "observe"
 
+    # What the assumption tier does with a questionable premise. Either way the
+    # user's own question is what the model answers, and the finding is disclosed
+    # in meta.assumptions. "annotate": the model is also told the premise and asked
+    # to address it openly in its answer. "disclose": meta only; the model is asked
+    # exactly what the user asked. Env: ASSUMPTION_ACTION.
+    assumption_action: Literal["annotate", "disclose"] = "annotate"
+
     divergence_threshold: float = 0.15
     drift_threshold: float = 0.20        # embedding-distance pre-gate (0-2 cosine scale)
     drift_judge_threshold: float = 0.6   # LLM judge's subjective 0-1 drift score

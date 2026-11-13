@@ -14,7 +14,7 @@ LLMs trained on human feedback learn to accommodate rather than challenge. This 
 
 The first two are output failures — the response is wrong or incomplete. Framing capture is an input failure: the question itself is already constrained in a way the model was trained not to push back on. Detecting a bad answer after the fact can't fix this; the frame has to be addressed before generation.
 
-Gloss operates at both layers. At the **input layer**, it deconstructs query assumptions and re-poses the question toward the user's actual goal (the framing-capture fix). At the **output layer**, it detects reactive sycophancy and drift. It runs as an API-compatible proxy — point your existing client at it instead of directly at the provider, and it operates transparently.
+Gloss operates at both layers. At the **input layer**, it deconstructs query assumptions and has the model address a questionable premise openly in its answer, toward the user's actual goal (the framing-capture fix). The user's question is never rewritten for this, and what was found is always disclosed. At the **output layer**, it detects reactive sycophancy and drift. It runs as an API-compatible proxy — point your existing client at it instead of directly at the provider, and it operates transparently.
 
 ## Pipeline
 
@@ -22,7 +22,7 @@ Six mechanisms across two layers:
 
 | Layer | Tier | Component | When it runs | What it does |
 |---|---|---|---|---|
-| Input | — | **Assumption reframe** | Every query | Deconstructs the assumptions a query presupposes; if any are questionable, silently re-poses the query toward the user's underlying goal before generation. No-op on clean queries — `questionable=[]` → query passes through unchanged |
+| Input | — | **Assumption reframe** | Every query | Deconstructs the assumptions a query presupposes. If any are questionable, the user's question is still sent as asked, with a note telling the model to name the premise in its answer and help with the underlying goal; the finding is disclosed in `meta.assumptions`. No-op on clean queries — `questionable=[]` → nothing added, nothing disclosed |
 | Input | 0 | **Query normalization** | Every query | Strips authority claims, confidence markers, and emotional stakes before the model sees them |
 | Output | 1 | **Counterfactual pairs** | Opinion signal detected | Generates neutral + inverted variants in parallel; a judge confirms whether the position reversed (stance-flip), not just whether the wording moved |
 | Output | 2 | **Pre-commitment extraction** | High-stakes domain | Locks in evaluation criteria before the primed query; flags if the response silently drops those criteria |
@@ -97,7 +97,8 @@ print(response.meta)
 #     }
 #   ],
 #   "normalized_query": "Do vaccines cause autism?",
-#   "signals_removed": ["confidence_marker"]
+#   "signals_removed": ["confidence_marker"],
+#   "assumptions": null
 # }
 ```
 
@@ -129,6 +130,18 @@ response = client.messages.create(
 
 If no `X-Session-ID` header is provided, a new session is created for each request (temporal monitoring will not detect cross-turn drift).
 
+**Assumption disclosure**: when a question takes something questionable for granted, `meta.assumptions` says what and why, and the CLI prints it under the answer:
+```python
+print(response.meta["assumptions"])
+# {
+#   "questionable": ["that a full from-scratch rewrite is the right move"],
+#   "reasoning": "<one sentence from the extractor>",
+#   "reposed_query": "<the underlying goal, restated>",
+#   "action": "annotated"
+# }
+```
+It is `null` for a clean question, when the tier is off, or when the extractor's output could not be parsed (the request then proceeds untouched).
+
 ## Environment variables
 
 | Variable | Default | Description |
@@ -136,7 +149,8 @@ If no `X-Session-ID` header is provided, a new session is created for each reque
 | `LITELLM_MODEL` | `anthropic/claude-sonnet-4-6` | Target model (any LiteLLM-supported provider/model) |
 | `LITELLM_EMBEDDING_MODEL` | `openai/text-embedding-3-small` | Embedding model for divergence scoring |
 | `JUDGE_MODEL` | *(unset → same as target)* | Model for the scoring judges. Set to a different model/provider to stop the model under test from grading its own sycophancy |
-| `GLOSS_MODE` | `observe` | Response to a flagged answer. `observe`: return the model's real answer to the user's query, disclose the detection in `meta.sycophancy_flags` (the human decides). `enforce`: substitute the neutral-variant answer. `meta.mode` echoes the active setting |
+| `GLOSS_MODE` | `observe` | Response to a flagged answer. `observe`: return the model's own answer, disclose the detection in `meta.sycophancy_flags` (the human decides). `enforce`: substitute the neutral-variant answer. `meta.mode` echoes the active setting. This governs output-layer substitution only: in both modes the input layer still strips pressure signals (reported in `meta.normalized_query` / `signals_removed`) and applies `ASSUMPTION_ACTION` |
+| `ASSUMPTION_ACTION` | `annotate` | What the assumption tier does with a questionable premise. `annotate`: the model gets the user's question as asked plus a note to address the premise in its answer. `disclose`: report in `meta.assumptions` only; the model is asked exactly what the user asked. `meta.assumptions.action` echoes which happened |
 | `ANTHROPIC_API_KEY` | — | Required if using Anthropic models |
 | `OPENAI_API_KEY` | — | Required if using OpenAI models or embeddings |
 | `REDIS_URL` | `redis://localhost:6379` | Redis connection string |
