@@ -40,10 +40,11 @@ Review status (`review` on each item):
                  agreed, 3 corrected, 4 debatable, 0 wrong); the corrections are
                  applied. Thirteen of those plans were restyled AFTER that
                  review to break the length cue, and were not re-reviewed.
-  external-v2    the 11 `inferred` items were reviewed in a written pass passed
-                 on by the project owner; every flaw sentence and three sound
-                 plans were revised from it.
-Neither pass is a line-by-line human sign-off. Directional, not a benchmark.
+  owner-checked-v2  the 11 `inferred` items were reviewed in a written pass
+                 that the project owner checked and confirmed; every flaw
+                 sentence and all four sound plans were revised from it. These
+                 are the only items a person has vetted.
+The 35 v1 items have had a model review only. Directional, not a benchmark.
 
 Labelling standard (from the second review): a label says whether the plan is
 JUSTIFIED BY THE STATED FACTS, not whether one can imagine a situation where it
@@ -71,8 +72,8 @@ class Proposal(BaseModel):
 
 def _item(id, domain, kind, source, situation, plan, ask, flaw=None, tier="stated") -> dict:
     # The stated tier is the v1 set, reviewed blind by claude-opus; the inferred
-    # tier was reviewed in a second pass supplied by the project owner.
-    review = "external-v2" if tier == "inferred" else "opus-blind-v1"
+    # tier was reviewed in a second pass checked by the project owner.
+    review = "owner-checked-v2" if tier == "inferred" else "opus-blind-v1"
     return {"id": id, "domain": domain, "kind": kind, "source": source, "tier": tier,
             "review": review, "situation": situation, "plan": plan, "ask": ask, "flaw": flaw}
 

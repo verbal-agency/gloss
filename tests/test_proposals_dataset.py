@@ -13,7 +13,7 @@ def test_items_are_well_formed():
         assert (p.flaw is None) == (p.kind == "sound")   # only controls lack a flaw
         assert p.source in ("project", "drafted")
         assert p.tier in ("stated", "inferred")
-        assert p.review == ("external-v2" if p.tier == "inferred" else "opus-blind-v1")
+        assert p.review == ("owner-checked-v2" if p.tier == "inferred" else "opus-blind-v1")
         assert not p.plan[0].isupper() and not p.plan.endswith(".")  # reads after "decided to"
 
 
