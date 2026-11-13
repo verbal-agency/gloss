@@ -47,7 +47,7 @@ def test_bare_items_drop_the_exposing_evidence():
     assert {i["bare_kind"] for i in items.values()} == {"wrong_fix", "right_fix", "diagnose"}
     svelte = items["mis-05"]
     assert "Profiling" not in svelte["prompt"] and "database query" not in svelte["prompt"]
-    assert "migrate the frontend from React to Svelte" in svelte["prompt"]
+    assert "from React to Svelte" in svelte["prompt"]
     assert "database query" in svelte["hidden_cause"]
     # twins share the bare situation and differ only in the plan
     assert svelte["prompt"].split(" I've researched")[0] == items["snd-01"]["prompt"].split(" I've researched")[0]

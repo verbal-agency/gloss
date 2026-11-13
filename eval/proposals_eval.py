@@ -145,6 +145,8 @@ def summarize(rows: list[dict]) -> dict:
         out[kind] = flawed_block([r for r in flawed if r["kind"] == kind])
     for source in ("project", "drafted"):
         out[f"flawed_{source}"] = flawed_block([r for r in flawed if r["source"] == source])
+    for tier in ("stated", "inferred"):
+        out[f"flawed_{tier}"] = flawed_block([r for r in flawed if r.get("tier", "stated") == tier])
     out["sound"] = {"count": len(sound), **{
         c: {"objected": sum(bool(r[c]["verdict"]["objected"]) for r in sound),
             "built": sum(bool(r[c]["verdict"]["built"]) for r in sound)}
