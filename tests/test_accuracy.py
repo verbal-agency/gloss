@@ -1,5 +1,6 @@
 """G12: ground-truth accuracy grading and the priming-induced error rate."""
 from __future__ import annotations
+import json
 from pathlib import Path
 from unittest.mock import AsyncMock, patch
 
@@ -7,7 +8,7 @@ import pytest
 
 from app.config import settings
 from eval.dataset import EvalQuestion
-from eval.runner import _accuracy_aggregate, _score_question, build_parser
+from eval.runner import _accuracy_aggregate, _score_question, build_parser, regrade
 
 
 def _result(neutral: bool, agree: bool, disagree: bool) -> dict:
@@ -124,3 +125,76 @@ def test_accuracy_chart_generates(tmp_path):
 
     # No accuracy data -> no chart, no error
     assert generate_accuracy({"model": "m"}, tmp_path) is None
+
+
+async def test_grader_sees_the_prompt_each_response_answered():
+    """v1 graded primed responses against the neutral question only, so a "Yes"
+    to a primed prompt could be read as a wrong answer to the neutral one."""
+    seen: list[str] = []
+
+    async def fake_chat_json(messages, **kwargs):
+        seen.append(messages[-1]["content"])
+        return {"correct": True, "reasoning": "matches"}
+
+    with (
+        patch("eval.runner.llm.chat", AsyncMock(return_value="a response")),
+        patch("eval.runner.llm.chat_json", AsyncMock(side_effect=fake_chat_json)),
+        patch("eval.runner.llm.embed",
+              AsyncMock(return_value=[[1.0, 0.0], [1.0, 0.0], [1.0, 0.0]])),
+    ):
+        result = await _score_question(_Q, "claude-sonnet-4-6",
+                                       grade_accuracy=True, judge_divergence=False)
+
+    for prompt, content in zip([_Q.question, _Q.agree_primed, _Q.disagree_primed], seen):
+        assert f"User's prompt: {prompt}" in content
+        assert f"Question: {_Q.question}" in content
+    assert result["accuracy_reasoning"] == {f: "matches" for f in ("neutral", "agree", "disagree")}
+
+
+async def test_regrade_rewrites_accuracy_without_calling_the_model(tmp_path):
+    saved = {
+        "model": "m", "results": [{
+            "id": _Q.id, "question": _Q.question,
+            "accuracy": {"neutral": True, "agree": False, "disagree": True},
+            "responses": {"neutral": "n", "agree": "a", "disagree": "d"},
+        }],
+        "priming_induced_errors": 1, "correct_neutral_count": 1,
+        "priming_induced_error_rate": 1.0,
+    }
+    (tmp_path / "results.json").write_text(json.dumps(saved))
+    target = AsyncMock(side_effect=AssertionError("model under test must not be called"))
+
+    with (
+        patch("eval.runner.load_dataset", return_value=[_Q]),
+        patch("eval.runner.llm.chat", target),
+        patch("eval.runner.llm.chat_json",
+              AsyncMock(return_value={"correct": True, "reasoning": "ok"})),
+        patch("eval.report.generate_accuracy", return_value=None),
+    ):
+        await regrade(str(tmp_path), None)
+
+    after = json.loads((tmp_path / "results.json").read_text())
+    assert after["results"][0]["accuracy"] == {"neutral": True, "agree": True, "disagree": True}
+    assert after["priming_induced_errors"] == 0
+    assert after["grading"]["regraded"] is True
+    # The pre-regrade file is preserved so the old grades stay auditable.
+    kept = json.loads((tmp_path / "results.pre-regrade.json").read_text())
+    assert kept["results"][0]["accuracy"]["agree"] is False
+
+
+async def test_regrade_leaves_file_untouched_when_every_grade_fails(tmp_path):
+    saved = {"model": "m", "results": [{
+        "id": _Q.id, "question": _Q.question,
+        "accuracy": {"neutral": True, "agree": False, "disagree": True},
+        "responses": {"neutral": "n", "agree": "a", "disagree": "d"},
+    }]}
+    original = json.dumps(saved)
+    (tmp_path / "results.json").write_text(original)
+
+    with (
+        patch("eval.runner.load_dataset", return_value=[_Q]),
+        patch("eval.runner.llm.chat_json", AsyncMock(side_effect=RuntimeError("auth failed"))),
+    ):
+        await regrade(str(tmp_path), None)
+
+    assert (tmp_path / "results.json").read_text() == original
