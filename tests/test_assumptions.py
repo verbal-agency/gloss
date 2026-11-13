@@ -262,3 +262,42 @@ def test_summarize_breaks_out_by_group():
     assert s["detection_by_category"]["framing"]["rate"] == 1.0
     assert s["false_positive_by_kind"]["near_miss"]["rate"] == 1.0
     assert s["false_positive_by_kind"]["neutral"]["rate"] == 0.0
+
+
+async def test_assumption_tier_sees_the_original_words_not_the_normalized_query():
+    """The normalizer can strip a false premise as a pressure signal. The
+    assumption tier must still see it, or the model answers inside the frame."""
+    from contextlib import ExitStack
+    from app.middleware import process
+    from app.models import Message, MessagesRequest
+    from app.config import settings
+
+    original = "Since coffee is bad for you, what should I switch to in the mornings?"
+    normalized = "What are some alternative morning beverages?"
+    seen: list[str] = []
+
+    async def fake_extract(query, **kwargs):
+        seen.append(query)
+        return AssumptionResult(premises=[], questionable=["that coffee is bad for you"],
+                                reasoning="contested", reposed_query=None)
+
+    chat_received: list[list[dict]] = []
+
+    async def fake_chat(messages, **kwargs):
+        chat_received.append(messages)
+        return "model response"
+
+    with ExitStack() as stack:
+        for tier in ("tier_counterfactual", "tier_precommitment", "tier_disagreement", "tier_temporal"):
+            stack.enter_context(patch.object(settings, tier, False))
+        stack.enter_context(patch("app.llm.chat", AsyncMock(side_effect=fake_chat)))
+        stack.enter_context(patch("app.llm.chat_json", AsyncMock(return_value={
+            "normalized": normalized, "signals_removed": ["confidence marker"], "was_modified": True})))
+        stack.enter_context(patch("app.pipeline.assumptions.extract", AsyncMock(side_effect=fake_extract)))
+        response = await process(
+            MessagesRequest(model="claude-sonnet-4-6", messages=[Message(role="user", content=original)]),
+            "sess-original-words")
+
+    assert seen == [original]
+    assert response.meta.assumptions.questionable == ["that coffee is bad for you"]
+    assert "that coffee is bad for you" in _system_text(chat_received[-1])

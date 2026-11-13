@@ -28,7 +28,17 @@ def _spawn_background(coro, *, label: str) -> None:
     task.add_done_callback(_done)
 
 
+_DIRECTION_NOTE = {
+    "toward_user": " The answer you received moved toward the view you expressed.",
+    "away_from_user": " The answer you received moved away from the view you expressed.",
+}
+
+
 def _counterfactual_summary(cf) -> str:
+    return _counterfactual_verdict(cf) + _DIRECTION_NOTE.get(cf.direction or "", "")
+
+
+def _counterfactual_verdict(cf) -> str:
     # G25: the judge decides; divergence is telemetry appended for reference.
     d = f"{cf.divergence_score:.2f}"
     if not cf.judge_verified:
@@ -98,7 +108,11 @@ async def process(request: MessagesRequest, session_id: str) -> MessagesResponse
     assumption_disclosure = None
     assumption_note = None
     if settings.tier_assumption:
-        assumption_result = await assumptions.run(effective_query)
+        # Inspect the user's ORIGINAL words, not the normalized query: the
+        # normalizer can strip a false premise as a "confidence marker"
+        # ("Since coffee is bad for you, ..."), and the model would then answer
+        # inside a frame this tier never got to see.
+        assumption_result = await assumptions.run(last_user_message)
         if assumption_result is not None:
             annotate = settings.assumption_action == "annotate"
             if annotate:
@@ -190,6 +204,9 @@ async def process(request: MessagesRequest, session_id: str) -> MessagesResponse
                 "key_differences": cf_result.key_differences,
                 "judged_pair": cf_result.judged_pair,
                 "judge_verified": cf_result.judge_verified,
+                # Direction of the returned answer relative to the neutral one.
+                "direction": cf_result.direction,
+                "user_view": cf_result.user_view,
                 "embedding_divergence": cf_result.divergence_score,  # telemetry
                 "embedding_flagged": cf_result.embedding_flagged,     # telemetry
             },

@@ -69,6 +69,10 @@ def resolve_model(model: str | None) -> str:
     return model
 
 
+# Models that have refused a `temperature` parameter in this process.
+_NO_TEMPERATURE: set[str] = set()
+
+
 async def chat(
     messages: list[dict[str, str]],
     model: str | None = None,
@@ -91,8 +95,20 @@ async def chat(
     if max_tokens is not None:
         kwargs["max_tokens"] = max_tokens
 
-    response = await litellm.acompletion(**kwargs)
-    return response.choices[0].message.content
+    # Newer models reject `temperature` outright. Learn that from the first
+    # refusal and stop sending it to that model, rather than keep a model list.
+    if kwargs["model"] in _NO_TEMPERATURE:
+        kwargs.pop("temperature", None)
+    try:
+        response = await litellm.acompletion(**kwargs)
+    except litellm.BadRequestError as e:
+        if "temperature" not in kwargs or "temperature" not in str(e).lower():
+            raise
+        _NO_TEMPERATURE.add(kwargs["model"])
+        kwargs.pop("temperature")
+        response = await litellm.acompletion(**kwargs)
+    # A model can return no text at all (content=None); callers expect a string.
+    return response.choices[0].message.content or ""
 
 
 class JsonParseError(ValueError):
@@ -120,7 +136,20 @@ def _extract_json(text: str) -> dict:
         text = re.sub(r"^```(?:json)?\n?", "", text)
         text = re.sub(r"\n?```$", "", text.strip())
         text = text.strip()
-    return json.loads(text)
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        # Some models reason in prose before (or after) the object. Take the
+        # outermost {...} span; if that isn't valid JSON either, re-raise the
+        # original error so the caller's retry and error paths are unchanged.
+        start, end = text.find("{"), text.rfind("}")
+        if start == -1 or end <= start:
+            raise
+        try:
+            return json.loads(text[start:end + 1])
+        except json.JSONDecodeError:
+            pass
+        raise
 
 
 async def chat_json(

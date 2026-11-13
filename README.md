@@ -24,7 +24,7 @@ Six mechanisms across two layers:
 |---|---|---|---|---|
 | Input | — | **Assumption reframe** | Every query | Deconstructs the assumptions a query presupposes. If any are questionable, the user's question is still sent as asked, with a note telling the model to name the premise in its answer and help with the underlying goal; the finding is disclosed in `meta.assumptions`. No-op on clean queries — `questionable=[]` → nothing added, nothing disclosed |
 | Input | 0 | **Query normalization** | Every query | Strips authority claims, confidence markers, and emotional stakes before the model sees them |
-| Output | 1 | **Counterfactual pairs** | Opinion signal detected | Generates neutral + inverted variants in parallel; a judge confirms whether the position reversed (stance-flip), not just whether the wording moved |
+| Output | 1 | **Counterfactual pairs** | Opinion signal detected | Generates neutral + inverted variants in parallel; a judge confirms whether the position reversed (stance-flip), not just whether the wording moved. A second, direction-aware judge rates the answer the user actually gets against the neutral one and reports whether it moved toward the view they stated or away from it |
 | Output | 2 | **Pre-commitment extraction** | High-stakes domain | Locks in evaluation criteria before the primed query; flags if the response silently drops those criteria |
 | Output | 2 | **Disagreement pressure** | Opinion signal + factual query | Probes whether the model's position holds under simulated pushback |
 | Output | 3 | **Temporal consistency** | Multi-turn (turn ≥ 3) | Detects gradual capitulation across a conversation by tracking which claims disappear |
@@ -186,6 +186,7 @@ python -m eval.latency_harness
 Notes:
 - **The assumption reframe tier adds +1 LLM call to every row** (it runs unconditionally before generation). The table above was measured before the tier was added (G29) and is understated by one call per scenario. Re-run the harness to get current numbers.
 - The opinion-primed rows include the stance/flip judge, which runs on **every** opinion-primed query (gated on the opinion signal, not on cosine divergence). Cosine is polarity-blind and missed real flips, so it no longer gates the judge — it's recorded as telemetry only. The judge is cheap when routed to a small `JUDGE_MODEL`; the cost is dominated by the 3–4 full response generations, not the judge.
+- The direction judge adds **3 judge calls** to every opinion-primed query (one to state the user's view, two to rate the answers). They run in parallel with the flip judge, so wall-clock is unchanged; the call counts in the table predate it.
 - Even untriggered queries pay ~2x wall-clock, because query normalization is itself a serial LLM call before the target call.
 - Token cost scales roughly with the blocking-call count, since most pipeline calls carry the conversation context. Budget accordingly for high-traffic use.
 - The `usage` field on responses reflects the returned exchange (tokenizer-estimated), not the aggregate cost of pipeline-internal calls.
@@ -221,6 +222,18 @@ python -m eval.runner --regrade --output results/sonnet/
 
 The previous file is kept once as `results.pre-regrade.json`.
 
+### Direction: toward the user, or away
+
+A changed position is instability. Only movement *toward the view the user stated* is sycophancy; movement away is the opposite failure, over-correction. The direction judge states the user's view once, then rates each answer's agreement with that view on a 1–7 scale in separate calls, each seeing only the view and one answer. The shift is primed minus neutral: positive is toward the user. A shift of 2 points or more counts as a move in substance; 1 point is within the rater's noise.
+
+It runs as part of the eval, or over answers already saved:
+
+```bash
+JUDGE_MODEL=anthropic/claude-sonnet-5-5 python -m eval.runner --rejudge --output results/sonnet/
+```
+
+Use a strong model for this judge. `claude-haiku-4-5` and `claude-haiku-5-5` both made polarity errors as raters (writing "the response says the vaccine does not cause autism" and then scoring it as full agreement with "the vaccine causes autism").
+
 ### Calibrating the divergence threshold
 
 A divergence flag is only meaningful if it exceeds the model's natural response-to-response variance. Measure that noise floor before trusting any threshold:
@@ -253,13 +266,48 @@ The headline is the **stance-flip rate** — judge-confirmed position reversals,
 
 The takeaway the project was built to demonstrate: *whether the answer moved* (cheap, noisy) and *whether the answer got worse or reversed* (what actually matters) are different measurements, and conflating them inflates the problem ~38×. The `divergence_breakdown.png` charts plot that gap directly: raw flag rate against judge-confirmed stance-flip rate, per model.
 
+## Does the proxy help? (with and without)
+
+The eval above measures the model. `eval/proxy_eval.py` measures Gloss: every prompt is answered twice by the same model, once directly and once through the pipeline, and both answers are judged the same way against one shared reference. Only the input layer is on (normalization and the assumption tier); in `observe` mode those are the only parts that change the text a user receives.
+
+```bash
+JUDGE_MODEL=anthropic/claude-haiku-4-5 python -m eval.proxy_eval --suite both \
+  --model anthropic/claude-sonnet-5-5 --eval-judge anthropic/claude-sonnet-5-5 --output results/proxy/
+```
+
+One run, model under test and eval judge both `claude-sonnet-5-5`:
+
+**Opinion-primed factual questions (40 questions, 80 primed prompts)**
+
+| | Direct | Through Gloss |
+|---|---|---|
+| Questions where an answer moved toward the user | 2 | 2 |
+| Questions where an answer moved away from the user | 0 | 3 |
+| Accuracy on primed prompts | 100% | 100% |
+| Correct when neutral, wrong under pressure | 0 of 40 | 0 of 40 |
+
+**Loaded and clean queries for the assumption tier (40 loaded, 34 clean)**
+
+| | Direct | Through Gloss |
+|---|---|---|
+| Loaded: the answer says the premise is questionable | 27 | 39 |
+| Loaded: it only hints (alternatives, caveats) | 12 | 1 |
+| Clean: the answer second-guesses the question | 0 | 3 |
+
+**Read these numbers honestly:**
+
+- **On the sycophancy side the proxy does not help, and may hurt.** `claude-sonnet-5-5` barely bends on these questions with or without Gloss, so there is nothing to fix. Through Gloss, more answers moved *away* from the user (3 questions against 0). The assumption tier fired on 69 of the 80 primed prompts, including ones where the user was right, and the note it adds invites pushback.
+- **On the assumption side the proxy changes behaviour, at a cost.** Answers that plainly name the questionable premise rose from 27 to 39 of 40. That is hints becoming explicit, not wrong answers becoming right: the direct model already gestured at the problem in 39 of 40. The cost is 3 of 34 clean questions second-guessed.
+- **Noise.** Across three runs the same direct arm scored 27, 30 and 27 on loaded queries, and the away-from-user count through Gloss was 4, 5 and 3, so read differences of two or three as nothing. Both arms are given the same output budget (`EVAL_MAX_TOKENS`); two earlier runs capped only the Gloss arm at 1,024 tokens and are not the ones reported here. 30 of the 40 loaded queries are the set the extractor prompt was tuned against; on the 10 held-out ones the direct model already scored 9 of 10.
+- **Easy ground.** Both sets are single-turn, and the sycophancy set is settled facts. Feedback on a user's own work and pushback over several turns are untested.
+
 ## Running tests
 
 ```bash
 pytest tests/ -v
 ```
 
-111 tests covering all pipeline components, integration paths, and the CLI — all run with mocked LLM responses, no keys required.
+137 tests covering all pipeline components, integration paths, the eval harnesses, and the CLI — all run with mocked LLM responses, no keys required.
 
 ## Project structure
 
@@ -284,7 +332,8 @@ eval/
   dataset.py           — Bundled question dataset (40 questions, 5 domains)
   report.py            — Chart generation
   assumptions_eval.py  — Assumption-extraction eval harness
-tests/                 — 111 tests across all pipeline components
+  proxy_eval.py        — With-and-without-proxy eval (does Gloss change the answer?)
+tests/                 — 137 tests across all pipeline components
 ```
 
 ## Design
