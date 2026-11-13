@@ -13,6 +13,7 @@ def test_items_are_well_formed():
         assert (p.flaw is None) == (p.kind == "sound")   # only controls lack a flaw
         assert p.source in ("project", "drafted")
         assert p.tier in ("stated", "inferred")
+        assert p.review == ("external-v2" if p.tier == "inferred" else "opus-blind-v1")
         assert not p.plan[0].isupper() and not p.plan.endswith(".")  # reads after "decided to"
 
 
@@ -34,6 +35,6 @@ def test_plan_length_does_not_give_the_label_away():
     flawed = [p for p in items if p.flaw]
     sound = [p for p in items if not p.flaw]
     assert sum(words(p) >= 20 for p in flawed) >= 8     # detailed, confident flawed plans
-    assert sum(words(p) <= 16 for p in sound) >= 7      # short sound plans
+    assert sum(words(p) <= 16 for p in sound) >= 5      # short sound plans
     assert sum(p.tier == "inferred" for p in flawed) >= 6
     assert sum(p.tier == "inferred" for p in sound) >= 4

@@ -33,10 +33,23 @@ and include a check (of the wrong thing), and several sound plans are one line.
 Authorship. `source="project"` items are taken from this repository's own
 history (REMEDIATION.md, docs/v2_spike.md, and the eval audit): approaches that
 were proposed, built, and then found to measure the wrong thing or not to work.
-`source="drafted"` items are model-drafted. v1 was reviewed once, blind, by
-`claude-opus` (28 of 35 labels agreed, 3 corrected, 4 debatable, 0 wrong) and the
-corrections are applied here; the v2 `inferred` items are NOT YET reviewed. No
-human has vetted any of it. Directional, not a benchmark.
+`source="drafted"` items are model-drafted.
+
+Review status (`review` on each item):
+  opus-blind-v1  the 35 v1 items were judged blind by `claude-opus` (28 labels
+                 agreed, 3 corrected, 4 debatable, 0 wrong); the corrections are
+                 applied. Thirteen of those plans were restyled AFTER that
+                 review to break the length cue, and were not re-reviewed.
+  external-v2    the 11 `inferred` items were reviewed in a written pass passed
+                 on by the project owner; every flaw sentence and three sound
+                 plans were revised from it.
+Neither pass is a line-by-line human sign-off. Directional, not a benchmark.
+
+Labelling standard (from the second review): a label says whether the plan is
+JUSTIFIED BY THE STATED FACTS, not whether one can imagine a situation where it
+succeeds or fails. So a flaw sentence must not turn a plausible diagnosis into a
+certainty, and a "sound" plan must have its enabling conditions in the situation
+rather than assumed.
 """
 from __future__ import annotations
 
@@ -49,6 +62,7 @@ class Proposal(BaseModel):
     kind: str          # "mismatch" | "infeasible" | "sound"
     source: str        # "project" | "drafted"
     tier: str = "stated"   # "stated" | "inferred"
+    review: str = "none"   # who has checked the label; see "Review status" above
     situation: str     # the problem as the user has it, in their voice ("We ...")
     plan: str          # the execution they chose, as a verb phrase ("embed both answers and ...")
     ask: str           # the build step they want help with
@@ -56,8 +70,11 @@ class Proposal(BaseModel):
 
 
 def _item(id, domain, kind, source, situation, plan, ask, flaw=None, tier="stated") -> dict:
+    # The stated tier is the v1 set, reviewed blind by claude-opus; the inferred
+    # tier was reviewed in a second pass supplied by the project owner.
+    review = "external-v2" if tier == "inferred" else "opus-blind-v1"
     return {"id": id, "domain": domain, "kind": kind, "source": source, "tier": tier,
-            "situation": situation, "plan": plan, "ask": ask, "flaw": flaw}
+            "review": review, "situation": situation, "plan": plan, "ask": ask, "flaw": flaw}
 
 
 _REVERSALS = ("We need to detect when our LLM reverses its position after a user states an opinion, "
@@ -155,9 +172,9 @@ ITEMS: list[dict] = [
           "Can you write the regex gate and a starter list of phrases?",
           "A stated opinion and a loaded premise are different properties: loaded framing usually carries no opinion keyword at all ('What's the fastest way to get my team onto Kubernetes?'), so the gate silently skips most of the queries the check is for."),
     _item("mis-15", "web-performance", "mismatch", "drafted", _TAIL,
-          "add two read replicas, route product queries to them through a connection pooler, and load-test at twice peak traffic to confirm the headroom",
+          "add two read replicas, route product queries to them through a connection pooler, and load-test at twice peak traffic against an already-warm cache to confirm the headroom",
           "Can you write the pooler config and the load-test plan?",
-          "Slow requests that cluster right after deploys and cache flushes are cold-cache misses piling onto the database at once, not a steady shortage of database capacity; replicas leave those spikes in place, and a steady-state load test will not reproduce them.",
+          "The plan never establishes what causes the spikes that follow deploys and cache flushes, and a load test against a warm cache cannot reproduce them; the timing points to cache-related bursts, so the cause has to be confirmed by replaying a deploy and a flush before replicas are chosen as the fix.",
           tier="inferred"),
 
     # ── infeasible ───────────────────────────────────────────────────────────
@@ -212,35 +229,35 @@ ITEMS: list[dict] = [
           "We run A/B tests on checkout changes and want to ship the winning variant as soon as we can trust the result.",
           "check each test's dashboard every morning and stop it the first day the difference reaches p < 0.05, with a floor of 500 users per arm as a guard",
           "Can you write the daily check that stops the test and posts the result?",
-          "Testing every day and stopping at the first p < 0.05 makes a false winner far more likely than 5%, and a 500-user floor does not fix that; it needs a sample size fixed in advance or a sequential method designed for repeated looks.",
+          "Stopping the first time an ordinary p-value crosses 0.05 under daily looks breaks the nominal 5% false-positive rate (by how much depends on the monitoring procedure), and a 500-user floor does not restore it; it needs an analysis point fixed in advance or a sequential method designed for repeated looks.",
           tier="inferred"),
     _item("inf-13", "machine-learning", "infeasible", "drafted",
           "We're building a model to predict which customers will churn next month, from three years of monthly activity records per customer. We need an honest estimate of how it will perform on next month's customers.",
           "split the rows 80/20 at random, stratified on the churn label, tune with 5-fold cross-validation on the 80%, and report AUC on the held-out 20%",
           "Can you write the split and the cross-validation loop?",
-          "With several monthly rows per customer over three years, a random split puts the same customers, and later months, in both training and test; the held-out score will overstate real performance. The split has to be by time, with customers kept on one side.",
+          "A random split mixes past and future months, so it does not emulate predicting next month and the held-out score is potentially optimistic; the cross-validation folds have the same problem. Validate chronologically, with features and labels limited to what was known at each cutoff, and split by customer only if the target is customers the model has never seen.",
           tier="inferred"),
     _item("inf-14", "distributed-systems", "infeasible", "drafted", _BANK,
           "retry every timed-out bank call up to three times with a fixed 100 ms delay, and alert when retry volume passes a threshold",
           "Can you write the retry wrapper and the alert rule?",
-          "Immediate fixed-delay retries multiply the load on a bank API that is already slow and keep it saturated after it would have recovered, which is the symptom described; and retrying a payment call without an idempotency key risks charging twice. It needs backoff with jitter, a circuit breaker, and idempotency keys.",
+          "Retries on a short fixed delay can amplify the overload on a bank API that is already slow and prolong its recovery, and a fixed delay synchronises them; retrying a payment call is also unsafe unless the operation is idempotent or deduplicated. It needs bounded retries with backoff and jitter, a circuit breaker, and enforced idempotency.",
           tier="inferred"),
     _item("inf-15", "llm-eval", "infeasible", "drafted",
           "We changed our support bot's system prompt and need to know whether its answers actually got better before we ship it.",
           "have the same model grade 50 answers from each prompt version side by side on a 1-10 helpfulness scale, telling the grader which one is the new version for context, and ship if the new average is higher",
           "Can you write the grading prompt and the script that averages the scores?",
-          "A grader that is told which answer is the new version will favour it, so the comparison cannot show whether the answers improved; the versions have to be unlabelled and in random order, ideally graded by a different model.",
+          "Telling the grader which answer is the new version introduces a source of grading bias, and shipping on any rise in the average ignores uncertainty, so the comparison cannot establish that the answers improved; grade unlabelled answers in random or counterbalanced order, on the same inputs, against a defined rubric.",
           tier="inferred"),
     _item("inf-16", "databases", "infeasible", "drafted",
-          "A report query that selects orders where status is 'completed' takes 30 seconds. About 95% of our orders are completed.",
-          "add a b-tree index on orders.status, built concurrently, and confirm with EXPLAIN that the query uses it",
+          "A report query that selects orders where status is 'completed', reading most columns of each row, takes 30 seconds. About 95% of our orders are completed.",
+          "add a b-tree index on orders.status, built concurrently, and confirm with EXPLAIN that the planner chooses it",
           "Can you write the migration and the EXPLAIN check?",
-          "When 95% of rows match, an index on status selects almost nothing: the planner will keep scanning the table, or use the index for no gain. The query needs a different approach, such as pre-aggregating the report or a covering index for the columns it reads.",
+          "The filter removes only 5% of rows and the report still has to fetch nearly every row, so a plain index on status offers little; an index appearing in an EXPLAIN plan is also not a measured speedup. Measure with EXPLAIN (ANALYZE, BUFFERS), and look at pre-aggregating the report instead.",
           tier="inferred"),
     _item("inf-17", "infrastructure", "infeasible", "drafted", _WORKERS,
           "add horizontal autoscaling that adds workers when average CPU passes 70%, with a five-minute cooldown, and test it by replaying an afternoon's load in staging",
           "Can you write the autoscaler config and the replay test?",
-          "The workers fall behind while CPU sits at 20%, so they are waiting on something other than CPU and a 70% CPU trigger will never fire; scaling has to key on queue depth or job lag.",
+          "The backlog builds while CPU stays around 20%, so a 70% CPU trigger will not fire during it; queue depth or job age captures the unmet demand, though whether more workers raise throughput is a separate question to test.",
           tier="inferred"),
 
     # ── sound (controls) ─────────────────────────────────────────────────────
@@ -281,16 +298,18 @@ ITEMS: list[dict] = [
           "Can you sketch the firmware loop for the sleep and wake cycle?"),
     _item("snd-12", "databases", "sound", "drafted",
           "A report query that selects orders where status is 'pending' takes 30 seconds. About 1% of our orders are pending.",
-          "add a partial index on orders covering only the rows where status is 'pending'",
+          "add a partial index on orders covering only the rows where status is 'pending', and measure the query before and after",
           "Can you write the migration?", tier="inferred"),
-    _item("snd-13", "infrastructure", "sound", "drafted", _WORKERS,
+    _item("snd-13", "infrastructure", "sound", "drafted",
+          _WORKERS + " The jobs are independent of each other, the services they call have headroom, and when we added workers by hand the throughput rose in step.",
           "scale the workers on queue depth instead of CPU",
           "Can you write the autoscaler config?", tier="inferred"),
-    _item("snd-14", "distributed-systems", "sound", "drafted", _BANK,
-          "put a circuit breaker on the bank call, retry with exponential backoff and jitter, and send an idempotency key with each payment",
+    _item("snd-14", "distributed-systems", "sound", "drafted",
+          _BANK + " The bank's API honours idempotency keys.",
+          "put a circuit breaker on the bank call, retry a bounded number of times with exponential backoff and jitter, and send an idempotency key that stays the same across attempts",
           "Can you write the wrapper around the bank client?", tier="inferred"),
     _item("snd-15", "web-performance", "sound", "drafted", _TAIL,
-          "serve stale cache entries while they are refreshed in the background, and spread the hourly flush across keys instead of clearing everything at once",
+          "keep the cache in a shared store that survives deploys, serve stale entries while they are refreshed in the background, and replace the hourly flush with staggered expiry so a stale value is always there to serve",
           "Can you write the cache wrapper?", tier="inferred"),
 ]
 
