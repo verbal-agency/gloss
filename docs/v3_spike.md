@@ -80,3 +80,82 @@ So the trigger has two jobs the sentence cannot do: recognise a stated diagnosis
 - The proposals are model-drafted; 11 are owner-checked.
 - "Quiet when grounded" is measured on prompts that state the evidence in one sentence. Real conversations state it less tidily.
 - Asking and waiting is the right behaviour for the 13 bare fixes by construction. Nothing here measures whether users find the question useful or irritating.
+
+---
+
+# G36 — a grounding check in front of the assumption tier
+
+**Decision: PROCEED to G37 and G38.** On the second run, after the one iteration the decision rule allowed, the grounding tier cleared all three bars. The one-line instruction did not.
+
+## Result (two live runs, 2026-11-13)
+
+Model under test and eval judge `claude-sonnet-5-5`; grounding classifier `claude-sonnet-5-5` (`GROUND_MODEL`); the rest of the pipeline as configured. Zero failed items in either run. Same thresholds as G35, fixed before any run.
+
+| Scenario | Bar | No help | Default Gloss | One sentence (G35) | **Ground, run 1** | **Ground, run 2** |
+|---|---|---|---|---|---|---|
+| S1 — sound plan, evidence stated: no question, no objection | ≥ 13 of 15 | 15 | 15 | 8 | **13** | **13** |
+| S2 — flawed plan, evidence stated: objection before build help | ≥ 27 of 31 | 23 | 30 | 29–31 | **25** | **31** |
+| S3 — a fix with the evidence absent: grounding question before build help | ≥ 10 of 13 | 0 | 0 | 13 | **12** | **12** |
+
+Owner-checked items, run 2: S1 3 of 4, S2 7 of 7. None of the S3 items are owner-checked.
+
+## What the tier does
+
+`ASSUMPTION_ACTION=ground` (opt-in; the default is unchanged). One classifier call reads the user's message and returns the kind of request (`fix`, `task`, `other`) and whether the message links the plan to the cause (`stated`, `absent`, `contradicted`), judged only from what the message itself says. The user's own account of the cause counts as evidence and is not second-guessed.
+
+- `fix` + `absent` → the model is told not to build yet and to ask one question. `meta.assumptions.action = "asked"`.
+- `contradicted` → the model is told to state the conflict first. `action = "objected"`.
+- Anything else → the existing questionable-premise check runs as before (`"annotated"` or `"none"`).
+
+## Run 1 and the iteration
+
+Run 1 returned **defer**: quiet and asking as required, objections first only 25 of 31 times. In that version the tier did nothing when it neither asked nor objected, and the classifier had called seven flawed plans `task` + `stated`. Those flaws need engineering knowledge to see (hiding a button is not access control; device clocks are unreliable), and the classifier is told not to use any, so that it does not flag everything. With no note, the model built first and warned after, as it does unaided.
+
+The iteration made the grounding check a gate in front of the existing premise check instead of a replacement for it: it decides whether to ask; the premise check still decides what to warn about. Run 2 put the objection first 31 of 31 times.
+
+This change was made after seeing run 1's results on the same 61 prompts. It was the single iteration the rule allowed, it was written down before the change, and it reuses an existing path, but it is still a fit to this set.
+
+## Discovery note
+
+```text
+Question:        Does a link check in front of the tier get "quiet when
+                 grounded, ask when not, objection first" where one sentence
+                 could not?
+Observed facts:  - S1 13 of 15 in both runs, against 8 for the sentence. The
+                   same two sound plans were asked about both times (the heap
+                   snapshot plan and the partial index).
+                 - S3 12 of 13 in both runs. The one miss both times is the
+                   dashboard migration: the classifier called it contradicted
+                   and the model objected instead of asking.
+                 - S2 25 then 31 of 31.
+                 - When it asked, the model withheld the build every time. It
+                   asked exactly one question in 4 to 6 of the 12; otherwise two.
+                 - It asked on both "the plan is an investigation" items, where
+                   a question is unnecessary.
+Assumptions:     Judge verdicts are right (not hand-audited; the misses were read).
+Unknowns:        - S1 sits exactly on the bar. One more miss fails it.
+                 - Both S1 misses are items whose situation does not state the
+                   cause outright (one is in the "inferred" tier), so the ask is
+                   defensible and the scenario label may be what is off.
+                 - Cost: a strong-model classifier call on every request, plus
+                   the premise check on most. Not measured.
+                 - Whether a cheaper classifier holds these numbers.
+Evidence and confidence:
+                 High that the tier separates asking from not asking far better
+                 than the sentence (13 against 8, twice). Moderate that it
+                 clears S1 in general. S2 31 of 31 is one run after a fitted change.
+Decision owner:  project owner.
+Impact if wrong: G37 and G38 would build on a trigger that is weaker than it
+                 looks; both re-measure S1 and S3 in their own settings.
+Decision:        proceed
+Resulting change: G37 and G38 are unblocked. Cost and a cheaper classifier go
+                 to the backlog. The two recurring S1 misses and the two
+                 investigation items go to G39's acceptance review.
+```
+
+## Honest limits
+
+- Two runs, one model, single-turn, 61 prompts, 11 of them owner-checked.
+- S1 is met with nothing to spare.
+- The mechanism was adjusted once after seeing results.
+- Under `ground` a response can be a question. Nothing here measures whether that is welcome.

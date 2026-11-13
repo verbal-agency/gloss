@@ -119,3 +119,23 @@ async def test_both_arms_get_the_same_output_budget():
         await proxy_eval._through_proxy("q", "m")
 
     assert direct_kwargs["max_tokens"] == proxy_requests[0].max_tokens == proxy_eval.EVAL_MAX_TOKENS
+
+
+async def test_action_override_stays_inside_the_one_request():
+    """The eval runs the default tier and ground mode side by side; the override
+    must not leak out of the request that set it."""
+    from types import SimpleNamespace
+    from app.middleware import ASSUMPTION_ACTION_OVERRIDE
+    seen = []
+
+    async def fake_process(request, session_id):
+        seen.append(ASSUMPTION_ACTION_OVERRIDE.get())
+        return SimpleNamespace(content=[SimpleNamespace(text="y")],
+                               meta=SimpleNamespace(normalized_query=None, signals_removed=[], assumptions=None))
+
+    with patch("eval.proxy_eval.process", AsyncMock(side_effect=fake_process)):
+        await proxy_eval._through_proxy("q", "m", action="ground")
+        await proxy_eval._through_proxy("q", "m")
+
+    assert seen == ["ground", None]
+    assert ASSUMPTION_ACTION_OVERRIDE.get() is None

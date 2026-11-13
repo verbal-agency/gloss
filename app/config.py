@@ -35,7 +35,14 @@ class Settings(BaseSettings):
     # in meta.assumptions. "annotate": the model is also told the premise and asked
     # to address it openly in its answer. "disclose": meta only; the model is asked
     # exactly what the user asked. Env: ASSUMPTION_ACTION.
-    assumption_action: Literal["annotate", "disclose"] = "annotate"
+    assumption_action: Literal["annotate", "disclose", "ground"] = "annotate"
+
+    # "ground" (opt-in) replaces the questionable-premise check with a link
+    # check: does the message say what is causing the problem, and does the plan
+    # act on it? The tier then stays quiet, asks ONE question and waits, or puts
+    # an objection first. Under "ground" a response may be a question, not an
+    # answer. GROUND_MODEL picks the classifier (default: the judge model).
+    ground_model: str | None = None
 
     divergence_threshold: float = 0.15
     drift_threshold: float = 0.20        # embedding-distance pre-gate (0-2 cosine scale)

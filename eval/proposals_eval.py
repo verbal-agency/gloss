@@ -36,8 +36,10 @@ from eval.proposals_dataset import Proposal, load, prompts
 from eval.proxy_eval import EVAL_MAX_TOKENS, _INPUT_LAYER_ONLY, _direct, _through_proxy
 from eval.runner import _run_bounded
 
-CONDITIONS = ("blind_review", "owned_build", "gloss_build", "instructed_build")
-BUILD_ARMS = ("owned_build", "gloss_build", "instructed_build")
+CONDITIONS = ("blind_review", "owned_build", "gloss_build", "instructed_build", "ground_build")
+# owned: no help. gloss: the default annotate tier. instructed: one system
+# sentence (G35). ground: the pipeline with ASSUMPTION_ACTION=ground (G36).
+BUILD_ARMS = ("owned_build", "gloss_build", "instructed_build", "ground_build")
 
 # G35: the cheapest thing that could work. One system sentence, nothing else.
 # The wording is fixed for the probe; a second wording is a new goal.
@@ -132,16 +134,17 @@ async def _judge(p: Proposal, response: str, judge: str) -> dict:
 
 async def score_proposal(p: Proposal, model: str, judge: str) -> dict:
     asks = prompts(p)
-    blind, owned, (glossed, meta), instructed = await asyncio.gather(
+    blind, owned, (glossed, meta), instructed, (grounded, ground_meta) = await asyncio.gather(
         _direct(asks["blind_review"], model),
         _direct(asks["owned_build"], model),
         _through_proxy(asks["owned_build"], model),
         _instructed(asks["owned_build"], model),
+        _through_proxy(asks["owned_build"], model, action="ground"),
     )
-    texts = dict(zip(CONDITIONS, (blind, owned, glossed, instructed)))
+    texts = dict(zip(CONDITIONS, (blind, owned, glossed, instructed, grounded)))
     verdicts = await asyncio.gather(*[_judge(p, texts[c], judge) for c in CONDITIONS])
     return {
-        **p.model_dump(), "prompts": asks, "gloss_meta": meta,
+        **p.model_dump(), "prompts": asks, "gloss_meta": meta, "ground_meta": ground_meta,
         **{c: {"response": texts[c], "verdict": v} for c, v in zip(CONDITIONS, verdicts)},
     }
 
@@ -230,10 +233,11 @@ class _PremiseVerdict(BaseModel):
 
 
 async def score_bare(item: dict, model: str, judge: str) -> dict:
-    owned, (glossed, meta), instructed = await asyncio.gather(
+    owned, (glossed, meta), instructed, (grounded, ground_meta) = await asyncio.gather(
         _direct(item["prompt"], model), _through_proxy(item["prompt"], model),
-        _instructed(item["prompt"], model))
-    texts = dict(zip(BARE_CONDITIONS, (owned, glossed, instructed)))
+        _instructed(item["prompt"], model),
+        _through_proxy(item["prompt"], model, action="ground"))
+    texts = dict(zip(BARE_CONDITIONS, (owned, glossed, instructed, grounded)))
 
     async def judge_one(text: str) -> dict:
         verdict = await llm.chat_json(
@@ -247,7 +251,7 @@ async def score_bare(item: dict, model: str, judge: str) -> dict:
         return verdict
 
     verdicts = await asyncio.gather(*[judge_one(texts[c]) for c in BARE_CONDITIONS])
-    return {**item, "gloss_meta": meta,
+    return {**item, "gloss_meta": meta, "ground_meta": ground_meta,
             **{c: {"response": texts[c], "verdict": v} for c, v in zip(BARE_CONDITIONS, verdicts)}}
 
 
@@ -337,6 +341,24 @@ def decide(report: dict, arm: str = "instructed_build") -> dict:
     return {"arm": arm, "thresholds": THRESHOLDS, "met": met, "decision": decision, "reason": reason}
 
 
+def decide_g36(report: dict) -> dict:
+    """G36's decision rule, fixed before the run: does the grounding tier clear
+    the bars, and does it beat the one-line instruction?"""
+    def met(arm):
+        return {k: report[arm][k]["pass"] >= THRESHOLDS[k] for k in THRESHOLDS}
+    g, i = met("ground_build"), met("instructed_build")
+    if all(g.values()):
+        decision, reason = "proceed", "the grounding tier clears all three bars: on to G37 and G38"
+    elif g["S1"] and g["S3"]:
+        decision, reason = "defer", "quiet and asks as required, but objections are not first often enough: one more iteration on the objection path"
+    elif i["S1"] and i["S3"]:
+        decision, reason = "pivot", "the tier does not clear S1 and S3 but the instruction does: drop the tier, carry the sentence"
+    else:
+        decision, reason = "abandon", "neither the tier nor the instruction clears both S1 and S3"
+    return {"thresholds": THRESHOLDS, "ground_build": g, "instructed_build": i,
+            "decision": decision, "reason": reason}
+
+
 async def run_probe(model: str, judge: str, output_dir: str, concurrency: int = 5) -> dict:
     """G35: run both variants with all arms and write the scenario report and decision."""
     await run(model, judge, output_dir, concurrency=concurrency, variant="full")
@@ -347,9 +369,13 @@ async def run_probe(model: str, judge: str, output_dir: str, concurrency: int = 
     report = scenario_report(full["results"], bare["results"])
     result = {"config": full["config"], "instruction": GROUNDING_INSTRUCTION,
               "failed": {"full": full["failed"], "bare": bare["failed"]},
-              "scenarios": report, "decision": decide(report)}
+              "scenarios": report, "decision": decide(report), "decision_g36": decide_g36(report),
+              "ground_classification": {
+                  "full": {r["id"]: r["ground_meta"]["assumptions"] for r in full["results"]},
+                  "bare": {r["id"]: r["ground_meta"]["assumptions"] for r in bare["results"]}}}
     (out / "proposals_probe.json").write_text(json.dumps(result, indent=2))
-    print(json.dumps({"scenarios": report, "decision": result["decision"]}, indent=2))
+    print(json.dumps({"scenarios": report, "decision": result["decision"],
+                      "decision_g36": result["decision_g36"]}, indent=2))
     return result
 
 
@@ -379,6 +405,7 @@ async def run(model: str, judge: str, output_dir: str, concurrency: int = 5,
             "config": {"model_under_test": model, "eval_judge": judge,
                        "proxy_pipeline_model": settings.litellm_model,
                        "proxy_judge_model": settings.effective_judge_model,
+                       "ground_model": settings.ground_model or settings.effective_judge_model,
                        "assumption_action": settings.assumption_action},
             "duration_seconds": round(time.time() - t0, 1),
             "failed": failures, "summary": summary, "results": rows}, indent=2))

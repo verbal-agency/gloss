@@ -15,6 +15,8 @@ from __future__ import annotations
 
 import logging
 
+from typing import Literal
+
 from pydantic import BaseModel
 
 from app import llm
@@ -183,3 +185,103 @@ def annotation(result: AssumptionResult) -> str:
         "what they asked. Do not lecture. If the assumption is reasonable in their "
         "situation, say so in a sentence and answer the question as asked."
     )
+
+
+# ── Grounding check (ASSUMPTION_ACTION=ground) ──────────────────────────────
+# The questionable-premise check above fires on almost everything: nearly any
+# plan has a premise a careful advisor could doubt. A one-line instruction to
+# "check the plan against the cause" over-fires too (G35: it asked on 8 of 15
+# sound plans), because it re-examines a diagnosis the user already stated and
+# invents a cause for work that has none. This check asks a narrower question:
+# does the MESSAGE ITSELF connect the plan to the cause?
+
+GROUND_SYSTEM = """\
+You read a user's message to an assistant BEFORE it is answered. The user may be \
+asking for help building something they have already decided on. Classify the \
+message; do not answer it.
+
+request:
+  "fix"   the user describes a problem (something failing, slow, wrong, or \
+missing a target) and asks for help building a plan meant to solve it.
+  "task"  the user asks for help with a piece of work that is a requirement in \
+itself, not a response to a problem whose cause is in question (a migration, a \
+backfill, enforcing a limit, adding a capability).
+  "other" anything else: a question, a discussion, no plan to build.
+
+link — judged ONLY from what the message itself says:
+  "contradicted" the facts or requirements stated in the message show the plan \
+will not achieve what the user needs: it acts on something other than the cause \
+the message describes, or it cannot meet a requirement the message states. Use \
+this only when the conflict is with the message's own statements. General \
+worries, best practice, and missing safeguards are not contradictions.
+  "absent"  the request is a fix, and the message names a symptom and a plan but \
+never says what is causing the problem, so nothing in it connects the plan to \
+the cause.
+  "stated"  everything else: the message says what is causing the problem and \
+the plan acts on that; or the request is a task the plan can meet; or it is "other".
+
+The user's own account of the cause counts as evidence. A measurement, an \
+observation, "we traced it", or a plain statement of what causes the problem \
+all make the link stated. Do not second-guess whether their diagnosis is right \
+or well enough supported. Test for "absent": could a reader point to a sentence \
+in the message that says WHY the problem happens? If yes, it is not absent.
+
+Return JSON: {"request": "fix"|"task"|"other", "link": "stated"|"absent"|"contradicted", \
+"evidence": "<the sentence that states the cause, or empty>", \
+"contradiction": "<for contradicted: one sentence on what the plan misses; else empty>", \
+"reasoning": "<one sentence>"}
+"""
+
+# What the answering model is told when the link is absent. The ask-and-wait
+# behaviour is the part of the G35 instruction that worked (13 of 13).
+ASK_NOTE = (
+    "The user has asked for help building a plan, and their message does not say how they "
+    "know the plan addresses the cause of their problem. Do not build anything yet. Ask one "
+    "short question about that, and wait for their answer."
+)
+
+
+class GroundResult(BaseModel):
+    request: Literal["fix", "task", "other"]
+    link: Literal["stated", "absent", "contradicted"]
+    evidence: str = ""
+    contradiction: str = ""
+    reasoning: str = ""
+
+    @property
+    def action(self) -> str:
+        """none | asked | objected. Asking only makes sense for a fix: a task
+        has no cause to ask about."""
+        if self.link == "contradicted":
+            return "objected"
+        if self.link == "absent" and self.request == "fix":
+            return "asked"
+        return "none"
+
+
+async def classify_grounding(query: str, model: str | None = None) -> GroundResult:
+    data = await llm.chat_json(
+        [{"role": "system", "content": GROUND_SYSTEM}, {"role": "user", "content": query}],
+        model=model or settings.ground_model or settings.effective_judge_model,
+        schema=GroundResult,
+    )
+    return GroundResult(**data)
+
+
+async def run_ground(query: str, model: str | None = None) -> GroundResult | None:
+    """Pipeline entry point for the grounding check. Never raises on a malformed
+    classifier response: returns None and the request proceeds untouched."""
+    try:
+        return await classify_grounding(query, model=model)
+    except (llm.JsonParseError, llm.JsonSchemaError):
+        logger.warning("grounding classifier JSON failed; passing query through")
+        return None
+
+
+def objection_note(result: GroundResult) -> str:
+    """The note for a plan the message's own facts contradict: say so first."""
+    return annotation(AssumptionResult(
+        premises=[],
+        questionable=[result.contradiction or "the plan does not act on the cause the message describes"],
+        reasoning=result.reasoning,
+    ))

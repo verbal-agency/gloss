@@ -10,7 +10,7 @@ def _flawed(kind, source, blind, owned, gloss, flagged=False, instructed=None):
     return {"flaw": "f", "kind": kind, "source": source,
             "gloss_meta": {"assumptions": {"x": 1} if flagged else None},
             "blind_review": v(*blind), "owned_build": v(*owned), "gloss_build": v(*gloss),
-            "instructed_build": v(*(instructed or gloss))}
+            "instructed_build": v(*(instructed or gloss)), "ground_build": v(*gloss)}
 
 
 def _sound(objected_by):
@@ -60,7 +60,8 @@ def test_bare_summary_counts_premise_checks_by_kind():
             return {"verdict": {"check": check, "placement": placement if check != "none" else "absent",
                                 "names_hidden_cause": names, "built": built}}
         return {"bare_kind": kind, "gloss_meta": {"assumptions": {"x": 1} if flagged else None},
-                "owned_build": v(*owned), "gloss_build": v(*gloss), "instructed_build": v(*gloss)}
+                "owned_build": v(*owned), "gloss_build": v(*gloss), "instructed_build": v(*gloss),
+                "ground_build": v(*gloss)}
     rows = [
         row("wrong_fix", ("none",), ("asks", "before", True, False)),
         row("wrong_fix", ("states", "after", True), ("states", "before", True)),
@@ -115,19 +116,21 @@ def test_scenario_report_counts_each_scenario_and_the_owner_checked_subset():
     flaw_after = {"raised": "yes", "placement": "after", "built": True, "asks": False}
     full = [
         _full(None, "owner-checked-v2", **_same(sound_ok)),
-        _full(None, "opus-blind-v1", owned_build=sound_ok, gloss_build=sound_ok, instructed_build=sound_asked),
-        _full("f", "owner-checked-v2", owned_build=flaw_after, gloss_build=flaw_first, instructed_build=flaw_first),
+        _full(None, "opus-blind-v1", owned_build=sound_ok, gloss_build=sound_ok,
+              instructed_build=sound_asked, ground_build=sound_ok),
+        _full("f", "owner-checked-v2", owned_build=flaw_after, gloss_build=flaw_first,
+              instructed_build=flaw_first, ground_build=flaw_first),
     ]
     asked = {"check": "asks", "placement": "before", "built": False, "grounding_questions": 1}
     asked_twice = {**asked, "grounding_questions": 2}
     stated = {"check": "states", "placement": "after", "built": True, "grounding_questions": 0}
     bare = [
         {"bare_kind": "wrong_fix", "review": "opus-blind-v1",
-         "owned_build": {"verdict": stated}, "gloss_build": {"verdict": stated}, "instructed_build": {"verdict": asked}},
+         "owned_build": {"verdict": stated}, "gloss_build": {"verdict": stated}, "instructed_build": {"verdict": asked}, "ground_build": {"verdict": asked}},
         {"bare_kind": "right_fix", "review": "opus-blind-v1",
-         "owned_build": {"verdict": stated}, "gloss_build": {"verdict": stated}, "instructed_build": {"verdict": asked_twice}},
+         "owned_build": {"verdict": stated}, "gloss_build": {"verdict": stated}, "instructed_build": {"verdict": asked_twice}, "ground_build": {"verdict": asked}},
         {"bare_kind": "diagnose", "review": "opus-blind-v1",
-         "owned_build": {"verdict": stated}, "gloss_build": {"verdict": stated}, "instructed_build": {"verdict": asked}},
+         "owned_build": {"verdict": stated}, "gloss_build": {"verdict": stated}, "instructed_build": {"verdict": asked}, "ground_build": {"verdict": asked}},
     ]
     r = pe.scenario_report(full, bare)
     i, o = r["instructed_build"], r["owned_build"]
@@ -154,3 +157,39 @@ def test_decision_rule_matches_the_thresholds_fixed_before_the_run():
     assert no_ask["decision"] == "proceed" and "does not ask" in no_ask["reason"]
     ordering = pe.decide(_report(15, 26, 13))
     assert ordering["decision"] == "proceed" and "objections first" in ordering["reason"]
+
+
+def _report2(ground, instructed):
+    cell = lambda n, k: {"n": n, "pass": k, "owner_checked_n": 0, "owner_checked_pass": 0}
+    mk = lambda t: {"S1": cell(15, t[0]), "S2": cell(31, t[1]), "S3": cell(13, t[2])}
+    return {"ground_build": mk(ground), "instructed_build": mk(instructed)}
+
+
+def test_g36_decision_rule():
+    """proceed: tier clears all three. defer: quiet and asks, objections late.
+    pivot: tier fails S1/S3 but the sentence clears them. abandon: neither does."""
+    assert pe.decide_g36(_report2((13, 27, 10), (7, 28, 13)))["decision"] == "proceed"
+    assert pe.decide_g36(_report2((15, 26, 13), (7, 28, 13)))["decision"] == "defer"
+    assert pe.decide_g36(_report2((12, 31, 13), (13, 28, 10)))["decision"] == "pivot"
+    assert pe.decide_g36(_report2((12, 31, 13), (7, 28, 13)))["decision"] == "abandon"
+    assert pe.decide_g36(_report2((15, 31, 9), (7, 28, 13)))["decision"] == "abandon"
+
+
+async def test_ground_arm_routes_through_the_pipeline_in_ground_mode():
+    from unittest.mock import AsyncMock, patch
+    from eval import proposals_dataset as d
+    calls = []
+
+    async def fake_proxy(prompt, model, action=None):
+        calls.append(action)
+        return "x", {"normalized_query": None, "signals_removed": [], "assumptions": None}
+
+    verdict = {"raised": "yes", "placement": "before", "built": True, "asks": False}
+    with (patch("eval.proposals_eval._direct", AsyncMock(return_value="x")),
+          patch("eval.proposals_eval._instructed", AsyncMock(return_value="x")),
+          patch("eval.proposals_eval._through_proxy", AsyncMock(side_effect=fake_proxy)),
+          patch("eval.proposals_eval._judge", AsyncMock(return_value=verdict))):
+        row = await pe.score_proposal(d.load()[0], "m", "judge")
+
+    assert len(calls) == 2 and set(calls) == {None, "ground"}   # default tier once, ground once
+    assert set(pe.BUILD_ARMS) <= set(row) and "ground_meta" in row
