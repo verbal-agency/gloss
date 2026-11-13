@@ -74,7 +74,15 @@ class AssumptionDisclosure(BaseModel):
     questionable: list[str]
     reasoning: str
     reposed_query: str | None = None
-    action: Literal["annotated", "disclosed"]
+    # "annotated" / "disclosed": the questionable-premise check (default modes).
+    # "asked" / "objected" / "none": the grounding check (ASSUMPTION_ACTION=ground);
+    # "asked" means the response is a question, not an answer.
+    action: Literal["annotated", "disclosed", "asked", "objected", "none"]
+    # Grounding check only: what the request was, and whether the message links
+    # the plan to the cause of the problem.
+    request: Literal["fix", "task", "other"] | None = None
+    link: Literal["stated", "absent", "contradicted"] | None = None
+    evidence: str | None = None
 
 
 class ResponseMeta(BaseModel):

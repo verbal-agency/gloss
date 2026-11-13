@@ -1,5 +1,6 @@
 from __future__ import annotations
 import asyncio
+import contextvars
 import logging
 from app import llm
 from app.config import settings
@@ -10,6 +11,12 @@ from app.pipeline import assumptions, counterfactual, disagreement, normalizer, 
 
 
 logger = logging.getLogger("gloss.middleware")
+
+# Per-request override of ASSUMPTION_ACTION. Lets one process serve requests in
+# different modes (the eval runs the default and "ground" side by side); unset,
+# the setting applies.
+ASSUMPTION_ACTION_OVERRIDE: contextvars.ContextVar[str | None] = contextvars.ContextVar(
+    "gloss_assumption_action", default=None)
 
 # Strong references to fire-and-forget tasks: without these, the event loop
 # may garbage-collect a running task, and its exceptions vanish silently.
@@ -107,14 +114,37 @@ async def process(request: MessagesRequest, session_id: str) -> MessagesResponse
     # disclosure is the line between a prosthetic and silent paternalism).
     assumption_disclosure = None
     assumption_note = None
-    if settings.tier_assumption:
+    assumption_action = ASSUMPTION_ACTION_OVERRIDE.get() or settings.assumption_action
+    ground = None
+    if settings.tier_assumption and assumption_action == "ground":
+        # Grounding check: a gate in front of the premise check. It decides
+        # whether to ASK (the message never says what causes the problem) or to
+        # object (the message's own facts contradict the plan). When it does
+        # neither, the premise check below still runs, so a flaw that takes
+        # engineering knowledge to see is still raised first.
+        ground = await assumptions.run_ground(last_user_message)
+        if ground is not None and ground.action != "none":
+            if ground.action == "asked":
+                assumption_note = assumptions.ASK_NOTE
+            else:
+                assumption_note = assumptions.objection_note(ground)
+            assumption_disclosure = AssumptionDisclosure(
+                questionable=[ground.contradiction] if ground.action == "objected" and ground.contradiction else [],
+                reasoning=ground.reasoning,
+                action=ground.action,
+                request=ground.request,
+                link=ground.link,
+                evidence=ground.evidence or None,
+            )
+    if settings.tier_assumption and assumption_disclosure is None:
         # Inspect the user's ORIGINAL words, not the normalized query: the
         # normalizer can strip a false premise as a "confidence marker"
         # ("Since coffee is bad for you, ..."), and the model would then answer
         # inside a frame this tier never got to see.
         assumption_result = await assumptions.run(last_user_message)
         if assumption_result is not None:
-            annotate = settings.assumption_action == "annotate"
+            # Under "ground" the fall-through behaves as "annotate".
+            annotate = assumption_action in ("annotate", "ground")
             if annotate:
                 assumption_note = assumptions.annotation(assumption_result)
             assumption_disclosure = AssumptionDisclosure(
@@ -122,7 +152,15 @@ async def process(request: MessagesRequest, session_id: str) -> MessagesResponse
                 reasoning=assumption_result.reasoning,
                 reposed_query=assumption_result.reposed_query,
                 action="annotated" if annotate else "disclosed",
+                request=ground.request if ground else None,
+                link=ground.link if ground else None,
+                evidence=(ground.evidence or None) if ground else None,
             )
+        elif ground is not None:
+            # Grounded and nothing questionable: report that the check ran.
+            assumption_disclosure = AssumptionDisclosure(
+                questionable=[], reasoning=ground.reasoning, action="none",
+                request=ground.request, link=ground.link, evidence=ground.evidence or None)
 
     effective_messages = [
         m if m["role"] != "user" or m["content"] != last_user_message

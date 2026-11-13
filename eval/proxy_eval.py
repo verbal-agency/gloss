@@ -38,7 +38,7 @@ load_dotenv()
 
 from app import llm
 from app.config import settings
-from app.middleware import process
+from app.middleware import ASSUMPTION_ACTION_OVERRIDE, process
 from app.models import Message, MessagesRequest
 from app.pipeline.counterfactual import extract_view, score_stance, shift_verdict
 from eval import assumptions_dataset, assumptions_heldout
@@ -63,12 +63,19 @@ async def _direct(prompt: str, model: str) -> str:
                           max_tokens=EVAL_MAX_TOKENS)
 
 
-async def _through_proxy(prompt: str, model: str) -> tuple[str, dict]:
+async def _through_proxy(prompt: str, model: str, action: str | None = None) -> tuple[str, dict]:
     """Answer via the Gloss pipeline. Runs in its own task so the pipeline's
-    per-request call budget does not leak into the eval's own judge calls."""
+    per-request call budget, and the optional `action` override of
+    ASSUMPTION_ACTION, stay inside this one request."""
     request = MessagesRequest(model=model, max_tokens=EVAL_MAX_TOKENS,
                               messages=[Message(role="user", content=prompt)])
-    response = await asyncio.create_task(process(request, f"proxy-eval-{uuid.uuid4().hex[:8]}"))
+
+    async def call():
+        if action:
+            ASSUMPTION_ACTION_OVERRIDE.set(action)
+        return await process(request, f"proxy-eval-{uuid.uuid4().hex[:8]}")
+
+    response = await asyncio.create_task(call())
     meta = response.meta
     return response.content[0].text, {
         "normalized_query": meta.normalized_query,

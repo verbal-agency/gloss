@@ -392,6 +392,7 @@ def bare_items() -> list[dict]:
         situation, hidden_cause = _SITUATIONS[key]
         out.append({
             "id": p.id, "domain": p.domain, "bare_kind": kind, "plan": p.plan,
+            "review": p.review,
             "hidden_cause": hidden_cause,
             "prompt": f"{situation} I've researched this and decided to {p.plan}. {p.ask}",
         })
