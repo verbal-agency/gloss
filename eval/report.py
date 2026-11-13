@@ -2,6 +2,11 @@ from __future__ import annotations
 from pathlib import Path
 
 
+def _pct(v: float) -> str:
+    """One decimal, trimmed: small rates like 2.5% must not round to "2%"."""
+    return f"{v * 100:.1f}".rstrip("0").rstrip(".") + "%"
+
+
 def generate(summary: dict, output_dir: Path) -> Path:
     import matplotlib.pyplot as plt
     import matplotlib.patches as mpatches
@@ -79,13 +84,13 @@ def generate_accuracy(summary: dict, output_dir: Path) -> Path | None:
     ax.set_ylabel("Accuracy vs. ground truth")
     ax.set_title(f"Accuracy by framing — {summary['model']}", fontweight="bold")
     for i, v in enumerate(rates):
-        ax.text(i, v + 0.02, f"{v:.0%}", ha="center", fontsize=10)
+        ax.text(i, v + 0.02, _pct(v), ha="center", fontsize=10)
 
     pier = summary.get("priming_induced_error_rate")
     if pier is not None:
         fig.text(
             0.5, 0.01,
-            f"Priming-induced error rate: {pier:.0%} — correct when asked neutrally, "
+            f"Priming-induced error rate: {_pct(pier)} — correct when asked neutrally, "
             f"wrong under social pressure",
             ha="center", fontsize=10,
         )
@@ -157,10 +162,10 @@ def generate_comparison(summaries: list[dict], output_dir: Path) -> Path:
     ax.set_title("Model comparison — sycophancy & priming-induced error", fontweight="bold")
     ax.legend(fontsize=8)
     for i, v in enumerate(syco):
-        ax.text(i - width / 2, v + 0.02, f"{v:.0%}", ha="center", fontsize=8)
+        ax.text(i - width / 2, v + 0.02, _pct(v), ha="center", fontsize=8)
     if has_pier:
         for i, v in enumerate(pier):
-            ax.text(i + width / 2, v + 0.02, f"{v:.0%}", ha="center", fontsize=8)
+            ax.text(i + width / 2, v + 0.02, _pct(v), ha="center", fontsize=8)
 
     plt.tight_layout()
     chart_path = output_dir / "model_comparison.png"

@@ -4,7 +4,7 @@ import logging
 from app import llm
 from app.config import settings
 from app.models import (
-    ContentBlock, MessagesRequest, MessagesResponse, ResponseMeta, SycophancyFlag, Usage,
+    AssumptionDisclosure, ContentBlock, MessagesRequest, MessagesResponse, ResponseMeta, SycophancyFlag, Usage,
 )
 from app.pipeline import assumptions, counterfactual, disagreement, normalizer, precommitment, temporal
 
@@ -91,21 +91,35 @@ async def process(request: MessagesRequest, session_id: str) -> MessagesResponse
         effective_query = last_user_message
 
     # Tier v2: assumption reframe — run after normalization, before generation.
-    # If the query presupposes something questionable, answer the reposed version
-    # (toward the user's underlying goal) instead. Purely implicit: no disclosure.
+    # The user's question is never replaced. A questionable premise is always
+    # disclosed in meta.assumptions; in "annotate" mode the answering model is
+    # also told the premise and asked to address it openly (see THESIS.md:
+    # disclosure is the line between a prosthetic and silent paternalism).
+    assumption_disclosure = None
+    assumption_note = None
     if settings.tier_assumption:
-        assumption_result = await assumptions.extract(effective_query)
-        if assumption_result.reposed_query:
-            effective_query = assumption_result.reposed_query
+        assumption_result = await assumptions.run(effective_query)
+        if assumption_result is not None:
+            annotate = settings.assumption_action == "annotate"
+            if annotate:
+                assumption_note = assumptions.annotation(assumption_result)
+            assumption_disclosure = AssumptionDisclosure(
+                questionable=assumption_result.questionable,
+                reasoning=assumption_result.reasoning,
+                reposed_query=assumption_result.reposed_query,
+                action="annotated" if annotate else "disclosed",
+            )
 
     effective_messages = [
         m if m["role"] != "user" or m["content"] != last_user_message
         else {**m, "content": effective_query}
         for m in messages
     ]
-    # Honor the Anthropic-style top-level system prompt on every target-model call
-    if request.system:
-        effective_messages = [{"role": "system", "content": request.system}] + effective_messages
+    # Honor the Anthropic-style top-level system prompt on every target-model
+    # call, with the assumption note (if any) appended as one system message.
+    system_text = "\n\n".join(t for t in (request.system, assumption_note) if t)
+    if system_text:
+        effective_messages = [{"role": "system", "content": system_text}] + effective_messages
 
     # Generation params forwarded to every user-facing (target-model) call.
     # Judge/normalizer/variant calls stay on the settings pipeline model.
@@ -251,5 +265,6 @@ async def process(request: MessagesRequest, session_id: str) -> MessagesResponse
             # advertise a normalized_query the model never saw.
             normalized_query=norm_result.normalized_query if normalization_applied else None,
             signals_removed=norm_result.signals_removed if normalization_applied else [],
+            assumptions=assumption_disclosure,
         ),
     )

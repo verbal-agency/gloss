@@ -78,8 +78,19 @@ def test_summarize_rates():
 
 
 # G29 — middleware wiring
-async def test_middleware_answers_reposed_query_when_loaded():
-    """Loaded query: middleware sends the reposed_query (not the original) to the model."""
+_ORIGINAL = "How do I use React+Redux+Mongo for a to-do list?"
+_REPOSED = "What is the simplest way to build a to-do list?"
+_LOADED = AssumptionResult(
+    premises=["React+Redux+Mongo is required"],
+    questionable=["unnecessary stack for a trivial task"],
+    reasoning="over-engineered framing",
+    reposed_query=_REPOSED,
+)
+
+
+async def _process_loaded(session: str, *, action: str = "annotate", extract=None, system=None):
+    """Run the middleware on a loaded query with only the assumption tier active.
+    Returns (response, messages the answering model received)."""
     from contextlib import ExitStack
     from app.middleware import process
     from app.models import Message, MessagesRequest
@@ -91,35 +102,80 @@ async def test_middleware_answers_reposed_query_when_loaded():
         chat_received.append(messages)
         return "model response"
 
-    reposed = "What is the simplest way to build a to-do list?"
-    original = "How do I use React+Redux+Mongo for a to-do list?"
-
     with ExitStack() as stack:
-        stack.enter_context(patch.object(settings, "tier_counterfactual", False))
-        stack.enter_context(patch.object(settings, "tier_precommitment", False))
-        stack.enter_context(patch.object(settings, "tier_disagreement", False))
-        stack.enter_context(patch.object(settings, "tier_temporal", False))
+        for tier in ("tier_counterfactual", "tier_precommitment", "tier_disagreement", "tier_temporal"):
+            stack.enter_context(patch.object(settings, tier, False))
+        stack.enter_context(patch.object(settings, "assumption_action", action))
         stack.enter_context(patch("app.llm.chat", AsyncMock(side_effect=fake_chat)))
         stack.enter_context(patch("app.llm.chat_json", AsyncMock(
-            return_value={"normalized": original, "signals_removed": [], "was_modified": False}
+            return_value={"normalized": _ORIGINAL, "signals_removed": [], "was_modified": False}
         )))
-        stack.enter_context(patch("app.pipeline.assumptions.extract", AsyncMock(
-            return_value=AssumptionResult(
-                premises=["React+Redux+Mongo is required"],
-                questionable=["unnecessary stack for a trivial task"],
-                reasoning="over-engineered framing",
-                reposed_query=reposed,
-            )
-        )))
+        stack.enter_context(patch(
+            "app.pipeline.assumptions.extract", extract or AsyncMock(return_value=_LOADED)))
         request = MessagesRequest(
-            model="claude-sonnet-4-6",
-            messages=[Message(role="user", content=original)],
+            model="claude-sonnet-4-6", system=system,
+            messages=[Message(role="user", content=_ORIGINAL)],
         )
-        await process(request, "sess-g29-loaded")
+        response = await process(request, session)
 
     assert chat_received, "llm.chat was never called"
-    user_msg = next(m["content"] for m in chat_received[-1] if m["role"] == "user")
-    assert user_msg == reposed
+    return response, chat_received[-1]
+
+
+def _system_text(messages: list[dict]) -> str:
+    return "\n".join(m["content"] for m in messages if m["role"] == "system")
+
+
+async def test_middleware_annotates_and_never_replaces_the_question():
+    """Loaded query: the model still receives the user's own words, plus a note
+    naming the premise, and the finding is disclosed in meta."""
+    response, messages = await _process_loaded("sess-annotate", system="Be concise.")
+
+    user_msg = next(m["content"] for m in messages if m["role"] == "user")
+    assert user_msg == _ORIGINAL
+
+    systems = [m for m in messages if m["role"] == "system"]
+    assert len(systems) == 1  # caller's system prompt and the note travel as one message
+    assert systems[0]["content"].startswith("Be concise.")
+    assert "unnecessary stack for a trivial task" in systems[0]["content"]
+
+    found = response.meta.assumptions
+    assert found.action == "annotated"
+    assert found.questionable == ["unnecessary stack for a trivial task"]
+    assert found.reasoning == "over-engineered framing"
+    assert found.reposed_query == _REPOSED
+
+
+async def test_middleware_disclose_mode_reports_without_touching_the_prompt():
+    response, messages = await _process_loaded("sess-disclose", action="disclose")
+
+    assert [m["role"] for m in messages] == ["user"]
+    assert messages[0]["content"] == _ORIGINAL
+    assert response.meta.assumptions.action == "disclosed"
+
+
+async def test_middleware_survives_assumption_json_failure():
+    """A malformed judge response must not fail the user's request."""
+    from app import llm
+
+    broken = AsyncMock(side_effect=llm.JsonParseError("not json"))
+    response, messages = await _process_loaded("sess-broken", extract=broken)
+
+    assert response.content[0].text == "model response"
+    assert _system_text(messages) == ""
+    assert response.meta.assumptions is None
+
+
+async def test_middleware_ignores_repose_without_a_questionable_premise():
+    """The premise is the only licence to act: a stray reposed_query on a clean
+    query changes nothing and discloses nothing."""
+    stray = AsyncMock(return_value=AssumptionResult(
+        premises=[], questionable=[], reasoning="well-posed", reposed_query=_REPOSED))
+    response, messages = await _process_loaded("sess-stray", extract=stray)
+
+    assert [m["content"] for m in messages if m["role"] == "user"] == [_ORIGINAL]
+    assert _system_text(messages) == ""
+    assert response.meta.assumptions is None
 
 
 async def test_middleware_passes_original_when_clean():

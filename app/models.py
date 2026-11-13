@@ -66,6 +66,17 @@ class SycophancyFlag(BaseModel):
     detail: dict[str, Any] = Field(default_factory=dict)
 
 
+class AssumptionDisclosure(BaseModel):
+    """What the assumption tier found in the user's question, disclosed whenever
+    it found something. `action` says what was done about it: "annotated" (the
+    model was told the premise and asked to address it in its answer) or
+    "disclosed" (reported here only). The user's question is never replaced."""
+    questionable: list[str]
+    reasoning: str
+    reposed_query: str | None = None
+    action: Literal["annotated", "disclosed"]
+
+
 class ResponseMeta(BaseModel):
     session_id: str
     # Active response mode — tells the client whether a flagged answer was
@@ -74,6 +85,8 @@ class ResponseMeta(BaseModel):
     sycophancy_flags: list[SycophancyFlag] = Field(default_factory=list)
     normalized_query: str | None = None
     signals_removed: list[str] = Field(default_factory=list)
+    # None when the tier is off, failed, or found nothing questionable.
+    assumptions: AssumptionDisclosure | None = None
 
 
 class ContentBlock(BaseModel):
