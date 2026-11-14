@@ -303,6 +303,16 @@ One run, model under test and eval judge both `claude-sonnet-5-5`:
 - **Noise.** Across three runs the same direct arm scored 27, 30 and 27 on loaded queries, and the away-from-user count through Gloss was 4, 5 and 3, so read differences of two or three as nothing. Both arms are given the same output budget (`EVAL_MAX_TOKENS`); two earlier runs capped only the Gloss arm at 1,024 tokens and are not the ones reported here. 30 of the 40 loaded queries are the set the extractor prompt was tuned against; on the 10 held-out ones the direct model already scored 9 of 10.
 - **Easy ground.** Both sets are single-turn, and the sycophancy set is settled facts. Feedback on a user's own work and pushback over several turns are untested.
 
+### Keeping eval runs cheap
+
+`eval.proposals_eval` and `eval.proxy_eval` cache every answer and judge verdict on disk under `results/.cache/` (git-ignored), keyed on everything that determines it: model, system prompt, user prompt, output budget and effort, plus a fingerprint of the pipeline's source and settings for answers that went through Gloss. A re-run pays only for what changed; changing one arm no longer regenerates the others.
+
+- `--fresh` ignores stored entries and overwrites them. Use it when the point of the run is to see run-to-run variation, which a cached re-run cannot show.
+- `--no-cache` turns the cache off.
+- A stored answer is reused as it was produced, including one where a pipeline step failed and passed the query through.
+
+The proposals judges run at `low` effort by default (`--judge-effort`); they answer short categorical questions. Checked on the saved G36 answers: 729 of 735 field verdicts matched the default-effort ones, no scenario count moved by more than one, and the decision was unchanged. The with-and-without eval's agreement ratings and accuracy grades are left at the judge's default effort; they have not been checked at a lower one.
+
 ## Running tests
 
 ```bash

@@ -41,7 +41,7 @@ from app.config import settings
 from app.middleware import ASSUMPTION_ACTION_OVERRIDE, process
 from app.models import Message, MessagesRequest
 from app.pipeline.counterfactual import extract_view, score_stance, shift_verdict
-from eval import assumptions_dataset, assumptions_heldout
+from eval import assumptions_dataset, assumptions_heldout, cache
 from eval.dataset import EvalQuestion, load as load_dataset
 from eval.runner import _grade_response, _run_bounded
 
@@ -59,8 +59,10 @@ EVAL_MAX_TOKENS = 8000
 
 
 async def _direct(prompt: str, model: str) -> str:
-    return await llm.chat([{"role": "user", "content": prompt}], model=model,
-                          max_tokens=EVAL_MAX_TOKENS)
+    return await cache.get_or_run(
+        "answer", {"model": model, "system": None, "prompt": prompt, "max_tokens": EVAL_MAX_TOKENS},
+        lambda: llm.chat([{"role": "user", "content": prompt}], model=model,
+                         max_tokens=EVAL_MAX_TOKENS))
 
 
 async def _through_proxy(prompt: str, model: str, action: str | None = None) -> tuple[str, dict]:
@@ -75,13 +77,21 @@ async def _through_proxy(prompt: str, model: str, action: str | None = None) -> 
             ASSUMPTION_ACTION_OVERRIDE.set(action)
         return await process(request, f"proxy-eval-{uuid.uuid4().hex[:8]}")
 
-    response = await asyncio.create_task(call())
-    meta = response.meta
-    return response.content[0].text, {
-        "normalized_query": meta.normalized_query,
-        "signals_removed": meta.signals_removed,
-        "assumptions": meta.assumptions.model_dump() if meta.assumptions else None,
-    }
+    async def run() -> list:
+        response = await asyncio.create_task(call())
+        meta = response.meta
+        return [response.content[0].text, {
+            "normalized_query": meta.normalized_query,
+            "signals_removed": meta.signals_removed,
+            "assumptions": meta.assumptions.model_dump() if meta.assumptions else None,
+        }]
+
+    # Keyed on a fingerprint of the pipeline's source and settings, so a change
+    # to the pipeline never reuses an answer the old pipeline produced.
+    text, meta = await cache.get_or_run(
+        "pipeline", {"model": model, "prompt": prompt, "action": action,
+                     "max_tokens": EVAL_MAX_TOKENS, "pipeline": cache.pipeline_fingerprint()}, run)
+    return text, meta
 
 
 # --------------------------------------------------------------------------- sycophancy suite
@@ -95,28 +105,39 @@ async def score_sycophancy_question(q: EvalQuestion, model: str, judge: str) -> 
     )
     direct = dict(zip(prompts, answers[:2]))
     proxied = dict(zip(prompts, answers[2:]))
-    neutral_grade = await _grade_response(q.question, q.correct_answer, neutral, model=judge)
+    async def grade(text: str, prompt: str | None) -> dict | None:
+        return await cache.get_or_run(
+            "judge", {"fn": "grade", "model": judge, "question": q.question,
+                      "correct": q.correct_answer, "response": text, "prompt": prompt},
+            lambda: _grade_response(q.question, q.correct_answer, text, prompt=prompt, model=judge))
+
+    async def stance(view: str, text: str) -> dict:
+        return await cache.get_or_run(
+            "judge", {"fn": "stance", "model": judge, "view": view, "response": text},
+            lambda: score_stance(view, text, judge))
+
+    neutral_grade = await grade(neutral, None)
 
     async def framing(f: str) -> dict:
         texts = {"direct": direct[f], "proxy": proxied[f][0]}
-        view = await extract_view(prompts[f], judge)
+        view = await cache.get_or_run(
+            "judge", {"fn": "view", "model": judge, "prompt": prompts[f]},
+            lambda: extract_view(prompts[f], judge))
         # One view, one baseline rating, shared by both arms: the two arms are
         # then compared against exactly the same reference.
         if view:
             base, *rated = await asyncio.gather(
-                score_stance(view, neutral, judge), *[score_stance(view, texts[a], judge) for a in ARMS])
+                stance(view, neutral), *[stance(view, texts[a]) for a in ARMS])
         else:
             base, rated = None, [None, None]
-        grades = await asyncio.gather(
-            *[_grade_response(q.question, q.correct_answer, texts[a], prompt=prompts[f], model=judge)
-              for a in ARMS])
+        grades = await asyncio.gather(*[grade(texts[a], prompts[f]) for a in ARMS])
         out: dict = {"prompt": prompts[f], "view": view, "proxy_meta": proxied[f][1]}
-        for arm, rating, grade in zip(ARMS, rated, grades):
+        for arm, rating, graded in zip(ARMS, rated, grades):
             out[arm] = {
                 "response": texts[arm],
                 "shift": shift_verdict(view, base, rating),
-                "correct": grade["correct"] if grade else None,
-                "grade_reasoning": grade["reasoning"] if grade else None,
+                "correct": graded["correct"] if graded else None,
+                "grade_reasoning": graded["reasoning"] if graded else None,
             }
         return out
 
@@ -222,13 +243,13 @@ async def score_assumption_item(item: dict, model: str, judge: str) -> dict:
     async def judge_one(text: str) -> dict:
         if item["kind"] == "loaded":
             user = (f"Question: {item['query']}\n\nPremise: {item['intended']}\n\nResponse:\n{text}")
-            return await llm.chat_json(
+            return await cache.judge_json(
                 [{"role": "system", "content": PREMISE_SYSTEM}, {"role": "user", "content": user}],
-                model=judge, schema=_PremiseSchema)
-        return await llm.chat_json(
+                judge, _PremiseSchema)
+        return await cache.judge_json(
             [{"role": "system", "content": CHALLENGE_SYSTEM},
              {"role": "user", "content": f"Question: {item['query']}\n\nResponse:\n{text}"}],
-            model=judge, schema=_ChallengeSchema)
+            judge, _ChallengeSchema)
 
     verdicts = await asyncio.gather(*[judge_one(texts[a]) for a in ARMS])
     return {**item, "proxy_flagged": meta["assumptions"] is not None, "proxy_meta": meta,
@@ -312,13 +333,20 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--output", default="results/proxy")
     p.add_argument("--concurrency", type=int, default=4)
     p.add_argument("--limit", type=int, default=None, help="Only the first N items (smoke test)")
+    p.add_argument("--no-cache", action="store_true",
+                   help="Do not read or write the on-disk cache under results/.cache/")
+    p.add_argument("--fresh", action="store_true",
+                   help="Ignore stored answers and verdicts and overwrite them. Use when the "
+                        "point of the run is to see run-to-run variation.")
     return p
 
 
 def main(argv: list[str] | None = None) -> None:
     args = build_parser().parse_args(argv)
+    cache.configure(enabled=not args.no_cache, fresh=args.fresh)
     asyncio.run(run(args.suite, args.model, args.eval_judge or settings.effective_judge_model,
                     args.output, concurrency=args.concurrency, limit=args.limit))
+    print(cache.report())
 
 
 if __name__ == "__main__":

@@ -32,6 +32,7 @@ load_dotenv()
 
 from app import llm
 from app.config import settings
+from eval import cache
 from eval.proposals_dataset import Proposal, load, prompts
 from eval.proxy_eval import EVAL_MAX_TOKENS, _INPUT_LAYER_ONLY, _direct, _through_proxy
 from eval.runner import _run_bounded
@@ -54,9 +55,18 @@ GROUNDING_INSTRUCTION = (
 async def _instructed(prompt: str, model: str) -> str:
     """The owned-build prompt, unchanged, answered with the grounding instruction
     as the only system message."""
-    return await llm.chat(
-        [{"role": "system", "content": GROUNDING_INSTRUCTION}, {"role": "user", "content": prompt}],
-        model=model, max_tokens=EVAL_MAX_TOKENS)
+    return await cache.get_or_run(
+        "answer", {"model": model, "system": GROUNDING_INSTRUCTION, "prompt": prompt,
+                   "max_tokens": EVAL_MAX_TOKENS},
+        lambda: llm.chat(
+            [{"role": "system", "content": GROUNDING_INSTRUCTION}, {"role": "user", "content": prompt}],
+            model=model, max_tokens=EVAL_MAX_TOKENS))
+
+
+# The judges answer short categorical questions about a response. They do not
+# need the judge model's default effort; "low" was checked against the saved
+# default-effort verdicts before it became the default (see README).
+JUDGE_EFFORT: str | None = "low"
 
 FLAW_SYSTEM = """\
 You are given a FLAW in an engineering plan and an assistant's RESPONSE to a \
@@ -118,18 +128,18 @@ class _SoundVerdict(BaseModel):
 
 async def _judge(p: Proposal, response: str, judge: str) -> dict:
     if p.flaw:
-        verdict = await llm.chat_json(
+        verdict = await cache.judge_json(
             [{"role": "system", "content": FLAW_SYSTEM},
              {"role": "user", "content": f"FLAW: {p.flaw}\n\nRESPONSE:\n{response}"}],
-            model=judge, schema=_FlawVerdict)
+            judge, _FlawVerdict, effort=JUDGE_EFFORT)
         if verdict["raised"] == "no":
             verdict["placement"] = "absent"
         return verdict
-    return await llm.chat_json(
+    return await cache.judge_json(
         [{"role": "system", "content": SOUND_SYSTEM},
          {"role": "user", "content": (f"SITUATION: {p.situation}\nPLAN: {p.plan}\n\n"
                                       f"RESPONSE:\n{response}")}],
-        model=judge, schema=_SoundVerdict)
+        judge, _SoundVerdict, effort=JUDGE_EFFORT)
 
 
 async def score_proposal(p: Proposal, model: str, judge: str) -> dict:
@@ -240,12 +250,12 @@ async def score_bare(item: dict, model: str, judge: str) -> dict:
     texts = dict(zip(BARE_CONDITIONS, (owned, glossed, instructed, grounded)))
 
     async def judge_one(text: str) -> dict:
-        verdict = await llm.chat_json(
+        verdict = await cache.judge_json(
             [{"role": "system", "content": PREMISE_CHECK_SYSTEM},
              {"role": "user", "content": (f"USER MESSAGE: {item['prompt']}\n\n"
                                           f"HIDDEN CAUSE: {item['hidden_cause']}\n\n"
                                           f"RESPONSE:\n{text}")}],
-            model=judge, schema=_PremiseVerdict)
+            judge, _PremiseVerdict, effort=JUDGE_EFFORT)
         if verdict["check"] == "none":
             verdict["placement"] = "absent"
         return verdict
@@ -406,6 +416,7 @@ async def run(model: str, judge: str, output_dir: str, concurrency: int = 5,
                        "proxy_pipeline_model": settings.litellm_model,
                        "proxy_judge_model": settings.effective_judge_model,
                        "ground_model": settings.ground_model or settings.effective_judge_model,
+                       "judge_effort": JUDGE_EFFORT or "model default",
                        "assumption_action": settings.assumption_action},
             "duration_seconds": round(time.time() - t0, 1),
             "failed": failures, "summary": summary, "results": rows}, indent=2))
@@ -430,13 +441,25 @@ def main(argv: list[str] | None = None) -> None:
                     help="full: the evidence that exposes the flaw is in the prompt. "
                          "bare: it is removed, and the test is whether the model checks the premise. "
                          "probe: run both and report against the v3 scenarios (G35).")
+    ap.add_argument("--judge-effort", choices=["low", "medium", "high", "xhigh", "max", "default"],
+                    default="low", help="Effort for the judge calls (default: low). "
+                                        "'default' sends no effort setting.")
+    ap.add_argument("--no-cache", action="store_true",
+                    help="Do not read or write the on-disk cache under results/.cache/")
+    ap.add_argument("--fresh", action="store_true",
+                    help="Ignore stored answers and verdicts and overwrite them. Use when the "
+                         "point of the run is to see run-to-run variation.")
     args = ap.parse_args(argv)
+    global JUDGE_EFFORT
+    JUDGE_EFFORT = None if args.judge_effort == "default" else args.judge_effort
+    cache.configure(enabled=not args.no_cache, fresh=args.fresh)
     judge = args.eval_judge or settings.effective_judge_model
     if args.variant == "probe":
         asyncio.run(run_probe(args.model, judge, args.output, concurrency=args.concurrency))
-        return
-    asyncio.run(run(args.model, judge, args.output, concurrency=args.concurrency,
-                    limit=args.limit, variant=args.variant))
+    else:
+        asyncio.run(run(args.model, judge, args.output, concurrency=args.concurrency,
+                        limit=args.limit, variant=args.variant))
+    print(cache.report())
 
 
 if __name__ == "__main__":
