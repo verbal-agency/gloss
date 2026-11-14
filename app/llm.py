@@ -71,6 +71,8 @@ def resolve_model(model: str | None) -> str:
 
 # Models that have refused a `temperature` parameter in this process.
 _NO_TEMPERATURE: set[str] = set()
+# Models that have refused an effort setting (older models do not take one).
+_NO_EFFORT: set[str] = set()
 
 
 async def chat(
@@ -79,6 +81,7 @@ async def chat(
     response_format: dict | None = None,
     temperature: float | None = None,
     max_tokens: int | None = None,
+    effort: str | None = None,
 ) -> str:
     # Count every completion against the per-request budget. chat_json routes
     # through here too, so JSON calls (and their retries) are counted as well.
@@ -94,18 +97,34 @@ async def chat(
         kwargs["temperature"] = temperature
     if max_tokens is not None:
         kwargs["max_tokens"] = max_tokens
+    # `effort` (low | medium | high | xhigh | max) trades thinking depth for
+    # cost on models that take it. Short categorical judge calls do not need
+    # the model's default.
+    if effort is not None:
+        kwargs["output_config"] = {"effort": effort}
 
-    # Newer models reject `temperature` outright. Learn that from the first
-    # refusal and stop sending it to that model, rather than keep a model list.
+    # Newer models reject `temperature` outright and older ones reject an effort
+    # setting. Learn each from the first refusal and stop sending it to that
+    # model, rather than keep a model list.
     if kwargs["model"] in _NO_TEMPERATURE:
         kwargs.pop("temperature", None)
-    try:
-        response = await litellm.acompletion(**kwargs)
-    except litellm.BadRequestError as e:
-        if "temperature" not in kwargs or "temperature" not in str(e).lower():
-            raise
-        _NO_TEMPERATURE.add(kwargs["model"])
-        kwargs.pop("temperature")
+    if kwargs["model"] in _NO_EFFORT:
+        kwargs.pop("output_config", None)
+    for _ in range(3):
+        try:
+            response = await litellm.acompletion(**kwargs)
+            break
+        except litellm.BadRequestError as e:
+            message = str(e).lower()
+            if "temperature" in kwargs and "temperature" in message:
+                _NO_TEMPERATURE.add(kwargs["model"])
+                kwargs.pop("temperature")
+            elif "output_config" in kwargs and "does not support the effort" in message:
+                _NO_EFFORT.add(kwargs["model"])
+                kwargs.pop("output_config")
+            else:
+                raise
+    else:
         response = await litellm.acompletion(**kwargs)
     # A model can return no text at all (content=None); callers expect a string.
     return response.choices[0].message.content or ""
@@ -157,6 +176,7 @@ async def chat_json(
     model: str | None = None,
     temperature: float = 0.0,
     schema: type[BaseModel] | None = None,
+    effort: str | None = None,
 ) -> dict:
     """Return a dict of parsed JSON. When `schema` is given, the JSON is
     validated/coerced against it before returning — a valid-JSON-wrong-shape
@@ -175,13 +195,13 @@ async def chat_json(
             return schema.model_validate(data).model_dump()  # may raise ValidationError
         return data
 
-    text = await chat(enforced, model=model, temperature=temperature)
+    text = await chat(enforced, model=model, temperature=temperature, effort=effort)
     try:
         return _parse(text)
     except (json.JSONDecodeError, ValidationError):
         # One retry — LLMs frequently self-correct. Nudge temperature up so a
         # deterministic bad completion has a chance to vary.
-        retry_text = await chat(enforced, model=model, temperature=max(temperature, 0.4))
+        retry_text = await chat(enforced, model=model, temperature=max(temperature, 0.4), effort=effort)
         try:
             return _parse(retry_text)
         except json.JSONDecodeError:
