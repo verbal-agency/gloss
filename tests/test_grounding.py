@@ -161,3 +161,118 @@ async def test_classifier_uses_ground_model_when_set(monkeypatch):
     with patch("app.pipeline.assumptions.llm.chat_json", AsyncMock(side_effect=fake_json)):
         result = await assumptions.classify_grounding("q")
     assert seen["model"] == "anthropic/strong" and result.action == "asked"
+
+
+# --------------------------------------------------------------------------- G37: the conversation in view
+
+_OK = {"request": "fix", "link": "absent", "evidence": "", "contradiction": "", "reasoning": "r"}
+_CLEAN = {"premises": [], "questionable": [], "reasoning": "r", "reposed_query": None}
+
+
+def test_a_single_message_has_no_conversation_view():
+    assert assumptions.conversation_view([{"role": "user", "content": "q"}]) is None
+    assert assumptions.conversation_view(
+        [{"role": "system", "content": "s"}, {"role": "user", "content": "q"}]) is None
+
+
+def test_conversation_view_keeps_earlier_turns_in_order_and_marks_the_request():
+    view = assumptions.conversation_view([
+        {"role": "user", "content": "Our page is slow. I decided to add an index."},
+        {"role": "assistant", "content": "Here is the size query."},
+        {"role": "user", "content": "Can you write the migration?"},
+    ])
+    assert view.index("Our page is slow") < view.index("Here is the size query") < view.index("LATEST REQUEST")
+    assert view.endswith("Can you write the migration?")
+    assert "USER: Our page is slow" in view and "ASSISTANT: Here is the size query." in view
+
+
+def test_long_assistant_turns_are_cut_but_user_turns_are_not():
+    long_user, long_reply = "u" * 5000, "HEAD" + "x" * 5000 + "TAIL"
+    view = assumptions.conversation_view([
+        {"role": "user", "content": long_user}, {"role": "assistant", "content": long_reply},
+        {"role": "user", "content": "next"}])
+    assert long_user in view                       # the user's evidence is never cut
+    assert long_reply not in view and "HEAD" in view and "TAIL" in view and "[...]" in view
+
+
+async def test_single_message_classifier_call_is_exactly_as_before():
+    seen = {}
+
+    async def fake_json(messages, **kwargs):
+        seen["messages"] = messages
+        return _OK
+
+    with patch("app.pipeline.assumptions.llm.chat_json", AsyncMock(side_effect=fake_json)):
+        await assumptions.classify_grounding("q")
+    assert seen["messages"] == [{"role": "system", "content": assumptions.GROUND_SYSTEM},
+                                {"role": "user", "content": "q"}]
+
+
+async def test_single_message_premise_check_call_is_exactly_as_before():
+    seen = {}
+
+    async def fake_json(messages, **kwargs):
+        seen["messages"] = messages
+        return _CLEAN
+
+    with patch("app.pipeline.assumptions.llm.chat_json", AsyncMock(side_effect=fake_json)):
+        await assumptions.extract("q")
+    assert seen["messages"] == [{"role": "system", "content": assumptions.EXTRACT_SYSTEM},
+                                {"role": "user", "content": "q"}]
+
+
+async def test_with_a_conversation_both_checks_get_it_and_the_added_rule():
+    seen = []
+
+    async def fake_json(messages, **kwargs):
+        seen.append(messages)
+        return _OK if len(seen) == 1 else _CLEAN
+
+    with patch("app.pipeline.assumptions.llm.chat_json", AsyncMock(side_effect=fake_json)):
+        await assumptions.classify_grounding("latest", context="CONVERSATION SO FAR: ...")
+        await assumptions.extract("latest", context="CONVERSATION SO FAR: ...")
+    for messages, base in zip(seen, (assumptions.GROUND_SYSTEM, assumptions.EXTRACT_SYSTEM)):
+        assert messages[0]["content"] == base + assumptions.CONVERSATION_RULE
+        assert messages[1]["content"] == "CONVERSATION SO FAR: ..."
+    assert "any earlier USER turn counts as stated" in assumptions.CONVERSATION_RULE
+
+
+async def _run_conversation(action: str):
+    classify = AsyncMock(return_value=_g("task", "stated"))
+    extract = AsyncMock(return_value=assumptions.AssumptionResult(
+        premises=[], questionable=[], reasoning="r", reposed_query=None))
+    turns = [Message(role="user", content="Our page is slow. I decided to add an index. First, the size query?"),
+             Message(role="assistant", content="SELECT pg_size_pretty(...)"),
+             Message(role="user", content="Can you write the migration?")]
+    with ExitStack() as stack:
+        for tier in ("tier_counterfactual", "tier_precommitment", "tier_disagreement", "tier_temporal"):
+            stack.enter_context(patch.object(settings, tier, False))
+        stack.enter_context(patch.object(settings, "assumption_action", action))
+        stack.enter_context(patch("app.llm.chat", AsyncMock(return_value="model response")))
+        stack.enter_context(patch("app.llm.chat_json", AsyncMock(
+            return_value={"normalized": "x", "signals_removed": [], "was_modified": False})))
+        stack.enter_context(patch("app.pipeline.assumptions.classify_grounding", classify))
+        stack.enter_context(patch("app.pipeline.assumptions.extract", extract))
+        await process(MessagesRequest(model="claude-sonnet-4-6", messages=turns), "sess-late")
+    return classify, extract
+
+
+async def test_ground_mode_passes_the_earlier_turns_to_both_checks():
+    classify, extract = await _run_conversation("ground")
+    for mock in (classify, extract):
+        assert mock.call_args.args[0] == "Can you write the migration?"
+        context = mock.call_args.kwargs["context"]
+        assert "I decided to add an index" in context and context.endswith("Can you write the migration?")
+
+
+async def test_the_default_mode_still_reads_only_the_latest_message():
+    classify, extract = await _run_conversation("annotate")
+    classify.assert_not_awaited()
+    assert extract.call_args.args[0] == "Can you write the migration?"
+    assert extract.call_args.kwargs["context"] is None
+
+
+async def test_ground_mode_on_a_single_message_passes_no_conversation():
+    _, _, classify, extract = await _run(_g("task", "stated"))
+    assert classify.call_args.kwargs["context"] is None
+    assert extract.call_args.kwargs["context"] is None

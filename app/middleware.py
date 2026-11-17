@@ -116,13 +116,17 @@ async def process(request: MessagesRequest, session_id: str) -> MessagesResponse
     assumption_note = None
     assumption_action = ASSUMPTION_ACTION_OVERRIDE.get() or settings.assumption_action
     ground = None
+    # Earlier turns, when there are any, so a plan stated turns ago is still in
+    # view. Only the grounding mode reads them; annotate and disclose are
+    # unchanged. None for a single message.
+    conversation = assumptions.conversation_view(messages) if assumption_action == "ground" else None
     if settings.tier_assumption and assumption_action == "ground":
         # Grounding check: a gate in front of the premise check. It decides
         # whether to ASK (the message never says what causes the problem) or to
         # object (the message's own facts contradict the plan). When it does
         # neither, the premise check below still runs, so a flaw that takes
         # engineering knowledge to see is still raised first.
-        ground = await assumptions.run_ground(last_user_message)
+        ground = await assumptions.run_ground(last_user_message, context=conversation)
         if ground is not None and ground.action != "none":
             if ground.action == "asked":
                 assumption_note = assumptions.ASK_NOTE
@@ -141,7 +145,7 @@ async def process(request: MessagesRequest, session_id: str) -> MessagesResponse
         # normalizer can strip a false premise as a "confidence marker"
         # ("Since coffee is bad for you, ..."), and the model would then answer
         # inside a frame this tier never got to see.
-        assumption_result = await assumptions.run(last_user_message)
+        assumption_result = await assumptions.run(last_user_message, context=conversation)
         if assumption_result is not None:
             # Under "ground" the fall-through behaves as "annotate".
             annotate = assumption_action in ("annotate", "ground")

@@ -159,3 +159,57 @@ Resulting change: G37 and G38 are unblocked. Cost and a cheaper classifier go
 - S1 is met with nothing to spare.
 - The mechanism was adjusted once after seeing results.
 - Under `ground` a response can be a question. Nothing here measures whether that is welcome.
+
+## Flaw sentences rewritten (2026-11-16)
+
+An external model review of the multi-turn draft found that eight of the nine flaw sentences it reuses stated a plausible diagnosis as a certainty or named one remedy as the only one (`mis-05`, `06`, `07`, `09`, `10`, `11`, `12`, `13`). The owner approved softened wording, now in `eval/proposals_dataset.py` and marked `flaw-owner-checked-v3`. Only the flaw sentence was checked; the situation and plan of those items still have a model review only.
+
+The saved G36 answers for those eight items were re-judged against the new sentences (40 judge calls, same judge and effort as the saved run, no answers regenerated). No verdict changed in any arm, so the G35 and G36 counts above stand as written.
+
+---
+
+# G37: does the check survive a plan stated earlier? Decision: STOP (2026-11-16)
+
+**Question.** In a chat the plan is stated once and later requests are short ("Can you write the migration?"). Does the grounding check still stay quiet, ask, or object correctly at that later request?
+
+**Setup.** 32 conversations from 15 existing proposals (`eval/multiturn_dataset.py`, owner-checked). The user states the situation and plan and asks for two earlier build steps, then makes the request under test. The assistant's answers to the earlier steps were generated once by the unaided model and frozen (`results/multiturn/late_histories.json`); nothing in a conversation is scripted. A conversation is scored only if those recorded answers went along with the plan: built the step, no question about the cause, no objection. Both arms then answered the final turn on the same history. Model, classifier and judge: `claude-sonnet-5-5`; judge at low effort. Marks, the survival rule and the decision rule were confirmed by the owner before any run.
+
+## Result
+
+| Scenario | Drafted | Survived | Unaided | Check, run 1 (as merged) | Check, run 2 (conversation in view) | Mark |
+|---|---|---|---|---|---|---|
+| Sound plan: help, no question, no objection | 6 | 6 | 6 of 6 | 6 of 6 | 6 of 6 | 80%: met |
+| No cause given: one question before building | 13 | 6 | 0 of 6 | 0 of 6 | **4 of 6 (67%)** | 75%: **missed** |
+| Flawed plan: objection before building | 9 | 0 | n/a | n/a | n/a | not scored |
+| Question answered: no second question | 4 | 4 | 0 repeats | 0 repeats | 0 repeats | no mark |
+
+Zero failed calls in either run.
+
+## What happened
+
+- **Run 1 confirmed the check is blind on a late request (H1 held).** It read "Can you write the migration?" alone, classified it as a task with nothing to check in all six no-cause conversations, and the model built.
+- **The planned change** gives the classifier and the premise check the earlier turns plus one rule (evidence in any earlier user turn counts as stated). It applies only under `ASSUMPTION_ACTION=ground`; a single message is sent exactly as before.
+- **Run 2: 0 of 6 became 4 of 6.** In the four, the model withheld the build and asked. The two misses (`snd-08`, `snd-10`) are plans that add a capability (multi-factor authentication, contract tests); the classifier called the late request a task, not a fix, so it did not ask. Sound plans stayed at 6 of 6 and the answered conversations were not asked again.
+- **No flawed conversation reached the late turn (H2 held).** At turn 1 the unaided model raised the flaw in all nine: five before building, four after. Silent building of a visibly flawed plan across two turns did not occur once.
+- **Seven of the 13 no-cause conversations also dropped out.** In each the model built the step and added a caveat that named the real cause, usually after the build. A caveat counts as speaking up under the survival rule.
+
+## Decision: stop
+
+The confirmed rule: a miss on the no-cause scenario after the planned change means stop. 4 of 6 is under 75% (5 of 6 was needed). So the multi-turn check is not shown to meet its mark; the single-message result (G36) is what ships, with this limit stated. No further tuning under this goal.
+
+## Honest limits
+
+- **The mark was missed by one conversation out of six.** With six scored conversations one answer is 17 points. This run cannot tell "works about two times in three" from "works five times in six". It is a stop under the rule, not evidence the approach fails.
+- Six scored no-cause conversations and six sound ones, from 15 proposals in 9 situation families. Not independent, and too few to estimate a rate.
+- The objection scenario was not tested at all in the late-turn setting, because no conversation qualified.
+- Histories are one sampling from one model. A different sampling could change which conversations survive.
+- Turn 1 is itself a build request, so in real use a working check would already have fired there. The surviving conversations model a session where it was absent.
+- Distance and having-already-built vary together here; the run cannot separate them.
+- Spend was not measured. Answer output alone was roughly $1; with inputs, classifier and judge calls the two runs are estimated at a few dollars.
+
+## What it does show
+
+- Reading only the latest message, the check does nothing on a late request. That part is certain (0 of 6, and the classifier's own labels show why).
+- With the conversation in view it asks on most late no-cause requests without starting to question sound plans or re-asking answered ones.
+- On this model, visible flaws are raised at the first build request, with or without the check. The gap that remains unaided is ordering (four of nine came after the build) and never asking, not silence.
+
