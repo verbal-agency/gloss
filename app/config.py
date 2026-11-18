@@ -43,6 +43,14 @@ class Settings(BaseSettings):
     # an objection first. Under "ground" a response may be a question, not an
     # answer. GROUND_MODEL picks the classifier (default: the judge model).
     ground_model: str | None = None
+    # Which classifier makes the grounding decision. "llm": GROUND_SYSTEM on
+    # GROUND_MODEL (the default, measured in G36-G37b). "jev_choice" / "jev_nouls":
+    # TypeSafe's hosted Jev model answering the same standard as two choices, or
+    # as separate yes/no questions combined by thresholds (app/pipeline/jev_ground.py).
+    # Jev needs TYPESAFE_API_KEY. Env: GROUND_BACKEND.
+    ground_backend: Literal["llm", "jev_choice", "jev_nouls"] = "llm"
+    jev_model: str = "jev-1.14.0"        # pinned: "jev-latest" moves under us
+    typesafe_api_key: str | None = None
 
     divergence_threshold: float = 0.15
     drift_threshold: float = 0.20        # embedding-distance pre-gate (0-2 cosine scale)
