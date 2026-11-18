@@ -1,4 +1,4 @@
-"""Held-out multi-turn conversations (G37a) — DRAFT, not yet owner-reviewed.
+"""Held-out multi-turn conversations (G37a/G37b). Owner-checked 2026-11-18.
 
 G37 ended in a stop, one conversation short of its mark, and its two misses had
 one cause: the classifier judged a late request on its own and called it a task.
@@ -26,8 +26,7 @@ Sources:
   reused   proposals from eval/proposals_dataset.py that the first multi-turn
            set did not use (owner-checked or model-reviewed there)
   new      eight situations drafted for this set, each with a plan that fits the
-           cause and a plan that does not. Model-drafted; unreviewed until the
-           owner reads them.
+           cause and a plan that does not. Model-drafted, owner-checked.
 
 Left out on purpose: `snd-12` (its "sound" label was already contested in G36),
 `snd-06` (its direct answer has come back empty in three runs), and flawed plans
@@ -39,7 +38,7 @@ from __future__ import annotations
 from eval import proposals_dataset as base
 from eval.multiturn_dataset import Conversation
 
-REVIEW = "draft-unreviewed"
+REVIEW = "owner-checked"   # read and confirmed by the owner, 2026-11-18
 
 # ── reused proposals ────────────────────────────────────────────────────────
 # id -> (bare situation, hidden cause, step 1, step 2). The stated situation,
