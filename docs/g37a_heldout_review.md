@@ -1,6 +1,6 @@
 # G37a held-out conversations
 
-Generated from `eval/multiturn_heldout.py`; edit that file, not this one. 35 conversations. Review status: draft-unreviewed.
+Generated from `eval/multiturn_heldout.py`; edit that file, not this one. 35 conversations. Review status: owner-checked.
 
 This set is run once, with no changes afterwards. Only the user turns are written in advance; the assistant's earlier answers are recorded from the model at run time.
 

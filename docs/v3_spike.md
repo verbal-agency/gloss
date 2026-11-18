@@ -257,4 +257,50 @@ After G37's stop the owner amended the rule to allow one correction, on two cond
 
 **What this adds.** Three of 16 outcomes changed between two runs of nearly the same check, and at least two of those changes were not caused by the edit. Run-to-run variation in the classifier and the answering model is as large as the effect being measured. With six conversations per scenario, neither the 4 of 6 that triggered the stop nor the 5 of 6 here can be told apart from noise. More wording changes on this set would be fitting to noise.
 
-**Left in place, not run:** a held-out set of 35 conversations (`eval/multiturn_heldout.py`, 14 sound and 21 no-cause, no proposal shared with the first set, eight new situations). Drafted, not owner-reviewed, never run.
+**Left in place:** a held-out set of 35 conversations (`eval/multiturn_heldout.py`). Owner-checked and run in G37b, below.
+
+---
+
+# G37b: the multi-turn check on conversations it was not written against. Claim: MIXED (2026-11-18)
+
+**Question.** G37 and G37a were too small to separate the check from noise. On a larger set the check was never tuned on, measured three times, what does the committed check (commit 1347d03, conversation in view, no G37a sentence) actually do at a late build request?
+
+**Setup.** 35 conversations (`eval/multiturn_heldout.py`, owner-checked 2026-11-18): 14 where the cause is stated and the plan fits it or the work is a plain task, and 21 with no causal evidence. No proposal is shared with the G37 set; eight situations are new. Histories recorded once from the unaided model and frozen; same survival rule as G37 (with the corrected judging). The final turn was then sampled three times, both arms, with stored answers and verdicts ignored each time. `claude-sonnet-5-5` throughout; judge at low effort. The claim rule was fixed before the run: *meets its bar* only if both marks are met in all three repeats; *does not meet* only if a mark is missed in all three; otherwise *mixed*.
+
+## Result
+
+28 of 35 conversations survived (14 of 14 sound, 14 of 21 no-evidence). Zero failed calls in any repeat.
+
+| Scenario | Scored | Unaided (3 repeats) | Check (3 repeats) | Range | Mark |
+|---|---|---|---|---|---|
+| Sound plan or task: help, no question | 14 | 14, 14, 14 | 14, 14, 13 | 93–100% | 80%: met every time |
+| No causal evidence: ask before building | 14 | 0, 0, 0 | **10, 12, 11** | **71–86%** | 75%: met 2 of 3 |
+
+**Claim under the pre-set rule: mixed.** The check met both marks in repeats 2 and 3 and missed the no-evidence mark by one conversation in repeat 1.
+
+- **Every answer that asked also waited.** Across 33 asks, none built the step in the same answer. Every sound answer built.
+- **Both plain-task controls** (a column rename, a backfill) were left alone in all three repeats.
+- **Stable outcomes.** Of the 14 no-evidence conversations, 10 asked in all three repeats, 2 never asked, and 2 varied. Of the 14 sound ones, 13 were left alone every time; one (`lost-edits`) drew a question about how often collisions happen in one repeat.
+- **Unaided, the model never asked** (0 of 42 across the repeats), as in every earlier run.
+
+## Where it does not ask
+
+The two conversations it never asked on (`support-queue-fits`, `signup-drop-fits`) and one that varied (`snd-15`) share a shape: the plan *names* the cause without the user giving evidence for it. "Bring back self-service password reset" implies the tickets are password resets; "make phone verification optional at signup" implies verification is where people drop; "a cache that survives deploys" implies deploys are the problem. The classifier reads that as a stated cause (`task/stated` or `fix/stated`) and stays quiet.
+
+This is the distinction the G37 review raised: a causal *hypothesis* is not causal *evidence*. The classifier's prompt says "the user's own account of the cause counts as evidence", and a plan whose wording implies a cause is close enough to pass. Whether it should ask here is a design question, not a bug: asking whenever a plan implies a cause without evidence would also question many sound plans whose evidence is simply unstated. **Not changed in this goal; the rule forbids changes after the run.**
+
+The other varying conversation (`lost-edits-misses`, autosave for a conflict problem) was classified a task once and a fix twice on identical input: classifier variation.
+
+## Honest limits
+
+- 14 scored conversations per scenario, from 13 situations; not independent. One answer is 7 points.
+- One set of frozen histories. A different sampling of the earlier turns would change which conversations survive; the three repeats cover the final turn, the classifier and the judge only.
+- Model-drafted situations, owner-checked; one model; judge verdicts not hand-audited beyond the misses read above.
+- Spend not measured. Estimated from text length at about $2 for the histories and repeat 1 and about $1 for each later repeat.
+
+## What it shows
+
+- With the conversation in view, the check asks before building on roughly three in four to six in seven late requests that give no causal evidence (71–86% over three samples), and leaves sound plans and plain tasks alone at 93–100%. The unaided model asks on none.
+- The misses are not random: they concentrate where the plan itself implies the cause.
+- It does not show the check meets the 75% bar reliably. It met it in two of three samples.
+
