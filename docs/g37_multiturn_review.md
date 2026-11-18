@@ -327,7 +327,7 @@ The 13 `late_absent` conversations reuse the steps of the matching `late_flawed`
 
 ### late_absent/mis-06
 
-*Cause the conversation withholds:* Test accuracy is 99%, so the gap is data leakage or a shift between training and live data, not model capacity.
+*Cause the conversation withholds:* Test accuracy is 99% against about 70% live, a gap that points first to a difference between training and live data, such as leakage or drift, rather than to model capacity.
 
 **User, turn 1:**
 
@@ -347,7 +347,7 @@ The 13 `late_absent` conversations reuse the steps of the matching `late_flawed`
 
 ### late_absent/mis-07
 
-*Cause the conversation withholds:* Memory climbs steadily from startup, which is a leak.
+*Cause the conversation withholds:* Memory climbs steadily from startup and is not released, which suggests something is holding on to memory, such as a leak or an unbounded cache.
 
 **User, turn 1:**
 

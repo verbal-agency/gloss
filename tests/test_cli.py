@@ -40,6 +40,8 @@ def _args(**kwargs):
         no_redis=False,
         disable_tier=None,
         verbose=False,
+        action=None,
+        history=None,
     )
     defaults.update(kwargs)
     return argparse.Namespace(**defaults)
@@ -166,3 +168,65 @@ async def test_disable_multiple_tiers():
     assert captured["pc"] is False
     assert settings.tier_counterfactual is True
     assert settings.tier_precommitment is True
+
+
+# ---------------------------------------------------------------------------
+# --action and --history: a live multi-turn trial of the grounding check
+# ---------------------------------------------------------------------------
+
+async def test_action_sets_the_assumption_action_only_during_the_run():
+    captured = {}
+
+    async def _spy(req, sess):
+        captured["action"] = settings.assumption_action
+        return _response()
+
+    original = settings.assumption_action
+    with patch("app.cli.process", _spy):
+        await _run(_args(action="ground"))
+    assert captured["action"] == "ground"
+    assert settings.assumption_action == original
+
+
+async def test_history_sends_earlier_turns_and_appends_this_one(tmp_path):
+    path = tmp_path / "chat.json"
+    captured = {}
+
+    async def _spy(req, sess):
+        captured["roles"] = [m.role for m in req.messages]
+        return _response(text="Reply two.")
+
+    path.write_text(json.dumps([{"role": "user", "content": "One"},
+                                {"role": "assistant", "content": "Reply one."}]))
+    with patch("app.cli.process", _spy):
+        await _run(_args(query="Two", history=str(path)))
+    assert captured["roles"] == ["user", "assistant", "user"]
+    saved = json.loads(path.read_text())
+    assert [t["content"] for t in saved] == ["One", "Reply one.", "Two", "Reply two."]
+
+
+async def test_missing_history_file_starts_a_new_conversation(tmp_path):
+    path = tmp_path / "new.json"
+    with patch("app.cli.process", AsyncMock(return_value=_response(text="Hi."))):
+        await _run(_args(query="Start", history=str(path)))
+    assert [t["role"] for t in json.loads(path.read_text())] == ["user", "assistant"]
+
+
+async def test_malformed_history_is_refused(tmp_path):
+    import pytest
+    path = tmp_path / "bad.json"
+    path.write_text(json.dumps([{"role": "user", "content": "One"}]))
+    with patch("app.cli.process", AsyncMock(return_value=_response())):
+        with pytest.raises(SystemExit):
+            await _run(_args(history=str(path)))
+
+
+async def test_grounding_decision_is_printed(capsys):
+    from app.models import AssumptionDisclosure as AssumptionsFound
+    resp = _response(text="What makes you think that is the cause?")
+    resp.meta.assumptions = AssumptionsFound(
+        questionable=[], reasoning="", action="asked", request="fix", link="absent")
+    with patch("app.cli.process", AsyncMock(return_value=resp)):
+        await _run(_args())
+    out = capsys.readouterr().out
+    assert "grounding check: asked (request=fix, link=absent)" in out
