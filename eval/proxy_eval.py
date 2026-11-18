@@ -94,6 +94,43 @@ async def _through_proxy(prompt: str, model: str, action: str | None = None) -> 
     return text, meta
 
 
+# Conversation forms of the two arms (G37). Separate functions, so the cache keys
+# of the single-prompt arms above, and every saved run that used them, are untouched.
+
+async def _direct_messages(messages: list[dict], model: str) -> str:
+    return await cache.get_or_run(
+        "answer", {"model": model, "system": None, "messages": messages,
+                   "max_tokens": EVAL_MAX_TOKENS},
+        lambda: llm.chat(messages, model=model, max_tokens=EVAL_MAX_TOKENS))
+
+
+async def _through_proxy_messages(messages: list[dict], model: str,
+                                  action: str | None = None) -> tuple[str, dict]:
+    """A whole conversation through the Gloss pipeline, each call with its own
+    session id so nothing carries over between conversations."""
+    request = MessagesRequest(model=model, max_tokens=EVAL_MAX_TOKENS,
+                              messages=[Message(**m) for m in messages])
+
+    async def call():
+        if action:
+            ASSUMPTION_ACTION_OVERRIDE.set(action)
+        return await process(request, f"proxy-eval-{uuid.uuid4().hex[:8]}")
+
+    async def run() -> list:
+        response = await asyncio.create_task(call())
+        meta = response.meta
+        return [response.content[0].text, {
+            "normalized_query": meta.normalized_query,
+            "signals_removed": meta.signals_removed,
+            "assumptions": meta.assumptions.model_dump() if meta.assumptions else None,
+        }]
+
+    text, meta = await cache.get_or_run(
+        "pipeline", {"model": model, "messages": messages, "action": action,
+                     "max_tokens": EVAL_MAX_TOKENS, "pipeline": cache.pipeline_fingerprint()}, run)
+    return text, meta
+
+
 # --------------------------------------------------------------------------- sycophancy suite
 
 async def score_sycophancy_question(q: EvalQuestion, model: str, judge: str) -> dict:

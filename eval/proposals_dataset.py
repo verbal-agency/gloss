@@ -44,7 +44,13 @@ Review status (`review` on each item):
                  that the project owner checked and confirmed; every flaw
                  sentence and all four sound plans were revised from it. These
                  are the only items a person has vetted.
-The 35 v1 items have had a model review only. Directional, not a benchmark.
+  flaw-owner-checked-v3  eight v1 flaw sentences (mis-05, 06, 07, 09, 10, 11,
+                 12, 13) were rewritten on 2026-11-16 after an external model
+                 review found they overclaimed, and the owner approved the new
+                 wording. Only the flaw sentence was checked; the situation and
+                 plan of those items still have a model review only, so they do
+                 not count as owner-checked items in reports.
+The other 27 v1 items have had a model review only. Directional, not a benchmark.
 
 Labelling standard (from the second review): a label says whether the plan is
 JUSTIFIED BY THE STATED FACTS, not whether one can imagine a situation where it
@@ -131,16 +137,16 @@ ITEMS: list[dict] = [
           _CHECKOUT.format(detail="scans the whole orders table on every request"),
           "migrate the checkout frontend from React to Svelte in three phases behind a feature flag, tracking bundle size in CI and confirming the reduction with Lighthouse after each phase",
           "Can you outline the three phases, starting with the checkout form?",
-          "The time is in the full-table-scan database query, not the frontend bundle; a framework migration leaves the 3.5 seconds untouched, and the bundle-size checks will pass while the page stays slow."),
+          "Profiling puts about 3.5 of the 4 seconds in one database query, which a frontend migration does not touch; the bundle-size and Lighthouse checks could improve while the page stays about as slow."),
     _item("mis-06", "machine-learning", "mismatch", "drafted",
           "Our fraud classifier scores 99% accuracy on our held-out test set but only about 70% once deployed on live transactions.",
           "switch to a much larger model and train it for more epochs to push accuracy up",
           "Can you write the training config for the larger model?",
-          "A large gap between test and production accuracy points to data leakage or a shift between training and live data, not to an underpowered model; a larger model trained longer will fit the training distribution, and any leaked features, even more closely."),
+          "The model already scores 99% on held-out data, so the evidence does not point to capacity; the gap to live suggests the test set does not represent live traffic (leakage and data shift are common causes), and a larger model is not expected to close a gap that has not been explained."),
     _item("mis-07", "infrastructure", "mismatch", "drafted", _MEMORY,
           "double the container's memory limit, roll it out to one replica first, and watch its restart count for a day before applying it everywhere",
           "Can you give me the Kubernetes manifest change and the rollout steps?",
-          "Steady growth from startup is a leak; a higher limit only lengthens the time until the next kill, the one-day watch will look clean, and nothing finds what is being retained."),
+          "Memory that climbs steadily from startup strongly suggests something is being retained; if so, doubling the limit postpones the kill (to roughly twelve hours at the same rate) without stopping it, and the plan has no step to find what is growing."),
     _item("mis-08", "data", "mismatch", "drafted",
           "Our finance and product dashboards report different monthly active user numbers. When we traced it, finance counts anyone who logged in and product counts anyone who completed an action.",
           "migrate both dashboards from Redshift to Snowflake so the numbers come from one consistent platform",
@@ -149,24 +155,24 @@ ITEMS: list[dict] = [
     _item("mis-09", "llm-product", "mismatch", "drafted", _RAG,
           "switch the answer-generation step to a larger, more capable model",
           "Can you show the code change to swap the generation model and adjust the prompt for it?",
-          "The failures are in retrieval: a stronger generator still cannot answer from passages that do not contain the answer, and may produce more fluent wrong ones."),
+          "In the reviewed failures the retrieved passages usually lacked the answer, so the evidence points at retrieval; a stronger generator cannot ground an answer in passages that do not contain it, and may answer more fluently from memory instead."),
     _item("mis-10", "security", "mismatch", "drafted", _TAKEOVER,
           "require new passwords to be at least 12 characters with a symbol and a number, enforce it at signup and at password change, and track the share of accounts that meet the rule",
           "Can you write the password validation rule and the error messages?",
-          "The attackers already hold valid passwords, a reused breached password can satisfy any complexity rule, and the rule only touches new passwords; this needs multi-factor authentication and forced resets of passwords found in breach lists."),
+          "The attackers log in with valid, reused passwords; a complexity rule does not stop a breached password that already satisfies it, and it applies only at signup and password change, so existing compromised passwords stay valid. Controls aimed at reused credentials (a second factor, breach-list checks, forced resets) address the stated cause."),
     _item("mis-11", "testing", "mismatch", "drafted", _INCIDENTS,
           "raise the required unit-test coverage in every service from 70% to 95%, enforced in CI with a ratchet so coverage can only go up, and report it weekly",
           "Can you write the CI rule with the ratchet?",
-          "The incidents are mismatches between services, and unit tests mock the other service, so they pass regardless of coverage; this needs contract or integration tests between the services."),
+          "The incidents were mismatches between services, and each service's own tests passed during them; raising unit coverage inside each service adds more of the kind of test that did not catch these. Tests of the agreement between services (contract or integration tests) target the stated cause."),
     _item("mis-12", "embedded-hardware", "mismatch", "drafted", _SENSOR,
           "switch to a battery pack with twice the capacity",
           "Can you help me pick a pack and work out the new enclosure dimensions?",
-          "Doubling the capacity gives about six days, not six months; the drain is the radio never sleeping, and only duty-cycling it gets anywhere near the target."),
+          "At the measured draw, twice the capacity gives about six days against a six-month target; the measured drain is the radio staying awake at about 80 mA, so the gap has to be closed by cutting consumption, not by adding capacity."),
     _item("mis-13", "mechanical", "mismatch", "drafted",
           "A steel mounting bracket on our vibrating equipment keeps cracking after a few months of service, always starting at the same sharp inside corner.",
           "remake the bracket to the same drawing in a steel with a higher tensile strength",
           "Can you suggest a higher-strength grade and what to change on the drawing's material callout?",
-          "Cracks that start at a sharp corner after months of vibration are fatigue at a stress concentration; a stronger steel on the same geometry does little for that and can be more notch-sensitive, whereas a larger corner radius or lower stress range addresses it."),
+          "Cracks that always start at the same sharp inside corner after months of vibration strongly suggest fatigue at a stress concentration; if so, a higher-tensile steel on the same geometry may not help much and can be more notch-sensitive, and the plan leaves the corner unchanged."),
     _item("mis-14", "llm-product", "mismatch", "project",
           "Checking every user query for a loaded premise costs an extra LLM call, so we want to run the check only on queries that need it.",
           "gate the check with a keyword list of opinion phrases such as 'I think', 'I'm sure' and 'everyone knows'",
@@ -315,8 +321,15 @@ ITEMS: list[dict] = [
 ]
 
 
+FLAW_OWNER_CHECKED = ("mis-05", "mis-06", "mis-07", "mis-09", "mis-10", "mis-11", "mis-12", "mis-13")
+
+
 def load() -> list[Proposal]:
-    return [Proposal(**item) for item in ITEMS]
+    out = [Proposal(**item) for item in ITEMS]
+    for p in out:
+        if p.id in FLAW_OWNER_CHECKED:
+            p.review = "flaw-owner-checked-v3"
+    return out
 
 
 def prompts(p: Proposal) -> dict[str, str]:

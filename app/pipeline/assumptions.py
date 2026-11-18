@@ -24,6 +24,48 @@ from app.config import settings
 
 logger = logging.getLogger("gloss.assumptions")
 
+# ── conversation view (G37) ──────────────────────────────────────────────────
+# The checks below were written for one message. In a chat the plan is stated
+# once and later requests are short ("Can you write the migration?"), so read
+# alone the latest message has nothing to check. When there are earlier turns,
+# the checks are given the conversation and one added rule. A request with no
+# earlier turns is sent exactly as before.
+
+_ASSISTANT_TURN_LIMIT = 1600   # characters kept from each assistant turn (head and tail)
+
+CONVERSATION_RULE = """
+
+You are given the CONVERSATION SO FAR and then the LATEST REQUEST. Judge the \
+latest request in the light of the whole conversation: the problem, the plan and \
+the evidence may have been stated in an earlier user turn, and wherever the \
+rules above say "the message" or "the query", read the user's turns taken \
+together. Evidence stated in any earlier USER turn counts as stated. Assistant \
+turns are context only: a cause suggested by the assistant is not the user's \
+evidence unless the user confirms it. If the assistant already asked how the \
+user knows the plan addresses the cause and the user answered, treat that \
+answer as the user's evidence.
+"""
+
+
+def conversation_view(messages: list[dict]) -> str | None:
+    """The conversation as one text for the checks, or None when the latest user
+    message is the only turn (the single-message path, unchanged)."""
+    turns = [m for m in messages if m.get("role") in ("user", "assistant")]
+    while turns and turns[-1]["role"] != "user":
+        turns.pop()
+    if len(turns) < 2:
+        return None
+    lines = []
+    for m in turns[:-1]:
+        text = m["content"]
+        if m["role"] == "assistant" and len(text) > _ASSISTANT_TURN_LIMIT:
+            half = _ASSISTANT_TURN_LIMIT // 2
+            text = f"{text[:half]}\n[...]\n{text[-half:]}"
+        lines.append(f"{m['role'].upper()}: {text}")
+    return ("CONVERSATION SO FAR:\n" + "\n\n".join(lines)
+            + "\n\nLATEST REQUEST (the user turn to judge):\n" + turns[-1]["content"])
+
+
 EXTRACT_SYSTEM = """\
 You inspect a user's query for the assumptions it takes for granted, BEFORE it \
 is answered. Surface the premises the query presupposes, then flag the ones a \
@@ -134,15 +176,18 @@ async def extract_frame_delta(
     )
 
 
-async def extract(query: str, model: str | None = None) -> AssumptionResult:
+async def extract(query: str, model: str | None = None,
+                  context: str | None = None) -> AssumptionResult:
     """Detect the premises a query presupposes and flag the questionable ones.
 
     `model` defaults to the judge model (a cheap dedicated model when configured,
     per G11) — this is inspection work, not the user-facing answer.
     """
+    # A single message is sent exactly as before. With earlier turns, the
+    # inspector reads the conversation and judges the latest request in its light.
     messages = [
-        {"role": "system", "content": EXTRACT_SYSTEM},
-        {"role": "user", "content": query},
+        {"role": "system", "content": EXTRACT_SYSTEM + (CONVERSATION_RULE if context else "")},
+        {"role": "user", "content": context or query},
     ]
     data = await llm.chat_json(
         messages,
@@ -152,13 +197,14 @@ async def extract(query: str, model: str | None = None) -> AssumptionResult:
     return AssumptionResult(**data)
 
 
-async def run(query: str, model: str | None = None) -> AssumptionResult | None:
+async def run(query: str, model: str | None = None,
+              context: str | None = None) -> AssumptionResult | None:
     """Pipeline entry point: `extract`, but never raises on a malformed judge
     response. Returns None on failure or when nothing is questionable, so the
     caller has one check. A `reposed_query` without a questionable premise is
     ignored — the premise is the only licence to act."""
     try:
-        result = await extract(query, model=model)
+        result = await extract(query, model=model, context=context)
     except (llm.JsonParseError, llm.JsonSchemaError):
         # Safe degrade (same direction as the normalizer): the user's request
         # proceeds untouched and nothing is fabricated.
@@ -259,20 +305,23 @@ class GroundResult(BaseModel):
         return "none"
 
 
-async def classify_grounding(query: str, model: str | None = None) -> GroundResult:
+async def classify_grounding(query: str, model: str | None = None,
+                             context: str | None = None) -> GroundResult:
     data = await llm.chat_json(
-        [{"role": "system", "content": GROUND_SYSTEM}, {"role": "user", "content": query}],
+        [{"role": "system", "content": GROUND_SYSTEM + (CONVERSATION_RULE if context else "")},
+         {"role": "user", "content": context or query}],
         model=model or settings.ground_model or settings.effective_judge_model,
         schema=GroundResult,
     )
     return GroundResult(**data)
 
 
-async def run_ground(query: str, model: str | None = None) -> GroundResult | None:
+async def run_ground(query: str, model: str | None = None,
+                     context: str | None = None) -> GroundResult | None:
     """Pipeline entry point for the grounding check. Never raises on a malformed
     classifier response: returns None and the request proceeds untouched."""
     try:
-        return await classify_grounding(query, model=model)
+        return await classify_grounding(query, model=model, context=context)
     except (llm.JsonParseError, llm.JsonSchemaError):
         logger.warning("grounding classifier JSON failed; passing query through")
         return None
