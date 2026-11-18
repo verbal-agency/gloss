@@ -69,7 +69,8 @@ def pipeline_fingerprint() -> str:
             h.update(f.read_bytes())
         _SOURCE_HASH = h.hexdigest()
     relevant = {k: getattr(settings, k) for k in (
-        "litellm_model", "judge_model", "ground_model", "assumption_action", "gloss_mode",
+        "litellm_model", "judge_model", "ground_model", "ground_backend", "jev_model",
+        "assumption_action", "gloss_mode",
         "tier_normalization", "tier_assumption", "tier_counterfactual", "tier_precommitment",
         "tier_disagreement", "tier_temporal")}
     return hashlib.sha256((_SOURCE_HASH + json.dumps(relevant, sort_keys=True, default=str))

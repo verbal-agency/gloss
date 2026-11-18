@@ -320,6 +320,13 @@ async def run_ground(query: str, model: str | None = None,
                      context: str | None = None) -> GroundResult | None:
     """Pipeline entry point for the grounding check. Never raises on a malformed
     classifier response: returns None and the request proceeds untouched."""
+    if settings.ground_backend != "llm":
+        from app.pipeline import jev_ground
+        try:
+            return await jev_ground.classify(query, context, settings.ground_backend)
+        except Exception:  # any Jev failure: same safe degrade as a malformed LLM reply
+            logger.warning("Jev grounding classifier failed; passing query through", exc_info=True)
+            return None
     try:
         return await classify_grounding(query, model=model, context=context)
     except (llm.JsonParseError, llm.JsonSchemaError):

@@ -213,7 +213,7 @@ The runner now also reports, beside each pass count, how many final answers buil
 Two notes on the dataset from the same review, not yet acted on:
 
 - "No cause given" was imprecise. Some plans imply a causal hypothesis without giving evidence for it. The scenario is "no causal evidence given", and is called that here.
-- The hidden-cause labels for `mis-06` and `mis-07` state more than the observations establish (a held-out/live accuracy gap suggests leakage or shift; steadily rising memory suggests retained state). They should be softened before those cases are reused, as their flaw sentences already were.
+- The hidden-cause labels for `mis-06` and `mis-07` state more than the observations establish (a held-out/live accuracy gap suggests leakage or shift; steadily rising memory suggests retained state). They should be softened before those cases are reused, as their flaw sentences already were. **Done 2026-11-18** with owner-approved wording: the labels now say the gap "points first to" a training/live difference and the memory growth "suggests something is holding on to memory". Results recorded before this date used the old wording; reruns of those two cases will not match them.
 
 ## Honest limits
 
@@ -304,3 +304,89 @@ The other varying conversation (`lost-edits-misses`, autosave for a conflict pro
 - The misses are not random: they concentrate where the plan itself implies the cause.
 - It does not show the check meets the 75% bar reliably. It met it in two of three samples.
 
+
+# G40: can Jev replace the grounding classifier? (spec fixed 2026-11-18, before any Jev run)
+
+**Question.** The grounding check's classifier is an LLM reading `GROUND_SYSTEM`. Can TypeSafe's hosted Jev model do the same job, following the pattern of their guardrails cookbook? In that pattern, one request asks a set of questions, and code turns the answers into an action. Here the questions are our grounding standard, not jailbreak screening.
+
+**What is compared.** Only the classifier, on exactly what it saw in earlier runs. In G37b every answer that the note told to ask did ask and wait, so the classifier's action is what the user sees. Expected actions:
+- **Object:** the full proposals that contradict their plan (mismatch, infeasible), and late_flawed turns.
+- **Ask:** bare fixes, and late_absent turns.
+- **Stay quiet:** sound proposals, bare diagnose items, late_sound turns, and late_answered turns.
+
+**Jev, two ways in one request** (`app/pipeline/jev_ground.py`):
+- **choice:** the standard's two fields (`request`, `link`) as two multiple-choice questions. The action follows the same rule as the LLM classifier.
+- **nouls:** the standard split into yes/no questions (`is_fix`, `cause_stated`, `contradicted`), combined in code by thresholds, as in the cookbook's `route`.
+- **Combinations:** the two forms combined by agreement. Both must ask, or either may ask.
+- **Not part of the standard:** a fourth question, `evidence_beyond_plan`, asks whether anything besides the plan's own wording supports the cause. That is the gap G37b found. Rules that use it are reported separately as a possible change to the standard, and are never eligible to "match".
+
+**Split.**
+- **Dev, 77 cases:** the 46 full proposals, the 15 bare ones, and the 16 main-set late turns that were reached. This is the set the LLM classifier was written against. Jev's thresholds and the choice between forms are picked here, by balanced accuracy, meaning the mean of the per-action rates.
+- **Test, 28 cases:** the held-out late turns from G37b, 14 sound and 14 with no evidence. Used once, to decide.
+
+**Repeats.** Three per arm. The LLM arm is the current classifier: `GROUND_SYSTEM` on `claude-sonnet-5-5`, the model G36 to G37b were measured with.
+
+**Rule.** Jev matches the current classifier if, on test and averaged over the repeats, both of these are no more than one conversation (1/14) below the LLM classifier's:
+- its quiet rate on sound turns;
+- its ask rate on no-evidence turns.
+
+Otherwise it does not match. If it doesn't, the decomposed and combined forms are the iteration the owner proposed. They are already in the dev search, so a miss on test is final for this spec.
+
+**Cost.** Jev bills about $0.042 per million input tokens, with output free, so the whole Jev arm costs well under a cent. The LLM arm is about 315 classifier calls.
+
+**Run:** `python -m eval.ground_classifier_eval --arm llm`, then `--arm jev` (needs `TYPESAFE_API_KEY`), then `--summarize`.
+
+## Baseline: the current classifier (run 2026-11-18)
+
+Three repeats of `GROUND_SYSTEM` on `claude-sonnet-5-5`. 314 of 315 calls classified. One call returned truncated JSON on dev case `full/snd-03`; it is counted as missing, and the pipeline would have passed that request through.
+
+| Set | Group | Matched expected action |
+|---|---|---|
+| Test | Held-out late turns, no evidence (ask) | **34 of 42** (81%) |
+| Test | Held-out late turns, sound (quiet) | **42 of 42** |
+| Dev | Bare fixes (ask) | 37 of 39 |
+| Dev | Bare diagnose (quiet) | 0 of 6 |
+| Dev | Main late turns, no evidence (ask) | 12 of 18 |
+| Dev | Main late turns, sound or answered (quiet) | 27 of 30 |
+| Dev | Full proposals, sound (quiet) | 41 of 44 |
+| Dev | Full proposals, mismatch or infeasible (object) | 60 of 93 |
+
+**It reproduces G37b.** The whole pipeline asked on 33 of 42 held-out no-evidence turns and left 41 of 42 sound ones alone. The classifier alone gives 34 and 42. So scoring the classifier stands in for scoring the answer, as the spec assumed.
+
+**The classifier depends heavily on the model.** By mistake, the first baseline ran on `claude-sonnet-4-6`, the `.env` default. The benchmark now names its model instead of reading `.env`. On 4-6, the same prompt asked on **0 of 42** held-out no-evidence turns and 6 of 57 dev ask cases, and left every sound case alone. That run is kept as `results/ground-classifier/llm_sonnet-4-6.json`. The grounding check is only measured on 5-5, and a deployment on another model needs its own measurement.
+
+**Jev: run below.**
+
+## Result: Jev does NOT match the current classifier (2026-11-18)
+
+Three repeats, `jev-1.14.0`, 315 of 315 cases answered. Jev's probabilities move slightly between repeats, but its decisions didn't: each repeat scored the same on test.
+
+**Picked on dev:** the split-by-criteria form, with the rule "is a fix ≥ 0.3, cause stated < 0.5, contradicted ≥ 0.3". Balanced accuracy on dev:
+
+| Form | Dev |
+|---|---|
+| Choice (our two fields) | 0.506 |
+| Choice and split forms, both must ask | 0.569 |
+| Choice and split forms, either may ask | 0.617 |
+| Split form, default 0.5 thresholds | 0.680 |
+| Split form, picked thresholds | 0.719 |
+| Current LLM classifier | 0.785 |
+
+**Test (held-out late turns), against the rule:**
+
+| | Current classifier | Jev (picked) | Within one conversation? |
+|---|---|---|---|
+| Sound, left alone | 42 of 42 (100%) | 36 of 42 (86%) | **No** |
+| No evidence, asked | 34 of 42 (81%) | 36 of 42 (86%) | Yes |
+
+**Decision: Jev does not match.** It asks slightly more often where evidence is missing, but in every repeat it asks on both plain-task controls (the column rename and the backfill). It scores them as fixes (is_fix about 0.7) with no cause stated. That is the mistake the "task" category exists to prevent. Under the spec, a miss on test is final.
+
+**Where the forms fail:**
+- **Choice form:** never asks on a conversation. It asked on 0 of 18 dev late turns and 0 of 42 test late turns, because it labels most late requests "task". Its scores on single messages are weak too: 13 of 39 bare fixes asked, and 27 of 93 contradicted proposals objected.
+- **Split form:** stays out of the way less on dev. It left 24 of 45 sound full proposals alone, against 41 of 44 for the current classifier, because the low contradiction threshold that the dev search picked makes it object to sound plans.
+
+**The non-standard question doesn't change the picture.** The best rule using `evidence_beyond_plan` asked on 37 of 42 and left 34 of 42 sound turns alone, so it misses the same way.
+
+**Cost:** no usage was recorded per call. At Jev's listed price, 315 calls of about 1–3k input tokens each come to well under a cent.
+
+**What it shows:** on our standard, Jev as configured is a weaker classifier than `GROUND_SYSTEM` on `claude-sonnet-5-5`. It is mainly worse at telling a plain task from a fix, and at leaving sound plans alone. It is not shown to be worse at noticing missing evidence. The comparison covers one Jev version, one wording of the questions, and 28 test cases.
