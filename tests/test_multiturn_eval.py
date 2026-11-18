@@ -108,10 +108,14 @@ async def test_answered_history_comes_from_the_check_and_must_ask_without_buildi
 @pytest.mark.parametrize("scenario,verdict,ok", [
     ("late_sound", {"objected": False, "built": True, "asks": False}, True),
     ("late_sound", {"objected": False, "built": True, "asks": True}, False),
-    ("late_flawed", {"raised": "no", "asks": False}, True),
-    ("late_flawed", {"raised": "partly", "asks": False}, False),   # it voiced something
-    ("late_absent", {"check": "none"}, True),
-    ("late_absent", {"check": "states"}, False),
+    ("late_flawed", {"raised": "no", "asks": False, "built": True}, True),
+    ("late_flawed", {"raised": "partly", "asks": False, "built": True}, False),   # it voiced something
+    ("late_absent", {"check": "none", "built": True}, True),
+    ("late_absent", {"check": "states", "built": True}, False),
+    # silent but did not build the step: not "went along" (the rule needs all three)
+    ("late_sound", {"objected": False, "built": False, "asks": False}, False),
+    ("late_flawed", {"raised": "no", "asks": False, "built": False}, False),
+    ("late_absent", {"check": "none", "built": False}, False),
 ])
 def test_went_along_means_built_with_no_question_and_no_objection(scenario, verdict, ok):
     assert me.went_along(_conv(scenario), verdict) is ok
@@ -125,7 +129,10 @@ async def test_both_arms_answer_the_same_frozen_conversation():
     direct = AsyncMock(return_value="here is the code")
     proxy = AsyncMock(return_value=("before I write that, what is the cause?", {"assumptions": None}))
 
-    async def fake_judge(conv, response, judge):
+    turns_judged = []
+
+    async def fake_judge(conv, response, judge, turn):
+        turns_judged.append(turn)
         asks = "cause" in response
         return {"check": "asks" if asks else "none", "placement": "before" if asks else "absent",
                 "built": not asks}
@@ -138,6 +145,7 @@ async def test_both_arms_answer_the_same_frozen_conversation():
     assert direct.call_args.args[0] == expected and proxy.call_args.args[0] == expected
     assert proxy.call_args.kwargs["action"] == "ground"
     assert row["direct_late"]["success"] is False and row["ground_late"]["success"] is True
+    assert turns_judged == [2, 2]            # judged against the final request, not turn 1
 
 
 async def test_a_conversation_that_did_not_survive_is_not_sent_to_either_arm():
@@ -189,7 +197,8 @@ def _report(sound=(6, 0, 6), flawed=(2, 7, 2), absent=(12, 1, 12), answered=(4, 
 def test_report_counts_drafted_survived_and_scored_per_scenario():
     r = _report(sound=(6, 0, 5), flawed=(2, 7, 1), absent=(12, 1, 9))
     assert (r["late_sound"]["drafted"], r["late_sound"]["survived"]) == (6, 6)
-    assert r["late_sound"]["ground_late"] == {"pass": 5, "n": 6, "rate": 0.833, "met": True}
+    assert r["late_sound"]["ground_late"] == {"pass": 5, "n": 6, "rate": 0.833, "met": True,
+                                              "built": 6, "pass_and_built": 5}
     assert r["late_absent"]["ground_late"]["met"] is True      # 9 of 12 is exactly 75%
     assert r["late_absent"]["direct_late"]["met"] is False
     # two survivors is too few to pass or fail: counts only
@@ -266,3 +275,123 @@ async def test_histories_are_recorded_once_and_reused_by_the_next_run(tmp_path):
     assert len(saved) == 3
     assert (tmp_path / "late_run1.json").exists() and (tmp_path / "late_run2.json").exists()
     assert first["config"]["run"] == 1 and second["config"]["run"] == 2
+
+
+# --------------------------------------------------------------------------- G37b: held-out set, repeats
+
+def _fake_final(success_for):
+    async def fake_score(c, history, model, judge):
+        ok = success_for(c)
+        return {"id": c.id, "scenario": c.scenario, "survived": True, "history": history,
+                **{a: {"success": ok, "verdict": {"asks": False, "objected": False, "built": True}}
+                   for a in me.ARMS}}
+    return fake_score
+
+
+async def _fake_record(c, model, judge):
+    return {"id": c.id, "replies": ["r1", "r2"], "verdicts": [], "survived": True}
+
+
+async def test_heldout_set_is_written_one_file_per_repeat_and_reuses_frozen_histories(tmp_path):
+    from eval import cache, multiturn_heldout
+    recorded = AsyncMock(side_effect=_fake_record)
+    with (patch("eval.multiturn_eval.record_history", recorded),
+          patch("eval.multiturn_eval.score_conversation", _fake_final(lambda c: True))):
+        first = await me.run("m", "j", str(tmp_path), dataset="heldout", repeat=1)
+        cache.FRESH = True          # as --fresh sets it: must not re-record histories
+        try:
+            await me.run("m", "j", str(tmp_path), dataset="heldout", repeat=2)
+            assert cache.FRESH is True          # restored for the final turn
+        finally:
+            cache.FRESH = False
+    assert recorded.await_count == len(multiturn_heldout.load())    # once, not twice
+    assert (tmp_path / "heldout_repeat1.json").exists() and (tmp_path / "heldout_repeat2.json").exists()
+    assert first["decision"] is None and first["config"]["dataset"] == "heldout"
+    assert first["report"]["late_sound"]["drafted"] == 14 and first["report"]["late_absent"]["drafted"] == 21
+
+
+async def _three_repeats(tmp_path, rule):
+    """rule(repeat, conversation) -> did the final answer succeed."""
+    with patch("eval.multiturn_eval.record_history", AsyncMock(side_effect=_fake_record)):
+        for n in (1, 2, 3):
+            with patch("eval.multiturn_eval.score_conversation", _fake_final(lambda c, n=n: rule(n, c))):
+                await me.run("m", "j", str(tmp_path), dataset="heldout", repeat=n)
+    return me.summarize_repeats(tmp_path)
+
+
+async def test_summary_reports_counts_range_and_which_conversations_varied(tmp_path):
+    flaky = "held/late_absent/flaky-ci-fits"
+    s = await _three_repeats(tmp_path, lambda n, c: not (c.id == flaky and n == 2))
+    absent = s["scenarios"]["late_absent"]["ground_late"]
+    assert s["repeats"] == 3 and absent["pass_per_repeat"] == [21, 20, 21] and absent["n"] == 21
+    assert absent["lowest_rate"] == 0.952 and absent["highest_rate"] == 1.0
+    assert absent["varied"] == [flaky] and absent["always_succeeded"] == 20
+    assert s["scenarios"]["late_sound"]["ground_late"]["pass_per_repeat"] == [14, 14, 14]
+    assert s["task_controls_ground_late"] == {
+        "held/late_sound/task-snd-05": [True] * 3, "held/late_sound/task-snd-09": [True] * 3}
+    assert s["claim"].startswith("meets its bar")
+
+
+async def test_claim_is_does_not_meet_only_when_a_mark_is_missed_every_time(tmp_path):
+    s = await _three_repeats(tmp_path, lambda n, c: c.scenario == "late_sound")   # never asks
+    assert s["claim"].startswith("does not meet")
+    assert s["scenarios"]["late_absent"]["ground_late"]["never_succeeded"] == 21
+
+
+async def test_claim_is_mixed_when_the_repeats_disagree(tmp_path):
+    s = await _three_repeats(tmp_path, lambda n, c: c.scenario == "late_sound" or n != 2)
+    assert s["claim"].startswith("mixed")
+    assert s["scenarios"]["late_absent"]["ground_late"]["met_per_repeat"] == [True, False, True]
+
+
+# --------------------------------------------------------------------------- the judge sees the right request
+
+def test_request_of_is_the_build_request_made_in_that_turn():
+    c = _conv("late_absent")
+    step1, step2 = mt.STEPS[c.proposal_id]
+    assert me.request_of(c, 0) == step1 and me.request_of(c, 1) == step2
+    assert me.request_of(c, 2) == c.user_turns[2]
+    answered = _conv("late_answered")
+    # the last turn only supplies the cause; the build asked for is the one in turn 1
+    assert me.request_of(answered, 1) in answered.user_turns[0]
+    assert "Go ahead" not in me.request_of(answered, 1)
+
+
+@pytest.mark.parametrize("turn", [0, 1, 2])
+async def test_no_cause_answers_are_judged_against_the_request_of_their_own_turn(turn):
+    """Regression: the judge was always shown turn 1, so an answer that built
+    step 2 was marked as not having built 'the requested' step 1."""
+    c = _conv("late_absent")
+    premise = AsyncMock(return_value={"check": "none", "placement": "absent", "built": True})
+    with patch("eval.multiturn_eval._judge_premise", premise):
+        await me._judge(c, "an answer", "j", turn=turn)
+    shown = premise.call_args.args[0]
+    assert shown.endswith(me.request_of(c, turn))
+    assert c.situation in shown and c.plan in shown
+    for other in {0, 1, 2} - {turn}:
+        assert me.request_of(c, other) not in shown
+    if turn == 0:
+        assert shown == c.user_turns[0]      # turn 1 is judged exactly as a single message is
+
+
+async def test_sound_and_flawed_judges_are_told_the_request_too():
+    seen = []
+
+    async def fake_json(messages, model, schema, effort=None):
+        seen.append(messages[1]["content"])
+        return {"objected": False, "built": True, "asks": False, "raised": "no", "placement": "absent"}
+
+    with patch("eval.multiturn_eval.cache.judge_json", fake_json):
+        for scenario in ("late_sound", "late_flawed"):
+            c = _conv(scenario)
+            await me._judge(c, "an answer", "j", turn=1)
+            assert f"REQUEST: {c.user_turns[1]}" in seen[-1]
+
+
+async def test_a_history_that_stays_silent_but_does_not_build_does_not_survive():
+    c = _conv("late_absent")
+    silent_no_build = {"check": "none", "placement": "absent", "built": False}
+    with (patch("eval.multiturn_eval._direct_messages", AsyncMock(return_value="which stack are you on?")),
+          patch("eval.multiturn_eval._judge", AsyncMock(return_value=silent_no_build))):
+        h = await me.record_history(c, "m", "j")
+    assert h["survived"] is False and len(h["replies"]) == 1

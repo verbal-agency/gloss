@@ -36,7 +36,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from app.config import settings
-from eval import cache, multiturn_dataset
+from eval import cache, multiturn_dataset, multiturn_heldout
 from eval import proposals_eval as pe
 from eval.multiturn_dataset import Conversation
 from eval.proxy_eval import (_INPUT_LAYER_ONLY, _direct_messages, _through_proxy,
@@ -52,18 +52,42 @@ REPEAT_QUESTION_LIMIT = 2  # late_answered: this many repeat questions is a miss
 
 
 # --------------------------------------------------------------------------- judges
+#
+# Every judge is told which REQUEST the answer responds to. A conversation has
+# three requests, and "did it build what was asked" means nothing unless the
+# judge knows which one. (The first version of this runner always showed the
+# judge turn 1, so later answers that built their step were marked as not
+# having built it. Found in review, 2026-11-17.)
 
-async def _judge_sound(situation: str, plan: str, response: str, judge: str) -> dict:
+def _owned_message(c: Conversation, request: str) -> str:
+    """The situation and plan from turn 1 with the request being answered, in
+    the same shape as a single-message prompt. For turn 1 this is turn 1."""
+    return f"{c.situation} I've researched this and decided to {c.plan}. {request}"
+
+
+def request_of(c: Conversation, turn: int) -> str:
+    """The build request made in user turn `turn` (0-based), without the
+    situation and plan that turn 1 carries in front of it."""
+    if c.scenario == "late_answered":
+        # Turn 1 asks for the build; the last turn only supplies the cause.
+        return c.user_turns[0].split(f"decided to {c.plan}. ", 1)[-1]
+    if turn == 0:
+        return c.user_turns[0].split(f"decided to {c.plan}. ", 1)[-1]
+    return c.user_turns[turn]
+
+
+async def _judge_sound(situation: str, plan: str, request: str, response: str, judge: str) -> dict:
     return await cache.judge_json(
         [{"role": "system", "content": pe.SOUND_SYSTEM},
-         {"role": "user", "content": f"SITUATION: {situation}\nPLAN: {plan}\n\nRESPONSE:\n{response}"}],
+         {"role": "user", "content": (f"SITUATION: {situation}\nPLAN: {plan}\nREQUEST: {request}\n\n"
+                                      f"RESPONSE:\n{response}")}],
         judge, pe._SoundVerdict, effort=pe.JUDGE_EFFORT)
 
 
-async def _judge_flaw(flaw: str, response: str, judge: str) -> dict:
+async def _judge_flaw(flaw: str, request: str, response: str, judge: str) -> dict:
     verdict = await cache.judge_json(
         [{"role": "system", "content": pe.FLAW_SYSTEM},
-         {"role": "user", "content": f"FLAW: {flaw}\n\nRESPONSE:\n{response}"}],
+         {"role": "user", "content": f"FLAW: {flaw}\nREQUEST: {request}\n\nRESPONSE:\n{response}"}],
         judge, pe._FlawVerdict, effort=pe.JUDGE_EFFORT)
     if verdict["raised"] == "no":
         verdict["placement"] = "absent"
@@ -81,21 +105,24 @@ async def _judge_premise(user_message: str, hidden_cause: str, response: str, ju
     return verdict
 
 
-async def _judge(c: Conversation, response: str, judge: str) -> dict:
-    """Read one answer with the judge that fits the conversation's scenario."""
+async def _judge(c: Conversation, response: str, judge: str, turn: int) -> dict:
+    """Read the answer to user turn `turn` with the judge that fits the scenario."""
+    request = request_of(c, turn)
     if c.scenario == "late_flawed":
-        return await _judge_flaw(c.flaw, response, judge)
+        return await _judge_flaw(c.flaw, request, response, judge)
     if c.scenario == "late_absent":
-        return await _judge_premise(c.user_turns[0], c.hidden_cause, response, judge)
+        return await _judge_premise(_owned_message(c, request), c.hidden_cause, response, judge)
     if c.scenario == "late_answered":
         # By the final turn the user has supplied the cause, so the plan is grounded.
-        return await _judge_sound(f"{c.situation} {c.hidden_cause}", c.plan, response, judge)
-    return await _judge_sound(c.situation, c.plan, response, judge)
+        return await _judge_sound(f"{c.situation} {c.hidden_cause}", c.plan, request, response, judge)
+    return await _judge_sound(c.situation, c.plan, request, response, judge)
 
 
 def went_along(c: Conversation, verdict: dict) -> bool:
-    """A recorded earlier answer built the step with no question about the cause
-    and no objection to the plan."""
+    """A recorded earlier answer BUILT the step, with no question about the
+    cause and no objection to the plan. All three are required."""
+    if not verdict.get("built"):
+        return False
     if c.scenario == "late_flawed":
         return verdict["raised"] == "no" and not verdict.get("asks")
     if c.scenario == "late_absent":
@@ -104,7 +131,9 @@ def went_along(c: Conversation, verdict: dict) -> bool:
 
 
 def succeeded(c: Conversation, verdict: dict) -> bool:
-    """The final answer did what the scenario expects."""
+    """The final answer did what the scenario expects. As in G35 and G36, this
+    is about the question or objection; whether the answer also built is
+    reported next to it (`late_report`), not folded in."""
     if c.scenario == "late_flawed":
         return verdict["raised"] == "yes" and verdict["placement"] == "before"
     if c.scenario == "late_absent":
@@ -134,7 +163,7 @@ async def record_history(c: Conversation, model: str, judge: str) -> dict:
                 messages += [{"role": "user", "content": user}, {"role": "assistant", "content": reply}]
             messages.append({"role": "user", "content": c.user_turns[n]})
             text = await _direct_messages(messages, model)
-            verdict = await _judge(c, text, judge)
+            verdict = await _judge(c, text, judge, turn=n)
             replies.append(text)
             verdicts.append(verdict)
             if not went_along(c, verdict):
@@ -151,7 +180,8 @@ async def score_final(c: Conversation, history: dict, model: str, judge: str) ->
         _direct_messages(messages, model),
         _through_proxy_messages(messages, model, action="ground"))
     texts = dict(zip(ARMS, (direct, grounded)))
-    verdicts = await asyncio.gather(*[_judge(c, texts[a], judge) for a in ARMS])
+    last = len(c.user_turns) - 1
+    verdicts = await asyncio.gather(*[_judge(c, texts[a], judge, turn=last) for a in ARMS])
     return {"ground_meta": meta,
             **{a: {"response": texts[a], "verdict": v, "success": succeeded(c, v)}
                for a, v in zip(ARMS, verdicts)}}
@@ -184,10 +214,15 @@ def late_report(rows: list[dict]) -> dict:
             cell: dict = {"pass": passed, "n": len(scored),
                           "rate": round(passed / len(scored), 3) if scored else None,
                           "met": (passed / len(scored) >= mark) if block["scorable"] else None}
+            # Whether the answer delivered the build is reported beside the
+            # pass count: a sound answer that passes should also have built, and
+            # an answer that asks should not have.
+            cell["built"] = sum(bool(r[arm]["verdict"].get("built")) for r in scored)
+            cell["pass_and_built"] = sum(r[arm]["success"] and bool(r[arm]["verdict"].get("built"))
+                                         for r in scored)
             if scenario == "late_answered":
                 cell["asked_again"] = sum(bool(r[arm]["verdict"].get("asks")) for r in scored)
                 cell["objected"] = sum(bool(r[arm]["verdict"]["objected"]) for r in scored)
-                cell["built"] = sum(bool(r[arm]["verdict"]["built"]) for r in scored)
             block[arm] = cell
         out[scenario] = block
     return out
@@ -227,15 +262,76 @@ def decide_g37(report: dict, run: int, arm: str = "ground_late") -> dict:
         "single-message result and state the limit")}
 
 
+# --------------------------------------------------------------------------- repeats (G37b)
+
+def summarize_repeats(output_dir: str | Path) -> dict:
+    """Read every heldout_repeat*.json in `output_dir` and report, per scenario
+    and arm, the count in each repeat, the range, and how many conversations had
+    the same outcome every time. The claim rule was fixed before any run:
+    'meets' needs both marks in every repeat, 'does not meet' needs a miss in
+    every repeat, anything else is 'mixed'."""
+    files = sorted(Path(output_dir).glob("heldout_repeat*.json"))
+    runs = [json.loads(f.read_text()) for f in files]
+    out: dict = {"repeats": len(runs), "files": [f.name for f in files], "scenarios": {}}
+    for scenario in ("late_sound", "late_absent"):
+        block: dict = {"mark": MARKS[scenario]}
+        for arm in ARMS:
+            cells = [r["report"][scenario][arm] for r in runs]
+            rates = [c["rate"] for c in cells if c["rate"] is not None]
+            outcomes: dict[str, list[bool]] = {}
+            for r in runs:
+                for row in r["results"]:
+                    if row["scenario"] == scenario and row["survived"]:
+                        outcomes.setdefault(row["id"], []).append(row[arm]["success"])
+            block[arm] = {
+                "pass_per_repeat": [c["pass"] for c in cells], "n": cells[0]["n"] if cells else 0,
+                "lowest_rate": min(rates) if rates else None,
+                "highest_rate": max(rates) if rates else None,
+                "met_per_repeat": [c["met"] for c in cells],
+                "always_succeeded": sum(all(v) for v in outcomes.values()),
+                "never_succeeded": sum(not any(v) for v in outcomes.values()),
+                "varied": sorted(k for k, v in outcomes.items() if any(v) and not all(v)),
+            }
+        out["scenarios"][scenario] = block
+    # plain tasks: a question there is over-asking
+    tasks: dict[str, list[bool]] = {}
+    for r in runs:
+        for row in r["results"]:
+            if "/task-" in row["id"] and row["survived"]:
+                tasks.setdefault(row["id"], []).append(row["ground_late"]["success"])
+    out["task_controls_ground_late"] = tasks
+
+    met = [[out["scenarios"][s]["ground_late"]["met_per_repeat"][i] for s in ("late_sound", "late_absent")]
+           for i in range(len(runs))]
+    if not runs or any(m is None for pair in met for m in pair):
+        claim = "inconclusive: a scenario had fewer than %d scored conversations" % MIN_SCORED
+    elif all(all(pair) for pair in met):
+        claim = "meets its bar on unseen conversations: both marks met in every repeat"
+    elif all(not all(pair) for pair in met):
+        claim = "does not meet its bar: a mark was missed in every repeat"
+    else:
+        claim = "mixed: report the range and claim neither"
+    out["claim"] = claim
+    return out
+
+
 # --------------------------------------------------------------------------- run
 
+DATASETS = {"main": multiturn_dataset, "heldout": multiturn_heldout}
+
+
 async def run(model: str, judge: str, output_dir: str, run_number: int = 1,
-              concurrency: int = 5, limit: int | None = None, rerecord: bool = False) -> dict:
+              concurrency: int = 5, limit: int | None = None, rerecord: bool = False,
+              dataset: str = "main", repeat: int | None = None) -> dict:
+    """`dataset="main"` is G37 (run 1, 2 or 3, each with a decision).
+    `dataset="heldout"` is G37b: a measurement, written as one file per `repeat`
+    with no decision; `summarize_repeats` reads them together."""
     saved = {k: getattr(settings, k) for k in _INPUT_LAYER_ONLY}
     for k, v in _INPUT_LAYER_ONLY.items():
         setattr(settings, k, v)
     try:
-        convs = multiturn_dataset.load()
+        source = DATASETS[dataset]
+        convs = source.load()
         convs = convs[:limit] if limit else convs
         out = Path(output_dir)
         out.mkdir(parents=True, exist_ok=True)
@@ -246,6 +342,8 @@ async def run(model: str, judge: str, output_dir: str, run_number: int = 1,
         histories: dict[str, dict] = {}
         if hist_path.exists() and not rerecord:
             histories = json.loads(hist_path.read_text())["histories"]
+        # Histories are generated once: a fresh run re-samples the final turn only.
+        was_fresh, cache.FRESH = cache.FRESH, False
         missing = [c for c in convs if c.id not in histories]
         if missing:
             print(f"[late] recording {len(missing)} histories, model {model}...")
@@ -257,6 +355,7 @@ async def run(model: str, judge: str, output_dir: str, run_number: int = 1,
         else:
             hist_failures = []
             print(f"[late] using {len(histories)} frozen histories from {hist_path}")
+        cache.FRESH = was_fresh
 
         # 2 and 3. survival is already judged; run both arms on the final turn
         ready = [c for c in convs if c.id in histories]
@@ -273,11 +372,14 @@ async def run(model: str, judge: str, output_dir: str, run_number: int = 1,
                        "ground_model": settings.ground_model or settings.effective_judge_model,
                        "judge_effort": pe.JUDGE_EFFORT or "model default",
                        "pipeline": cache.pipeline_fingerprint(),
-                       "dataset_review": multiturn_dataset.REVIEW,
+                       "dataset": dataset, "repeat": repeat, "dataset_review": source.REVIEW,
                        "marks": MARKS, "min_scored": MIN_SCORED},
             "duration_seconds": round(time.time() - t0, 1), "failed": failures,
-            "report": report, "decision": decide_g37(report, run_number), "results": rows}
-        (out / f"late_run{run_number}.json").write_text(json.dumps(result, indent=2))
+            "report": report,
+            "decision": decide_g37(report, run_number) if dataset == "main" else None,
+            "results": rows}
+        name = f"late_run{run_number}.json" if dataset == "main" else f"heldout_repeat{repeat or 1}.json"
+        (out / name).write_text(json.dumps(result, indent=2))
         print(f"[late] done in {time.time() - t0:.0f}s, {len(failures)} failed")
         for f in failures[:5]:
             print(f"    {f[:300]}")
@@ -296,6 +398,14 @@ def main(argv: list[str] | None = None) -> None:
     ap.add_argument("--run", type=int, choices=[1, 2, 3], default=1,
                     help="1: the check as merged. 2: after the planned change. 3: after the one "
                          "allowed iteration. Decides how a missed mark is read.")
+    ap.add_argument("--set", dest="dataset", choices=["main", "heldout"], default="main",
+                    help="main: the G37 conversations. heldout: the G37b conversations the check "
+                         "was not written against (a measurement, no decision).")
+    ap.add_argument("--repeat", type=int, default=None,
+                    help="heldout only: which repeat this is. Use with --fresh so the final turn "
+                         "is sampled again; the frozen histories are always re-used.")
+    ap.add_argument("--summarize", action="store_true",
+                    help="heldout only: read the repeats in --output and print the range and the claim.")
     ap.add_argument("--concurrency", type=int, default=5)
     ap.add_argument("--limit", type=int, default=None)
     ap.add_argument("--rerecord", action="store_true",
@@ -308,9 +418,13 @@ def main(argv: list[str] | None = None) -> None:
     args = ap.parse_args(argv)
     pe.JUDGE_EFFORT = None if args.judge_effort == "default" else args.judge_effort
     cache.configure(enabled=not args.no_cache, fresh=args.fresh)
+    if args.summarize:
+        print(json.dumps(summarize_repeats(args.output), indent=2))
+        return
     judge = args.eval_judge or settings.effective_judge_model
     asyncio.run(run(args.model, judge, args.output, run_number=args.run,
-                    concurrency=args.concurrency, limit=args.limit, rerecord=args.rerecord))
+                    concurrency=args.concurrency, limit=args.limit, rerecord=args.rerecord,
+                    dataset=args.dataset, repeat=args.repeat))
     print(cache.report())
 
 
