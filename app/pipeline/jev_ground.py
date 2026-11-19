@@ -175,3 +175,130 @@ async def ask_jev(state: str, conversation: bool) -> dict:
 async def classify(query: str, context: str | None, backend: str) -> GroundResult:
     answers = await ask_jev(context or query, conversation=context is not None)
     return to_result(answers, backend)
+
+
+# ── G41: structured state, a plain problem question, probability rules ──────
+# G40's setup lost on plain tasks (its `is_fix` question scored ~0.7 on
+# everything) and its multiple-choice form never asked on a conversation. G41
+# changes the setup, not the standard: a yes/no question on whether anything is
+# going wrong, the state as a JSON object with the user's and the assistant's
+# turns in separate named parts, and rules that read Jev's probabilities rather
+# than only its top labels. G40's battery, `route` and `Rule` above are kept
+# unchanged so its result can be reproduced.
+
+_PROBLEM_DESCRIBED = (
+    "Does the user describe something going wrong: something failing, slow, wrong, broken, "
+    "or missing a target they care about? Work the user wants done for its own sake (a "
+    "migration, a new feature, a compliance requirement, an upgrade) is not something "
+    "going wrong.",
+    "Yes: the user describes a problem.",
+    "No: the user wants work done, and nothing is described as going wrong.",
+)
+
+_JSON_NOTE = (
+    " The state holds the user's earlier turns (`earlier_user_turns`), the assistant's replies "
+    "(`assistant_replies`), and the user's latest request (`latest_user_request`). Judge the "
+    "latest request in the light of all the user's turns taken together. Only the user's own "
+    "words count as evidence: a cause the assistant suggested counts only if the user "
+    "confirmed it. If the assistant asked how the user knows the plan addresses the cause and "
+    "the user answered, that answer is the user's evidence."
+)
+
+G41_NOULS = ("is_fix", "problem_described", "cause_stated", "contradicted")
+
+
+def json_state(messages: list[dict]) -> dict:
+    """The conversation as a JSON object with the user's and the assistant's turns
+    apart. A single message has the same shape, with no earlier turns. Long
+    assistant replies are cut as in `assumptions.conversation_view`."""
+    from app.pipeline.assumptions import _ASSISTANT_TURN_LIMIT
+
+    turns = [m for m in messages if m.get("role") in ("user", "assistant")]
+    while turns and turns[-1]["role"] != "user":
+        turns.pop()
+    if not turns:
+        raise ValueError("no user turn to judge")
+    replies = []
+    for m in turns[:-1]:
+        if m["role"] == "assistant":
+            text = m["content"]
+            if len(text) > _ASSISTANT_TURN_LIMIT:
+                half = _ASSISTANT_TURN_LIMIT // 2
+                text = f"{text[:half]}\n[...]\n{text[-half:]}"
+            replies.append(text)
+    return {"earlier_user_turns": [m["content"] for m in turns[:-1] if m["role"] == "user"],
+            "assistant_replies": replies,
+            "latest_user_request": turns[-1]["content"]}
+
+
+def g41_battery(form: str, conversation: bool) -> dict:
+    """G41's questions. `form` is "text" (G40's state: the message, or the
+    conversation as one text) or "json" (`json_state`)."""
+    if form == "json":
+        note = _JSON_NOTE
+    elif form == "text":
+        note = _CONVERSATION_NOTE if conversation else ""
+    else:
+        raise ValueError(form)
+    qs: dict = {
+        "request": {"type": "choice", "instructions": _REQUEST[0] + note, "criteria": _REQUEST[1]},
+        "link": {"type": "choice", "instructions": _LINK[0] + note, "criteria": _LINK[1]},
+    }
+    texts = {**{k: _NOULS[k] for k in ("is_fix", "cause_stated", "contradicted")},
+             "problem_described": _PROBLEM_DESCRIBED}
+    for name in G41_NOULS:
+        question, yes, no = texts[name]
+        qs[name] = {"type": "noul", "instructions": question + note,
+                    "criteria": {"true": yes, "false": no}}
+    return qs
+
+
+@dataclass(frozen=True)
+class G41Rule:
+    """How G41's answers become an action.
+
+    family "choice": the top labels, as the LLM classifier's rule.
+    family "route":  ask when the gate question is at least `gate_t` and
+                     `cause_stated` is below `cause_t` (G40's form).
+    family "link":   ask when the probability of "link absent" is at least
+                     `cause_t`, and the gate (if any) is at least `gate_t`.
+    In "route" and "link", objecting outranks asking: `contradicted` at least
+    `contra_t` objects."""
+    family: str = "route"
+    gate: str | None = "problem_described"
+    gate_t: float = 0.5
+    cause_t: float = 0.5
+    contra_t: float = 0.5
+
+    @property
+    def name(self) -> str:
+        if self.family == "choice":
+            return "choice"
+        gate = f"{self.gate}>={self.gate_t} " if self.gate else ""
+        test = "cause_stated<" if self.family == "route" else "p_absent>="
+        return f"{self.family}: {gate}{test}{self.cause_t} contra>={self.contra_t}"
+
+
+def g41_action(answers: dict, rule: G41Rule) -> str:
+    if rule.family == "choice":
+        return choice_action(answers)
+    if answers["contradicted"]["noul"] >= rule.contra_t:
+        return "objected"
+    gated = rule.gate is None or answers[rule.gate]["noul"] >= rule.gate_t
+    if rule.family == "route":
+        missing = answers["cause_stated"]["noul"] < rule.cause_t
+    elif rule.family == "link":
+        missing = answers["link"]["probabilities"]["absent"] >= rule.cause_t
+    else:
+        raise ValueError(rule.family)
+    return "asked" if gated and missing else "none"
+
+
+async def ask_jev_g41(state: str | dict, form: str, conversation: bool) -> dict:
+    """One Jev request with G41's questions; answers as plain dicts."""
+    from typesafe_sdk import AsyncTypeSafeClient
+
+    async with AsyncTypeSafeClient(api_key=settings.typesafe_api_key, timeout=120.0) as client:
+        resp = await client.system_one(state=state, questions=g41_battery(form, conversation),
+                                       model=settings.jev_model)
+    return {k: v.model_dump(mode="json") for k, v in resp.answers.items()}

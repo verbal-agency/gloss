@@ -79,7 +79,7 @@ def _late_cases(convs, hist_path: Path, split: str, group: str) -> list[dict]:
         messages = c.messages(h["replies"])
         out.append({"id": c.id, "split": split, "group": group, "scenario": c.scenario,
                     "expected": _MT_EXPECTED[c.scenario], "query": messages[-1]["content"],
-                    "context": assumptions.conversation_view(messages)})
+                    "context": assumptions.conversation_view(messages), "messages": messages})
     return out
 
 
@@ -88,11 +88,13 @@ def cases() -> list[dict]:
     for p in pd.load():
         out.append({"id": f"full/{p.id}", "split": "dev", "group": "proposals_full",
                     "scenario": p.kind, "expected": "none" if p.kind == "sound" else "objected",
-                    "query": pd.prompts(p)["owned_build"], "context": None})
+                    "query": pd.prompts(p)["owned_build"], "context": None,
+                    "messages": [{"role": "user", "content": pd.prompts(p)["owned_build"]}]})
     for b in pd.bare_items():
         out.append({"id": f"bare/{b['id']}", "split": "dev", "group": "proposals_bare",
                     "scenario": b["bare_kind"], "expected": _BARE_EXPECTED[b["bare_kind"]],
-                    "query": b["prompt"], "context": None})
+                    "query": b["prompt"], "context": None,
+                    "messages": [{"role": "user", "content": b["prompt"]}]})
     out += _late_cases(mt.load(), Path("results/multiturn/late_histories.json"), "dev", "multiturn_main")
     out += _late_cases(mh.load(), Path("results/multiturn-heldout/late_histories.json"), "test",
                        "multiturn_heldout")
