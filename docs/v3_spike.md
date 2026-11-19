@@ -390,3 +390,84 @@ Three repeats, `jev-1.14.0`, 315 of 315 cases answered. Jev's probabilities move
 **Cost:** no usage was recorded per call. At Jev's listed price, 315 calls of about 1–3k input tokens each come to well under a cent.
 
 **What it shows:** on our standard, Jev as configured is a weaker classifier than `GROUND_SYSTEM` on `claude-sonnet-5-5`. It is mainly worse at telling a plain task from a fix, and at leaving sound plans alone. It is not shown to be worse at noticing missing evidence. The comparison covers one Jev version, one wording of the questions, and 28 test cases.
+
+# G41: Jev with structured state and better questions (spec fixed 2026-11-18, before any run)
+
+**Question.** G40's Jev setup lost mainly on two things: it questioned plain tasks, and it never asked on conversations in its multiple-choice form. Its "cause stated" signal separated cases well. Does Jev match the current classifier once the setup is fixed? Jev only: no LLM extraction step (the owner removed that option).
+
+**What changes from G40.** Four hypotheses, each a change:
+1. **A plain question about a problem.** A new yes/no question, `problem_described`: "does the user describe something going wrong?" It sits beside G40's `is_fix`, and dev picks which one gates the question.
+2. **JSON state.** Jev's docs recommend a JSON object with named parts. Jev reads `{"earlier_user_turns": [...], "assistant_replies": [...], "latest_user_request": "..."}`, and the questions refer to those parts. Only user turns count as evidence; assistant replies are context. A single message has the same shape, with no earlier turns.
+3. **Probabilities, not only top labels.** One rule family asks when Jev's probability for "link absent" reaches a threshold, optionally gated by `problem_described`.
+4. **Per-shape thresholds.** Single messages and conversations may get separate thresholds. These are used only if they beat one shared set on dev by at least 0.02 balanced accuracy.
+
+**What does not change.** Contradiction keeps G40's question and is not redesigned. G40's non-standard question (`evidence_beyond_plan`) is dropped.
+
+**Arms**, three repeats each:
+- **llm:** the current classifier, `GROUND_SYSTEM` on `claude-sonnet-5-5`.
+- **jev_text:** the G41 questions with G40's text state.
+- **jev_json:** the G41 questions with JSON state.
+
+Comparing the two Jev arms shows what the state change alone does. The decision uses one Jev pick.
+
+**Rule families searched on dev** (both Jev arms): the multiple-choice labels; yes/no routing with either gate; link probability, with or without a gate; each with shared or per-shape thresholds. The best Jev setup by dev balanced accuracy is the one pick.
+
+**Split.**
+- **Dev:** all 105 G40 cases, including G40's held-out turns, which are now spent.
+- **Test:** a new set, `eval/g41_heldout.py`, drafted for this goal and reviewed by the owner before any run. It has:
+  - 38 single messages: 8 sound, 6 plain tasks, 16 with no evidence, and 8 whose own facts contradict the plan;
+  - 38 conversations: 8 sound, 6 plain tasks, 16 with no evidence, and 8 answered (the check asks at turn 1, the user replies with the cause). A conversation is scored only if its earlier turns survive, under the G37 rule.
+
+**Rule (on test, averaged over the repeats).** Jev matches the current classifier if, in each of these groups and in each shape the group has (single message, conversation), its rate is no more than the tolerance below the LLM's:
+- quiet on sound plans;
+- quiet on plain tasks;
+- asks on no evidence;
+- quiet after the user answers (conversations only).
+
+The tolerance is 0.07 or one case in that cell, whichever is larger. Every case counts once per repeat; a failed or missing classification is a miss. Objection on contradicted messages is reported but not part of the match, because contradiction wasn't redesigned this round and the LLM is weak there too. Results are also reported by family (the 14 underlying contexts), not only by row.
+
+**Amended 2026-11-18, after an external review and before any run.** The first draft pooled the two shapes, dropped failed calls from the denominator, and had no answered conversations. The amendment also made these changes to the set:
+- four of the six tasks were replaced with plain work that avoids the categories the `problem_described` question names as examples;
+- six contradicted situations now state the fact that rules the other plan out (for example, that the 50,000 partner requests are all for different records, so a cache cannot help);
+- two step orders and one plan's wording were fixed.
+
+**Order.**
+1. The owner reviews the new set.
+2. Histories are recorded once with the unaided model and frozen; survival is reported before any classifier runs.
+3. The llm and Jev arms run.
+4. Summary.
+
+Nothing is changed after the test result.
+
+**Cost.** Histories: 30 conversations × 2 answers and 8 answered openings through the check, plus judge calls. The LLM arm: about 200 classifier calls. Jev: well under a cent. Estimate $5–10 in total.
+
+## G41 result (run 2026-11-18): Jev does NOT match
+
+**Histories.** All 38 recorded with no failures. Survived: sound 8/8, tasks 6/6, answered 8/8, no evidence 10/16. In the six that didn't survive, the unaided model asked about the cause before the last turn. Test: 38 single messages and 32 conversations.
+
+**Jev pick (chosen on dev only).** `jev_text`, one shared rule: `link: problem_described>=0.3 p_absent>=0.2 contra>=0.3`. Dev balanced accuracy was 0.824, against 0.807 for the LLM classifier. Per-shape thresholds reached 0.840, short of the +0.02 margin, so the shared rule stands. JSON state's best dev score was 0.777, so the state change did not help on dev.
+
+**Test, by cell** (three repeats each; no calls failed in any arm):
+
+| Cell | LLM | Jev | Tolerance | Met |
+|---|---|---|---|---|
+| sound / single | 1.000 | 1.000 | 0.125 | yes |
+| sound / conversation | 1.000 | 1.000 | 0.125 | yes |
+| task / single | 1.000 | 1.000 | 0.167 | yes |
+| task / conversation | 1.000 | 1.000 | 0.167 | yes |
+| answered / conversation | 1.000 | 1.000 | 0.125 | yes |
+| absent / conversation | 0.700 | 0.667 | 0.100 | yes |
+| **absent / single** | **1.000** | **0.729** | 0.070 | **no** |
+| contradicted / single (reported only) | 1.000 | 0.875 | — | — |
+
+**What fixed G40's failures.** Plain tasks: 1.000 in both shapes, including the four tasks written to avoid the question's own examples. Sound plans: 1.000. Answered conversations: 1.000. The `problem_described` question and the link-probability rule solved what G40 lost on.
+
+**What still fails.** Noticing missing evidence in a single message. Jev missed five of the 16 cases:
+- `partner-rate-limit`, both plans: p(absent) 0.01–0.02. "Rate-limit errors" seems to read to Jev as its own cause.
+- `database-disk-fits`: the plan names the cause ("drop the stale replication slot"), the pattern flagged in review.
+- `database-disk-misses`: borderline, with p(absent) around 0.2.
+- `card-failures-fits`: objected instead of asking, because contradiction scored 0.31–0.33 against a threshold of 0.3.
+
+By family, Jev's misses concentrate in `partner-rate-limit` (0.57 against the LLM's 1.00), `stale-dashboard` (0.71 against 0.95) and `database-disk` (0.71 against 0.79). JSON state scored 0.812 on this cell (each arm on its own best rule), better than text state but still short.
+
+**Decision.** Keep `GROUND_SYSTEM` on `claude-sonnet-5-5` as the grounding classifier. `GROUND_BACKEND=llm` stays the default, and Jev stays an optional backend. Under the rule fixed before the run, nothing here is changed or rerun.
