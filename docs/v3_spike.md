@@ -1028,3 +1028,108 @@ Both shapes, as in G41 and G42.
 - **Also required:** no gated label cell more than max(0.07, one case) below the LLM, as in G41 and G42.
 
 Objection becomes a gated cell, since ruling 3 makes it part of the standard. Nothing is changed after the result.
+
+## E5 details (fixed 2026-11-19, before the run)
+
+**Questions**, in one Jev request per case. The examples come from the earlier explorations' unused situations.
+- `goal_type` (multiple choice): what the plan has to deliver:
+  - `problem`: something going wrong must stop;
+  - `requirement`: a stated goal or constraint must be met;
+  - `both`;
+  - `neither`: a plain request with nothing to check.
+- `link_stated` (critical question for cause to effect): does the user state what is happening that causes the problem, in a way the plan can be checked against? A cause stated inside the plan counts (ruling 1). The symptom's name doesn't, and neither does the plan's purpose alone.
+- `achieves_goal` (critical question for practical reasoning; outcome wording): given what the user states, how likely is it that the plan delivers what they need? Merit counts (ruling 3).
+- `conflicts_constraint` (critical question for side effects and conflicts): does the plan break a goal, limit or constraint the user states?
+- `investigation`: is the plan a way to find out the cause?
+
+**Decision table.** P(goal) = 1 − P(neither); P(problem goal) = P(problem) + P(both). The rows are checked in order.
+
+| # | Condition | Action |
+|---|---|---|
+| 1 | `investigation` ≥ 0.5 | quiet |
+| 2 | P(goal) < 0.5 | quiet |
+| 3 | `conflicts_constraint` ≥ t | object (a stated constraint needs no cause) |
+| 4 | P(problem goal) ≥ 0.5 and `link_stated` < 0.7 | ask (ruling 2: no objection for a mismatch alone) |
+| 5 | 1 − `achieves_goal` ≥ t | object (a rebutting doubt) |
+| 6 | otherwise | quiet |
+
+t = 0.5 is the primary threshold; t = 0.3 is reported. Rates and utility are scored as in exploration 4, against D, D+correct and the LLM, along with each question's AUC between wrong and right plans.
+
+## E5 result (run 2026-11-19)
+
+717 requests, none failed (`results/g43_explore/summary_e5.json`).
+
+| Cell / measure | LLM | D | D@0.3 | D+correct | **E5** | E5@0.3 |
+|---|---|---|---|---|---|---|
+| quiet / single | 0.895 | 0.924 | 0.886 | 0.924 | 0.914 | 0.648 |
+| quiet / conversation | 0.956 | 0.912 | 0.860 | 0.912 | 0.842 | 0.570 |
+| task / single | 1.000 | 1.000 | 1.000 | 1.000 | 0.972 | 0.417 |
+| task / conversation | 1.000 | 1.000 | 1.000 | 1.000 | **0.750** | 0.500 |
+| ask / single | 0.930 | 0.969 | 0.969 | 0.853 | **0.992** | 0.984 |
+| ask / conversation | 0.735 | 0.980 | 0.980 | 0.980 | 0.941 | 0.941 |
+| answered / conversation | 1.000 | 1.000 | 1.000 | 1.000 | 0.981 | 0.741 |
+| object / single | 0.752 | 0.674 | 0.830 | 0.794 | 0.745 | 0.766 |
+| utility, c = 0.25, 35% / 20% / 10% wrong | −0.371 / −0.237 / **−0.148** | −0.409 / −0.267 / −0.172 | −0.357 / −0.244 / −0.169 | **−0.353 / −0.236** / −0.158 | −0.379 / −0.262 / −0.185 | −0.460 / −0.376 / −0.321 |
+| silent wrong builds (20% wrong) | −0.064 | −0.081 | −0.038 | −0.045 | −0.043 | −0.029 |
+| false objections (20% wrong) | 0.000 | −0.005 | −0.018 | −0.008 | **−0.031** | −0.157 |
+
+**What worked.** Five questions in place of fifteen match the LLM on objection (0.745 against 0.752) and beat it on asking. E5 objects to full/mis-02 in all three repeats. `achieves_goal` separates wrong plans from right ones nearly as well as `plan_correct` (AUC 0.923 against 0.931). `link_stated` separates the quiet group from the ask group as well as `mechanism_stated` did (0.958 against 0.963).
+
+**What failed: merit objections in conversations.**
+- **Where the false objections came from.** Of the 24 false-objection answers, 19 come from `achieves_goal` in conversations: nine on sound plans, nine on tasks, one on an answered conversation. The late turn in those conversations asks for one step ("Now the container image for the jobs"), and Jev appears to judge whether that step delivers the whole goal.
+- **The constraint question objected to one sound proposal** (full/snd-06) in all three repeats.
+- **The threshold at 0.3 is unusable.**
+
+**The goal-type question doesn't gate anything.** Jev never answered `neither`. It called every plain task `requirement` and almost every fix `both`. Every request has something it must deliver, so in this frame R always exists. This confirms what exploration 4 found with `goal_stated`. The frame's real decisions are whether a causal link is stated and whether a rebutting doubt is present, not whether there is a goal.
+
+**Against E7's rule.** No candidate is clear yet:
+- E5 fails task/conversation and quiet/conversation.
+- D+correct falls 0.077 below the LLM on ask/single, more than the 0.07 tolerance allows.
+- D@0.3 fails quiet/conversation.
+
+On utility, D+correct and D@0.3 are the strongest. The two changes most likely to fix E5 before E7 are:
+- word `achieves_goal` for conversations as "the user's overall plan, not only the step asked for in the latest turn";
+- drop the goal-type row.
+
+## E5b: the two fixes (fixed 2026-11-19, before the run)
+
+**Changes from E5. Nothing else changes.**
+1. **Goal-type row dropped.** `goal_type` leaves the battery. Asking still needs something to be going wrong, so the battery takes G41's yes/no `problem_described` question unchanged. The ask row uses it at ≥ 0.3, as every Jev rule since G41 has.
+2. **Conversation wording for `achieves_goal`.** In conversations, the question adds: "Judge the user's overall plan as the conversation describes it, not only the step asked for in the latest turn." Single messages keep E5's wording.
+
+**Decision table.** Rows are read in order:
+
+| # | Condition | Action |
+|---|---|---|
+| 1 | `investigation` ≥ 0.5 | quiet |
+| 2 | `conflicts_constraint` ≥ 0.5 | object |
+| 3 | `problem_described` ≥ 0.3 and `link_stated` < 0.7 | ask |
+| 4 | 1 − `achieves_goal` ≥ 0.5 | object |
+| 5 | otherwise | quiet |
+
+The whole battery is rerun on all 239 cases, three repeats each (717 requests). It is scored as E5 was.
+
+## E5b result (run 2026-11-19)
+
+717 requests, none failed.
+
+| Cell / measure | LLM | D+correct | E5 | **E5b** | E7 tolerance | E5b passes |
+|---|---|---|---|---|---|---|
+| quiet / single | 0.895 | 0.924 | 0.914 | 0.914 | 0.070 | yes |
+| quiet / conversation | 0.956 | 0.912 | 0.842 | **0.833** | 0.070 | **no** |
+| task / single | 1.000 | 1.000 | 0.972 | 0.972 | 0.083 | yes |
+| task / conversation | 1.000 | 1.000 | 0.750 | **0.750** | 0.083 | **no** |
+| ask / single | 0.930 | 0.853 | 0.992 | 0.984 | 0.070 | yes |
+| ask / conversation | 0.735 | 0.980 | 0.941 | 0.971 | 0.070 | yes |
+| answered / conversation | 1.000 | 1.000 | 0.981 | **1.000** | 0.070 | yes |
+| object / single | 0.752 | 0.794 | 0.745 | 0.752 | 0.070 | yes |
+| utility, c = 0.25, 35% / 20% / 10% wrong | −0.371 / −0.237 / −0.148 | −0.353 / −0.236 / −0.158 | −0.379 / −0.262 / −0.185 | −0.365 / −0.253 / −0.180 | | |
+| silent wrong builds (20% wrong) | −0.064 | −0.045 | −0.043 | **−0.033** | | |
+
+**Dropping the goal row cost nothing.** The asking cells held, answered conversations went back to 1.000, and objection matches the LLM. With `problem_described` in its place, tasks are never asked about and can still be objected to.
+
+**The overall-plan wording didn't fix conversations.** Nine sound plans and nine tasks in conversations are still objected to through `achieves_goal`. Their scores barely moved: 0.34–0.49 now, against 0.35–0.48 in E5, all just under the 0.5 line. The cause looks like the assistant's earlier replies, not the step framing. Those replies list caveats ("a common fix is a fallback…", "the numbers are my guesses"), and Jev reads them as doubt about the plan. On single messages, sound plans score well above 0.5.
+
+**After the fact (not a result).** If conversations object through `achieves_goal` only below 0.3, every cell passes E7's rule on this pool: quiet/conversation 0.912 and task/conversation 1.000. Nothing on this pool measures what that costs. The 12 wrong-plan conversations in the pool are all no-evidence cases. **No conversation in it states a cause behind a wrong plan.** Objection in conversations is unmeasured, and the G43 held-out set has to include it.
+
+**For E7.** E5b is the strongest candidate so far. It has five questions, the fewest silent wrong builds of any policy, objection on a par with the LLM, and better asking. Its one failure is merit objections in conversations. The candidate fix is a per-shape objection threshold, which E7's rules allow only if dev shows a gain of at least 0.02. G43's set must contain wrong plans with a stated cause in conversations, or that threshold can't be judged.

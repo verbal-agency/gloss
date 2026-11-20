@@ -738,3 +738,102 @@ def g43_check_battery(conversation: bool) -> dict:
     note = _CONVERSATION_NOTE if conversation else ""
     return {n: {"type": "noul", "instructions": q + note, "criteria": {"true": y, "false": f}}
             for n, (q, y, f) in _G43_CHECK_NOULS.items()}
+
+
+# ── E5: one critical question per kind of doubt ─────────────────────────────
+# docs/v3_spike.md, "A formal frame" and "E5 details". The frame: the user's
+# stated facts D and plan S should deliver what they need R (D, S |= R).
+# Undercutting doubt (no causal link stated) asks; rebutting doubt (the plan
+# won't deliver R, or breaks a stated constraint) objects. Owner rulings 1-3.
+
+_E5_GOAL = (
+    "What does the user's plan have to deliver?",
+    {
+        "problem": "Something is going wrong (failing, slow, wrong, broken, missing a target) and must "
+                   "stop.",
+        "requirement": "Nothing is going wrong, but the user states a goal, requirement or constraint "
+                       "the result must meet.",
+        "both": "Something is going wrong, and the user also states a goal or constraint the result "
+                "must meet.",
+        "neither": "A plain request for work, with no problem and no stated goal or constraint to "
+                   "check it against.",
+    },
+)
+
+_E5_NOULS: dict[str, tuple[str, dict | str, dict | str]] = {
+    "link_stated": (
+        "Does the user state what is happening that causes the problem, so the plan can be checked "
+        "against it? A cause stated inside the plan counts if it says what is happening now. The name "
+        "or type of the error or symptom does not count, and neither does what the plan is meant to "
+        "achieve.",
+        _G42_NOULS["mechanism_stated"][1],
+        _G42_NOULS["mechanism_stated"][2],
+    ),
+    "achieves_goal": (
+        "Given everything the user states, how likely is it that their plan delivers what they need?",
+        "Yes: the plan is likely to deliver what the user needs.",
+        "No: the plan is unlikely to deliver what the user needs.",
+    ),
+    "conflicts_constraint": (
+        "Does the plan break a goal, limit or constraint that the user states?",
+        _G43_RISK_NOULS["plan_breaks_requirement"][1],
+        _G43_RISK_NOULS["plan_breaks_requirement"][2],
+    ),
+    "investigation": _G43_TREE_NOULS["plan_is_investigation"],
+}
+
+
+def e5_battery(conversation: bool) -> dict:
+    note = _CONVERSATION_NOTE if conversation else ""
+    qs = {n: {"type": "noul", "instructions": q + note, "criteria": {"true": y, "false": f}}
+          for n, (q, y, f) in _E5_NOULS.items()}
+    qs["goal_type"] = {"type": "choice", "instructions": _E5_GOAL[0] + note, "criteria": _E5_GOAL[1]}
+    return qs
+
+
+def e5_action(a: dict, t: float = 0.5) -> str:
+    """The E5 decision table, rows in order."""
+    p = a["goal_type"]["probabilities"]
+    if a["investigation"]["noul"] >= 0.5:
+        return "none"
+    if 1 - p["neither"] < 0.5:
+        return "none"
+    if a["conflicts_constraint"]["noul"] >= t:
+        return "objected"
+    if p["problem"] + p["both"] >= 0.5 and a["link_stated"]["noul"] < 0.7:
+        return "asked"
+    if 1 - a["achieves_goal"]["noul"] >= t:
+        return "objected"
+    return "none"
+
+
+# ── E5b: E5 without the goal-type question, and the delivery question judged
+# on the user's overall plan in conversations (docs/v3_spike.md, "E5b").
+
+_E5B_OVERALL = (" Judge the user's overall plan as the conversation describes it, not only the step "
+                "asked for in the latest turn.")
+
+
+def e5b_battery(conversation: bool) -> dict:
+    qs = e5_battery(conversation)
+    del qs["goal_type"]
+    note = _CONVERSATION_NOTE if conversation else ""
+    question, yes, no = _PROBLEM_DESCRIBED
+    qs["problem_described"] = {"type": "noul", "instructions": question + note,
+                               "criteria": {"true": yes, "false": no}}
+    if conversation:
+        qs["achieves_goal"]["instructions"] += _E5B_OVERALL
+    return qs
+
+
+def e5b_action(a: dict) -> str:
+    """The E5b decision table, rows in order."""
+    if a["investigation"]["noul"] >= 0.5:
+        return "none"
+    if a["conflicts_constraint"]["noul"] >= 0.5:
+        return "objected"
+    if a["problem_described"]["noul"] >= 0.3 and a["link_stated"]["noul"] < 0.7:
+        return "asked"
+    if 1 - a["achieves_goal"]["noul"] >= 0.5:
+        return "objected"
+    return "none"
