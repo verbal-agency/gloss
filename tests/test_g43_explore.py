@@ -128,3 +128,31 @@ def test_redesigned_split_objects_on_a_checkable_task():
     no_goal = {**a_task, "goal_stated": {"noul": 0.1}, "problem_described": {"noul": 0.9},
                "mechanism_stated": {"noul": 0.1}}
     assert w.d(no_goal) == "asked"
+
+
+def _e5(goal="both", link=0.9, achieves=0.9, conflicts=0.1, inv=0.1):
+    probs = {k: (1.0 if k == goal else 0.0) for k in ("problem", "requirement", "both", "neither")}
+    return {"goal_type": {"probabilities": probs}, "link_stated": {"noul": link},
+            "achieves_goal": {"noul": achieves}, "conflicts_constraint": {"noul": conflicts},
+            "investigation": {"noul": inv}}
+
+
+def test_e5_decision_table_rows_in_order():
+    from app.pipeline import jev_ground as jg
+    assert jg.e5_action(_e5(inv=0.9, conflicts=0.9)) == "none"           # row 1
+    assert jg.e5_action(_e5(goal="neither", achieves=0.1)) == "none"    # row 2
+    assert jg.e5_action(_e5(link=0.1, conflicts=0.9)) == "objected"     # row 3 before row 4
+    assert jg.e5_action(_e5(link=0.1, achieves=0.1)) == "asked"         # row 4: ruling 2
+    assert jg.e5_action(_e5(goal="requirement", link=0.1, achieves=0.1)) == "objected"  # row 5
+    assert jg.e5_action(_e5()) == "none"
+
+
+def test_e5b_drops_the_goal_row_and_words_conversations():
+    from app.pipeline import jev_ground as jg
+    conv, single = jg.e5b_battery(True), jg.e5b_battery(False)
+    assert "goal_type" not in conv and "problem_described" in conv
+    assert jg._E5B_OVERALL in conv["achieves_goal"]["instructions"]
+    assert jg._E5B_OVERALL not in single["achieves_goal"]["instructions"]
+    a = {**_e5(), "problem_described": {"noul": 0.1}}
+    assert jg.e5b_action({**a, "link_stated": {"noul": 0.1}}) == "none"       # a task is not asked
+    assert jg.e5b_action({**a, "achieves_goal": {"noul": 0.2}}) == "objected"  # but it can be objected to
