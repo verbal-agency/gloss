@@ -45,3 +45,6 @@ HANDOFF.md
 
 # Claude Code local settings
 .claude/settings.local.json
+
+# Local agent skills (personal tooling, not part of the project)
+.agents/
