@@ -204,80 +204,93 @@ def _message(situation: str, plan: str, ask: str) -> str:
     return f"{situation} I've researched this and decided to {plan}. {ask}"
 
 
-def single_cases() -> list[dict]:
-    """The single-message cases, with the action each calls for."""
+def single_cases(situations: dict | None = None, tasks: dict | None = None,
+                 tag: str = "g41") -> list[dict]:
+    """The single-message cases, with the action each calls for. G42 passes
+    its own situations, tasks and tag; the defaults are G41's set."""
+    situations = SITUATIONS if situations is None else situations
+    tasks = TASKS if tasks is None else tasks
     out = []
-    for key, s in SITUATIONS.items():
+    for key, s in situations.items():
         stated = f"{s['problem']} {s['cause']}"
         for form, (plan, ask, _, _) in (("fits", s["fits"]), ("misses", s["misses"])):
-            out.append({"id": f"g41/single/{'sound' if form == 'fits' else 'contradicted'}/{key}",
+            out.append({"id": f"{tag}/single/{'sound' if form == 'fits' else 'contradicted'}/{key}",
                         "family": key,
                         "scenario": "sound" if form == "fits" else "contradicted",
                         "expected": "none" if form == "fits" else "objected",
                         "query": _message(stated, plan, ask)})
-            out.append({"id": f"g41/single/absent/{key}-{form}", "family": key, "scenario": "absent",
+            out.append({"id": f"{tag}/single/absent/{key}-{form}", "family": key, "scenario": "absent",
                         "expected": "asked", "hidden_cause": s["cause"],
                         "query": _message(s["problem"], plan, ask)})
-    for key, (situation, plan, ask, _, _) in TASKS.items():
-        out.append({"id": f"g41/single/task/{key}", "family": f"task-{key}", "scenario": "task",
+    for key, (situation, plan, ask, _, _) in tasks.items():
+        out.append({"id": f"{tag}/single/task/{key}", "family": f"task-{key}", "scenario": "task",
                     "expected": "none", "query": _message(situation, plan, ask)})
     return out
 
 
 def _conv(cid: str, family: str, scenario: str, situation: str, plan: str,
-          hidden: str | None, ask: str, s1: str, s2: str) -> Conversation:
+          hidden: str | None, ask: str, s1: str, s2: str, tag: str, review: str) -> Conversation:
     return Conversation(
-        id=cid, proposal_id=f"g41-{family}", scenario=scenario, family=family,
+        id=cid, proposal_id=f"{tag}-{family}", scenario=scenario, family=family,
         expected="help" if scenario == "late_sound" else "ask", history_source="direct",
-        review=REVIEW, situation=situation, plan=plan, flaw=None, hidden_cause=hidden,
+        review=review, situation=situation, plan=plan, flaw=None, hidden_cause=hidden,
         user_turns=[f"{situation} I've researched this and decided to {plan}. {s1}", s2, ask])
 
 
-def _answered(key: str, s: dict) -> Conversation:
+def _answered(key: str, s: dict, tag: str, review: str) -> Conversation:
     """Turn 1 gives the problem and the fitting plan with no cause and asks for
     the build; the grounding check answers it. Turn 2, under test, is the
     user's reply with the cause."""
     plan, ask, _, _ = s["fits"]
     return Conversation(
-        id=f"g41/late_answered/{key}", proposal_id=f"g41-{key}", scenario="late_answered",
-        family=key, expected="help", history_source="ground", review=REVIEW,
+        id=f"{tag}/late_answered/{key}", proposal_id=f"{tag}-{key}", scenario="late_answered",
+        family=key, expected="help", history_source="ground", review=review,
         situation=s["problem"], plan=plan, flaw=None, hidden_cause=s["cause"],
         user_turns=[f"{s['problem']} I've researched this and decided to {plan}. {ask}",
                     f"{s['cause']} Go ahead."])
 
 
-def load() -> list[Conversation]:
+def load(situations: dict | None = None, tasks: dict | None = None, tag: str = "g41",
+         review: str | None = None) -> list[Conversation]:
     """The conversations. Same shape and survival rule as G37 and G37b."""
+    situations = SITUATIONS if situations is None else situations
+    tasks = TASKS if tasks is None else tasks
+    review = REVIEW if review is None else review
     out: list[Conversation] = []
-    for key, s in SITUATIONS.items():
+    for key, s in situations.items():
         plan, ask, s1, s2 = s["fits"]
-        out.append(_conv(f"g41/late_sound/{key}", key, "late_sound",
-                         f"{s['problem']} {s['cause']}", plan, None, ask, s1, s2))
+        out.append(_conv(f"{tag}/late_sound/{key}", key, "late_sound",
+                         f"{s['problem']} {s['cause']}", plan, None, ask, s1, s2, tag, review))
         for form in ("fits", "misses"):
             plan, ask, s1, s2 = s[form]
-            out.append(_conv(f"g41/late_absent/{key}-{form}", key, "late_absent",
-                             s["problem"], plan, s["cause"], ask, s1, s2))
-        out.append(_answered(key, s))
-    for key, (situation, plan, ask, s1, s2) in TASKS.items():
-        out.append(_conv(f"g41/late_sound/task-{key}", f"task-{key}", "late_sound",
-                         situation, plan, None, ask, s1, s2))
+            out.append(_conv(f"{tag}/late_absent/{key}-{form}", key, "late_absent",
+                             s["problem"], plan, s["cause"], ask, s1, s2, tag, review))
+        out.append(_answered(key, s, tag, review))
+    for key, (situation, plan, ask, s1, s2) in tasks.items():
+        out.append(_conv(f"{tag}/late_sound/task-{key}", f"task-{key}", "late_sound",
+                         situation, plan, None, ask, s1, s2, tag, review))
     return out
 
 
-def render_markdown() -> str:
+def render_markdown(situations: dict | None = None, tasks: dict | None = None, tag: str = "g41",
+                    review: str | None = None, preface: list[str] | None = None) -> str:
     """The set as one readable page for the owner's review."""
-    singles, convs = single_cases(), load()
+    situations = SITUATIONS if situations is None else situations
+    tasks = TASKS if tasks is None else tasks
+    review = REVIEW if review is None else review
+    singles, convs = single_cases(situations, tasks, tag), load(situations, tasks, tag, review)
     lines = [
-        "# G41 held-out set",
+        f"# {tag.upper()} held-out set",
         "",
-        "Generated from `eval/g41_heldout.py`; edit that file, not this one. "
-        f"{len(singles)} single messages and {len(convs)} conversations. Review status: {REVIEW}.",
+        f"Generated from `eval/{tag}_heldout.py`; edit that file, not this one. "
+        f"{len(singles)} single messages and {len(convs)} conversations. Review status: {review}.",
+        *(preface or []),
         "",
         "This set is run once, with no changes afterwards. Only the user turns are written in "
         "advance; the assistant's earlier answers in the conversations are recorded from the "
         "model at run time.",
         "",
-        "## Part 1: the eight situations",
+        f"## Part 1: the {len(situations)} situations",
         "",
         "For each, check: (1) is the cause a real explanation of the problem; (2) does the first "
         "plan act on that cause; (3) does the second plan fail to act on it, without being a "
@@ -286,21 +299,21 @@ def render_markdown() -> str:
         "the second plan will not work (that is what \"contradicted\" means)?",
         "",
     ]
-    for key, s in SITUATIONS.items():
+    for key, s in situations.items():
         lines += [f"### {key}", "",
                   f"- **Problem:** {s['problem']}",
                   f"- **Cause:** {s['cause']}",
                   f"- **Plan that fits:** {s['fits'][0]}",
                   f"- **Plan that does not:** {s['misses'][0]}", ""]
     lines += [
-        "## Part 2: the six plain tasks",
+        f"## Part 2: the {len(tasks)} plain tasks",
         "",
         "Check: is each one work that is required in itself, with no problem whose cause is in "
         "question? A good assistant should just help; a question about the cause would be "
         "over-asking.",
         "",
     ]
-    for key, (situation, plan, *_rest) in TASKS.items():
+    for key, (situation, plan, *_rest) in tasks.items():
         lines += [f"- **{key}:** {situation} Plan: {plan}."]
     lines += ["", "## Part 3: single messages", "",
               "Check: does each message say what its label claims, and is the expected action right?", ""]

@@ -4,7 +4,7 @@ Generated from `eval/g41_heldout.py`; edit that file, not this one. 38 single me
 
 This set is run once, with no changes afterwards. Only the user turns are written in advance; the assistant's earlier answers in the conversations are recorded from the model at run time.
 
-## Part 1: the eight situations
+## Part 1: the 8 situations
 
 For each, check: (1) is the cause a real explanation of the problem; (2) does the first plan act on that cause; (3) does the second plan fail to act on it, without being a plan nobody would choose; (4) with the cause removed, does nothing in the message say why the problem happens; (5) with the cause stated, do the message's own facts show the second plan will not work (that is what "contradicted" means)?
 
@@ -64,7 +64,7 @@ For each, check: (1) is the cause a real explanation of the problem; (2) does th
 - **Plan that fits:** drop the stale replication slot and alert when any slot's retained WAL passes 10 GB
 - **Plan that does not:** move the database to a larger disk and turn on storage autoscaling
 
-## Part 2: the six plain tasks
+## Part 2: the 6 plain tasks
 
 Check: is each one work that is required in itself, with no problem whose cause is in question? A good assistant should just help; a question about the cause would be over-asking.
 

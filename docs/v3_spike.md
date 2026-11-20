@@ -471,3 +471,314 @@ Nothing is changed after the test result.
 By family, Jev's misses concentrate in `partner-rate-limit` (0.57 against the LLM's 1.00), `stale-dashboard` (0.71 against 0.95) and `database-disk` (0.71 against 0.79). JSON state scored 0.812 on this cell (each arm on its own best rule), better than text state but still short.
 
 **Decision.** Keep `GROUND_SYSTEM` on `claude-sonnet-5-5` as the grounding classifier. `GROUND_BACKEND=llm` stays the default, and Jev stays an optional backend. Under the rule fixed before the run, nothing here is changed or rerun.
+
+# G42: aiming Jev at G41's misses (spec fixed 2026-11-18, before any run)
+
+**Question.** G41's Jev pick tied the current classifier everywhere except no-evidence single messages (0.73 against 1.00). Its misses had two patterns: a problem named by an error type that reads as its own cause ("rate-limit errors"), and a plan that names the cause ("drop the stale replication slot"). One case was objected to instead of asked. Can documented Jev practice close these gaps without losing what G41 gained? Jev only, as before.
+
+**What changes.** Each change follows TypeSafe's docs and targets one kind of miss. The standard does not change: a plain statement of the cause counts, and the cause must be stated, not implied by the plan.
+1. **A narrower cause question with examples.** `mechanism_stated` asks whether the user states a fact about their own system that explains why the problem happens. An error's name or the plan does not count. Its yes and no criteria carry examples, which the docs say steer Jev when they look like real inputs. The examples come from situations used nowhere in dev or test.
+2. **"Stated apart from the plan" as its own question.** `cause_outside_plan` asks whether anything other than the plan says what causes the problem. Rules can require it alongside another cause question.
+3. **Objection needs a stated cause.** A rule option objects only when the evidence is present, because a plan can only contradict a cause the user stated; otherwise the case is asked.
+4. **Discounting confidence.** The docs warn that text arguing for an answer can move Jev, and every message says "I've researched this and decided". One arm adds a note to every question telling Jev to judge only the facts stated.
+
+**Arms**, three repeats each, all on text state (G41's pick; JSON state did worse on dev):
+- **llm:** the current classifier, `GROUND_SYSTEM` on `claude-sonnet-5-5`.
+- **jev_g42:** G41's questions plus the two new ones, with the confidence note.
+- **jev_g42_plain:** the same without the note. G41's questions are unchanged in this arm, so applying G41's pick to it shows what G42's changes add (reported only).
+
+**Rules searched on dev.** "Evidence present" means either G41's link probability, or every named yes/no question at or above a threshold. The named sets are `cause_stated`, `mechanism_stated`, `cause_outside_plan`, and the pairs mechanism+outside and cause+outside. Each is searched with or without the `problem_described` gate, with contradiction at 0.3–0.9, and with or without "objection needs evidence". That is 608 rules per arm. Shared thresholds are used unless per-shape ones beat them by 0.02 on dev.
+
+**Split.**
+- **Dev:** G40's 105 cases plus G41's 70 test cases, now spent (175).
+- **Test:** a new set, `eval/g42_heldout.py`, drafted for this goal and reviewed by the owner before any run. It has eight new situations: four named by an error type (`error-type`) and four whose fitting plan names the cause (`plan-names`). It also has six plain tasks, four of them outside the categories the problem question uses as examples. As in G41, the set has 38 single messages and 38 conversations (sound, no evidence, answered, tasks); a conversation is scored only if its history survives.
+
+**Rule.** G41's rule, unchanged. In every gated group (quiet on sound plans, quiet on tasks, asks on no evidence, quiet after an answer), in each shape the group has, Jev's rate is no more than max(0.07, one case in that cell) below the LLM's. A failed call is a miss. Objection is reported only. Results are also reported by pattern and by family.
+
+**What would count against the hypothesis.** Jev still misses `error-type` or `plan-names` cases with no cause stated, or the new questions make it ask on sound plans or answered conversations.
+
+**Order.** Owner review of the set, then histories recorded once and frozen, then the arms, then the summary. Nothing is changed after the test result.
+
+**Cost.** Histories: about $3–6, as in G41. The LLM arm: only the 70 new test cases are uncached, about 210 classifier calls. Jev: under a cent.
+
+## G42 result (run 2026-11-18): Jev does NOT match, now only on objection
+
+**Histories.** All 38 recorded with no failures. Survived: sound 8/8, tasks 6/6, answered 6/8, no evidence 6/16. In ten no-evidence conversations the unaided model asked about the cause itself before the last turn. Test: 38 single messages and 26 conversations. One scoring fix was made before the first summary was read: G41's cases had no `group` field, which the dev scorer requires.
+
+**Jev pick (dev only).** `jev_g42_plain`, with one shared rule: `problem_described>=0.3`, ask when `mechanism_stated < 0.7`, object when `contradicted >= 0.3`. Dev balanced accuracy was 0.880, against 0.843 for the LLM classifier. The arm with the confidence note scored 0.877, so the note did not help. Per-shape thresholds reached 0.882, short of the +0.02 margin. The new `mechanism_stated` question beat every other evidence set, and "objection needs evidence" was not picked.
+
+| Cell | LLM | Jev | Tolerance | Met |
+|---|---|---|---|---|
+| sound / single | 1.000 | 1.000 | 0.125 | yes |
+| sound / conversation | 1.000 | 1.000 | 0.125 | yes |
+| task / single | 1.000 | 1.000 | 0.167 | yes |
+| task / conversation | 1.000 | 1.000 | 0.167 | yes |
+| absent / single | 0.750 | 0.729 | 0.070 | yes |
+| absent / conversation | 0.500 | 0.833 | 0.167 | yes |
+| **answered / conversation** | **1.000** | **0.778** | 0.167 | **no** |
+| contradicted / single (reported only) | 1.000 | 1.000 | — | — |
+
+**The targeted gap closed.** On no-evidence cases, G41's pick applied to the same answers scored 0.375 on single messages and 0.278 on conversations. G42's pick scored 0.729 and 0.833. By pattern:
+
+| No evidence | LLM | G42 Jev | G41 pick |
+|---|---|---|---|
+| error-type, single | 0.75 | 0.62 | 0.25 |
+| error-type, conversation | 1.00 | 1.00 | 0.33 |
+| plan-names, single | 0.75 | 0.83 | 0.50 |
+| plan-names, conversation | 0.25 | 0.75 | 0.25 |
+
+On no-evidence conversations Jev now does better than the current classifier, which also struggles on this harder set (0.50).
+
+**What failed.** All four answered-conversation misses were objections to a sound plan, not questions. Jev scored the user's cause clearly (`mechanism_stated` at 0.97 or above), but its contradiction score of 0.30–0.36 cleared the 0.3 threshold picked on dev: french-tickets in all three repeats, mail-connections in one. G41's pick fails this cell identically (0.778), so G42's changes did not cause it. The weakness is in the contradiction question, which no round has redesigned: on sound plans its scores sit just above 0.3, too close to the threshold.
+
+**Decision.** Keep `GROUND_SYSTEM` on `claude-sonnet-5-5`, and `GROUND_BACKEND=llm` stays the default. Under the rule fixed before the run, nothing here is changed or rerun. The next lever is objection: a redesigned contradiction question, or a contradiction threshold chosen to protect sound and answered cases. That needs another fresh set.
+
+# G43 exploration: user turns only, then a graded cause question (plan fixed 2026-11-19, before any run)
+
+**Status.** Exploration on spent data only. Nothing here can change the G42 decision or replace a held-out test. It decides what the G43 held-out test should measure. The owner approved both changes to Jev's input on 2026-11-19.
+
+**Labels.** The owner's rulings of 2026-11-18 are recorded in `docs/g42_jev_diagnosis.md`. A plan clause that states what is happening now counts as a stated cause; a symptom that doesn't match the plan is still `asked`. Four G42 cases become `none`: single and late_absent cold-starts-fits, and single and late_absent admin-page-fits. G41's fitting plans were checked, and all of them only hint at the cause, so none change. G40's bare `right_fix` items have not been checked against ruling 1.
+
+**Pool.** G42's dev (G40's 105 cases plus G41's 70 test cases) and G42's test (64 cases): 239 cases, 102 of them conversations. Each part is also reported on its own.
+
+**Step 1: user turns only.** Conversations are sent as the user's messages alone, in order, with the latest marked as the one to judge. No assistant text is sent. The note on each question changes to match: the text holds only the user's messages; judge the latest in light of all of them; evidence in any earlier user message counts. The questions are otherwise G42's battery without the confidence note. Single messages are sent exactly as before, so their answers come from G42's run (the requests are identical).
+
+**Step 2: a graded cause question.** One multiple-choice question, `cause_level`, sent in its own request. It rates how strongly the user's own words state why the problem happens, never whether the diagnosis is right:
+- `none`: no cause stated, or only the symptom's or error's name;
+- `implied`: only the plan's wording hints at a cause, or the plan only states what it will achieve;
+- `asserted`: the user says what is happening now that causes the problem, anywhere, including a clause inside the plan;
+- `observed`: as `asserted`, and backed by a measurement, log, trace or count.
+
+Each level has examples from situations used nowhere in dev, test or earlier criteria. It is asked on single messages and on conversations in both forms (full and user turns only).
+
+**Rules, fixed now.**
+
+| Name | Object when | Ask when (and not objecting) |
+|---|---|---|
+| R0, G42's pick | `contradicted` ≥ 0.3 | `problem_described` ≥ 0.3 and `mechanism_stated` < 0.7 |
+| R1, objection needs evidence | `mechanism_stated` ≥ 0.7, link's P(contradicted) ≥ 0.2 and `contradicted` ≥ 0.3 | as R0 |
+| L1, graded | E ≥ 0.5, link's P(contradicted) ≥ 0.2 and `contradicted` ≥ 0.3 | `problem_described` ≥ 0.3 and E < 0.5 |
+
+E is P(asserted) + P(observed) from `cause_level`. L1 takes `problem_described`, `contradicted` and the link question from the battery run on the same state. E at 0.3 and 0.7 is reported only.
+
+**Comparisons.**
+- Step 1: R0 and R1 on full versus user-only state. Only conversations differ.
+- Step 2: L1 versus R1, on the same state.
+- The LLM classifier's cached answers are shown for reference, scored against the same labels.
+- Also reported: the distribution of `cause_level` by expected action, and whether its probabilities follow the order of the levels.
+
+**What would count against each change.**
+- User-only: answered conversations lose their evidence (the answer reads as a non sequitur without the question), or no-evidence conversations do no better.
+- Graded: E does not separate stated from withheld causes better than `mechanism_stated`. Or the four relabelled plan-clause cases and the plans that only hint at a cause still land on the same side.
+
+**Cost.** Jev only, 3 repeats. Step 1 sends 102 conversations, about 306 requests. Step 2 sends 239 + 102 cases, about 1,023 single-question requests. Well under a dollar.
+
+## G43 exploration result (run 2026-11-19): neither change helps
+
+**Runs.** Step 1: 306 requests. Step 2: 1,023 requests. No call failed. The pool is the 239 spent cases with the four ruling-1 relabels. Rates are shown on the whole pool; G42's dev and test parts point the same way (`results/g43_explore/summary.json`). The LLM column is the classifier's cached G42 answers, scored against the same labels.
+
+| Cell (whole pool) | LLM | R0 full | R0 user | R1 full | R1 user | L1 full | L1 user |
+|---|---|---|---|---|---|---|---|
+| quiet / single | 0.895 | 0.819 | 0.819 | 0.848 | 0.848 | 0.886 | 0.886 |
+| quiet / conversation | 0.956 | 0.886 | 0.877 | 0.886 | 0.877 | 0.947 | 0.974 |
+| task / both shapes | 1.000 | 1.000 | 1.000 | 1.000 | 1.000 | 1.000 | 1.000 |
+| ask / single | 0.930 | 0.853 | 0.853 | **0.992** | 0.992 | 0.922 | 0.922 |
+| ask / conversation | 0.735 | 0.980 | 0.843 | **0.980** | 0.863 | 0.814 | 0.775 |
+| answered / conversation | 1.000 | 0.926 | **0.704** | 1.000 | 0.907 | 1.000 | 0.907 |
+| object / single (reported only) | 0.752 | 0.837 | 0.837 | 0.532 | 0.532 | 0.532 | 0.532 |
+
+Single messages are identical across forms by design.
+
+**Step 1, user turns only: worse, against the hypothesis.** Removing the assistant's replies hurt conversations in both directions:
+- **More objections after an answer.** Without the assistant's question in front of it, the user's answer drew higher contradiction scores: g42 mail-connections 0.22–0.30 → 0.38–0.40; g41 late-report 0.54–0.59 when objected; g42 dns-failures 0.30–0.35. Answered conversations under R0 fell from 0.926 to 0.704.
+- **Fewer questions where no cause was given.** `mechanism_stated` rose on these conversations, for example held/slow-build-misses 0.71–0.73 and g41/stale-dashboard-fits 0.73–0.79. Under R0, ask/conversation fell from 0.980 to 0.843.
+
+The assistant's turns give Jev a frame: "the assistant asked how you know, and here is the answer". On these cases that frame helps more than the assistant's suggested causes hurt. One caveat: the note on each question changed with the state, so the two effects can't be told apart. The owner-approved change is dropped.
+
+**Step 2, the graded cause question: no better than `mechanism_stated`.**
+- **It separates less well.** E is P(asserted) + P(observed). As a separator between stated and withheld causes, its AUC is 0.893 on single messages, against 0.938 for `mechanism_stated`, and 0.960 on conversations, against 0.980.
+- **L1 trades questions for quiet.** Against R1 it is better on sound plans (0.886 vs 0.848 single, 0.947 vs 0.886 conversation) and worse on asking (0.922 vs 0.992, 0.814 vs 0.980). At 0.7 it is about R1 again.
+- **Jev doesn't treat the levels as a scale.** Only 50% of answers have probabilities that rise to one peak and fall away. Contradicted cases put 0.26 on `none` and 0.36 on `observed`.
+- **It follows ruling 1 on plan clauses.** cold-starts-fits E = 0.86–0.92 (quiet); admin-page-fits 0.52–0.63 (just quiet); plans that only hint stay low (translation-quota 0.26–0.30, partner-outages 0.04–0.05).
+- **But it reads a measured symptom as observed evidence.** french-tickets-fits is rated `observed` in all six answers (E 0.57–0.82) because "three days against a few hours" is a measurement. That is the comparison pattern from the G42 diagnosis, and the level definitions don't separate a measured symptom from a measured cause.
+
+**What this leaves.**
+- Of the rules tried, R1 on the full conversation is the strongest on the spent pool: it asks on 0.99 / 0.98 of no-evidence cases and stays quiet on every answered one. It was picked after reading G42's test, so only a fresh set can confirm it.
+- Its gaps against the LLM:
+  - quiet on sound plans: 0.848 vs 0.895 on single messages, 0.886 vs 0.956 on conversations;
+  - objection recall: 0.53 vs 0.75, reported only. Most of the misses are G40 proposals with a stated cause.
+- The graded question is better at staying quiet on sound plans. If it is kept, the next try is a cause-only level definition ("a measurement of the symptom is not evidence of the cause"), not a replacement for `mechanism_stated`.
+
+Nothing here changes the default: `GROUND_BACKEND=llm`.
+
+# G43 exploration 2: split contradiction, risk questions, and a cascade (plan fixed 2026-11-19, before any run)
+
+**Status.** Exploration on the same 239 spent cases, full conversation state, the same four relabels. Like exploration 1, it decides what G43's held-out test measures, not whether Jev replaces the LLM.
+
+**Where the ideas come from.**
+- *Value of information.* Recent work on when assistants should ask frames a clarifying question as worth asking only when the expected gain from the answer, weighted by the stakes, beats the cost of interrupting the user. It also argues that fixed confidence thresholds ignore that stakes vary. Gloss's rule today is "ask whenever the evidence is missing", which treats every plan as equally costly to get wrong.
+- *TypeSafe's routing guidance.* Give the uncertain band its own outcome rather than rounding it to one side. Threshold the probability of the option you act on. Raise thresholds as the cost of a wrong branch rises.
+- *Verified cascades.* A cheap decision handles the clear cases and hands the rest to a stronger model.
+
+**New questions**, in one Jev request per case, three repeats:
+- `plan_misses_cause` (yes/no): the user states what causes the problem, and the plan changes something else instead.
+- `plan_breaks_requirement` (yes/no): the user states a requirement or constraint that the plan cannot meet.
+- `wasted_effort` (yes/no): the risk framing of the evidence question. If the assistant builds what the user asks without questioning it, is the work likely to be wasted because nothing the user says shows the plan will fix the problem?
+- `stakes` (yes/no): the plan is costly or hard to undo if it's wrong (weeks of work, a rewrite, new infrastructure, a migration, hiring, a change customers see). Descriptive only, since the labels don't encode stakes.
+- `bad_solution` (yes/no): an experienced engineer reading only the user's words would doubt the plan solves the problem. This judges the diagnosis, which the standard forbids, so it is reported only.
+
+The contradiction questions carry examples from situations used nowhere in the pool.
+
+**Rules, fixed now.** R1 is exploration 1's rule and is the reference.
+
+| Name | Object when | Ask when (and not objecting) |
+|---|---|---|
+| S1, split contradiction | (`mechanism_stated` ≥ 0.7 and `plan_misses_cause` ≥ 0.5) or `plan_breaks_requirement` ≥ 0.5 | as R1: `problem_described` ≥ 0.3 and `mechanism_stated` < 0.7 |
+| K1, risk framing | as R1 | `problem_described` ≥ 0.3 and `wasted_effort` ≥ 0.5 |
+| C1(R1), cascade | Jev's R1 unless a deciding score is in its band; then the LLM's cached answer for that repeat | same |
+| C1(S1), cascade | the same, over S1 | same |
+
+The cascade bands are `mechanism_stated` in [0.55, 0.85), `contradicted` in [0.2, 0.45) and the link question's P(contradicted) in [0.1, 0.3) when evidence is present, and for S1 its two new questions in [0.3, 0.7). Also reported: S1 and K1 at 0.3 and 0.7, and the share of cases deferred.
+
+**Descriptive.** The mean of `stakes` and of `bad_solution` per group, and for `bad_solution`, whether it separates plans that fit from plans that miss among the no-evidence cases. Under value of information, low-stakes no-evidence cases are the ones where a question might not be worth it.
+
+**Reading the results.**
+- S1 helps if objection recall rises above R1's 0.53 without losing the quiet cells.
+- K1 helps if it beats `mechanism_stated` on the ask and quiet cells. TypeSafe's docs warn that Jev is weak on indirection, which predicts it won't.
+- The cascade helps if it reaches the LLM on the quiet cells and keeps Jev's lead on asking while deferring under a third of cases.
+
+**Cost.** About 717 Jev requests. The cascade uses the LLM answers G42 already cached for every pool case.
+
+## G43 exploration 2 result (run 2026-11-19)
+
+717 requests, none failed. Whole pool, full conversation state; the dev and test parts point the same way (`results/g43_explore/summary2.json`).
+
+| Cell | LLM | R1 | S1 split | S1 @0.3 | K1 risk | C1(R1) | C1(S1) |
+|---|---|---|---|---|---|---|---|
+| quiet / single | 0.895 | 0.848 | 0.810 | 0.771 | **1.000** | 0.829 | 0.800 |
+| quiet / conversation | 0.956 | 0.886 | 0.886 | 0.833 | **1.000** | 0.921 | 0.921 |
+| task / both shapes | 1.000 | 1.000 | 1.000 | 1.000 | 1.000 | 1.000 | 1.000 |
+| ask / single | 0.930 | **0.992** | 0.992 | 0.969 | 0.589 | 0.992 | 0.969 |
+| ask / conversation | 0.735 | **0.980** | 0.980 | 0.980 | 0.245 | 0.941 | 0.941 |
+| answered / conversation | 1.000 | 1.000 | 1.000 | 1.000 | 1.000 | 1.000 | 1.000 |
+| object / single (reported only) | 0.752 | 0.532 | 0.610 | **0.752** | 0.532 | 0.617 | 0.681 |
+| share sent to the LLM | — | — | — | — | — | 0.202 | 0.229 |
+
+**Split contradiction (S1): more objections, at a cost.** Separating "the plan misses the stated cause" from "the plan breaks a stated requirement" raised objection recall from 0.53 to 0.61. At 0.3 it matched the LLM's 0.75, the first Jev setup to do so. But it objects to some sound proposals: quiet/single fell to 0.81, or 0.77 at 0.3. On sound proposals with constraints, the requirement question fires.
+
+**Risk framing (K1): the indirection weakness, as predicted.** "Would the work be wasted?" made Jev cautious about asking. It stayed quiet on every sound plan but asked on only 0.59 of single messages and 0.25 of conversations missing a cause. As a separator between the quiet and ask groups, its AUC is 0.909, against 0.963 for `mechanism_stated`.
+
+**Cascade (C1): not worth it in this form.** It sends 20–23% of cases to the LLM. Quiet on conversations rises to 0.921, but quiet on single messages falls to 0.829: the deferred band holds cases Jev had right and the LLM gets wrong. It also brings in the LLM's weakness at asking on conversations (0.98 → 0.94). Objection recall rises to 0.62–0.68. It does not reach the LLM on the quiet cells.
+
+**Stakes: no signal.** `stakes` averaged 0.21–0.35 in every group. Jev reads almost every plan as cheap to undo, so a value-of-information gate on Jev's stakes would not separate anything. Stakes would have to come from elsewhere (the size of the plan, or the product context), and the labels encode none of it.
+
+**Bad solution: weak, and judges the diagnosis.** Among no-evidence cases it separates plans that miss from plans that fit with an AUC of 0.786. It doubts sound plans too: a mean of 0.44 on quiet single messages. It stays reported only.
+
+**What the remaining quiet-cell gap is made of.** On quiet single messages, R1's 16 wrong answers fall in three places:
+- 7 come from four sound proposals and 6 from the bare `diagnose` items. Most of these are **plans that are themselves an investigation**: "take heap snapshots an hour apart and diff them to find what is being retained, before changing any limits".
+- 3 are the relabelled admin-page-fits, with `mechanism_stated` at 0.66–0.69.
+
+For an investigation, asking "how do you know this addresses the cause?" can't change what the user does: finding the cause is the plan. This is the value-of-information test ("would the answer change the action?") showing up in the data, and no question asks it yet.
+
+# G43 exploration 3: a Jev decision tree, and a value-of-information model (plan fixed 2026-11-19, before any run)
+
+**Source.** Dong et al., "Value of Information: A Framework for Human–Agent Communication" (arXiv 2601.06407). An agent holds a belief b(θ) over hypotheses. Acting now is worth V(b) = max_a Σ_θ b(θ)U(θ,a). Asking question q is worth the expected value after the answer, minus V(b), minus a per-question cost c that stands for the user's time and effort. The agent asks only if that net value is positive. The paper elicits beliefs from an LLM; c is an input, not a tuned parameter. It reports matching or beating tuned confidence thresholds in most conditions; its own table shows it losing to them at high c.
+
+**Gloss's version.** One question, two hypotheses: the plan is right, or the plan is wrong.
+
+| Action | Plan right | Plan wrong |
+|---|---|---|
+| build (stay quiet) | 0 | −L |
+| ask | −c | −c − (1−r)L |
+| object (only with a stated cause) | −c − d | −c − (1−r_o)L |
+
+- L is the cost of building the wrong thing.
+- c is the cost of interrupting.
+- r is the chance the user's answer exposes a wrong plan.
+- r_o is the same for an objection, which names the conflict.
+- d is the extra cost of a false objection.
+
+So asking beats building exactly when P(wrong) · r · L > c.
+
+The cases where asking can't pay off fall out of the model with no special handling:
+- **Investigation plans:** the plan is how the cause gets found, so P(wrong) ≈ 0.
+- **Tasks:** nothing is going wrong.
+- **Answered conversations:** asking again teaches nothing (r = 0) and costs twice as much.
+
+**Fixed parameters.**
+- r = 0.8, r_o = 0.9, d = 2c.
+- c ∈ {0.05, 0.1, 0.25, 0.5}.
+- L comes from a plan-scope question: one small change = 1, a component = 3, a system or infrastructure change = 10, an organisational change = 10.
+- π, the prior that a plan with no stated evidence is wrong, is 0.5. That is how the pool was built; 0.25 is reported as a sensitivity check.
+
+**Belief from Jev.** P(wrong) = 0 if `problem_described` < 0.3 or `plan_is_investigation` ≥ 0.5. Otherwise P(wrong) = (1 − m)·π + m·q, where m is `mechanism_stated` and q is the larger of the two step-4 scores.
+
+**New questions**, examples from situations used nowhere in the pool:
+- `plan_is_investigation` (yes/no): the plan is a way to find the cause (measure, profile, reproduce, log, compare), not a change meant to fix it.
+- `plan_scope` (multiple choice): small / component / system / organisation.
+- Step 4, worded on the premise that a cause is stated, sent in a separate request:
+  - `misses_stated_cause`: the plan changes something other than the cause the user states.
+  - `breaks_stated_requirement`: a requirement the user states rules the plan out.
+
+**Policies.**
+- **T1, the tree.** Step 1: `problem_described` < 0.3 → quiet. Step 2: `plan_is_investigation` ≥ 0.5 → quiet. Step 3: `mechanism_stated` < 0.7 → ask. Step 4: either step-4 score ≥ 0.5 → object; otherwise quiet. Step 4 at 0.3 and 0.7 is reported only.
+- **V1(c), value of information.** The action with the highest expected utility, using Jev's belief and L. Objection is allowed only when `mechanism_stated` ≥ 0.7, as the standard requires.
+- References: R1, S1, the LLM, always quiet, always ask.
+
+**Scoring.**
+1. The label rates as before. V1 is expected to give up some questions on small plans, by design.
+2. Realized utility under the table above, using each case's known truth. Plans that are wrong: contradicted, mismatch, infeasible, wrong_fix, `*-misses`, `mis-*`. All others are right: sound, answered, tasks, fits, `snd-*`, right_fix, diagnose. A repeat question in an answered conversation costs 2c and teaches nothing. Utility is scored twice: with Jev's L and with a uniform L = 3. V1 optimizes the first, so the uniform score is the fairer comparison.
+
+**Cost.** Two Jev requests per case and repeat, about 1,434 in all. The LLM answers are cached.
+
+## G43 exploration 3 result (run 2026-11-19)
+
+1,434 requests, none failed (`results/g43_explore/summary3.json`).
+
+### The tree: the investigation step closes the quiet gap on single messages
+
+| Cell (whole pool) | LLM | R1 | T1 tree | T1, step 4 @0.3 |
+|---|---|---|---|---|
+| quiet / single | 0.895 | 0.848 | **0.943** | 0.924 |
+| quiet / conversation | 0.956 | 0.886 | 0.912 | 0.912 |
+| task / both shapes | 1.000 | 1.000 | 1.000 | 1.000 |
+| ask / single | 0.930 | 0.992 | **0.992** | 0.992 |
+| ask / conversation | 0.735 | 0.980 | **0.980** | 0.980 |
+| answered / conversation | 1.000 | 1.000 | 1.000 | 1.000 |
+| object / single (reported only) | 0.752 | 0.532 | 0.525 | 0.567 |
+
+**Step 2 is where the gain comes from.** It flagged 11 cases as investigations in at least two of three repeats:
+- the heap-snapshot and similar sound proposals, and the bare `diagnose` items;
+- four wrong proposals (full/mis-01, mis-04, inf-01, inf-15).
+
+On single messages, Jev now stays quiet on sound plans more often than the LLM, and it still asks wherever it did before. The G42 test part has no investigation plans, so it is unchanged there. Quiet on conversations (0.912) is still behind the LLM (0.956).
+
+**Step 4, worded on the premise of a stated cause, didn't raise objection recall** (0.525 at 0.5, 0.567 at 0.3). Asking about contradiction separately (S1, 0.61) did better than asking it only after a cause is stated.
+
+### The value-of-information model: the useful part is the scoring, not the policy
+
+**As a policy, V1 does poorly on the labels.**
+- With any small c, it asks on most sound plans. Its belief keeps P(wrong) well above zero unless Jev is very sure.
+- It asks again in answered conversations, because Jev can't tell an answered conversation from one where the cause was stated from the start.
+- At c = 0.5 it is closest to the labels but still worse than T1 everywhere.
+- `plan_scope` hardly varies: the mean L is 1.8–3.7 across groups, and tasks score highest. Jev's sense of stakes is weak here, as in exploration 2.
+
+**As a way to score policies, it changes the picture.** Mean utility per decision; higher is better. Each cell gives Jev's L / a uniform L of 3.
+
+| Policy | c = 0.05 | c = 0.1 | c = 0.25 | c = 0.5 |
+|---|---|---|---|---|
+| always quiet | −1.30 / −1.05 | −1.30 / −1.05 | −1.30 / −1.05 | −1.30 / −1.05 |
+| always ask | −0.31 / **−0.27** | −0.37 / −0.32 | −0.53 / −0.48 | −0.80 / −0.75 |
+| LLM | **−0.29** / −0.28 | **−0.31** / **−0.30** | **−0.38** / **−0.37** | **−0.50** / **−0.49** |
+| R1 | −0.39 / −0.37 | −0.41 / −0.39 | −0.49 / −0.46 | −0.61 / −0.59 |
+| S1 | −0.31 / −0.33 | −0.34 / −0.35 | −0.42 / −0.43 | −0.55 / −0.56 |
+| T1 | −0.36 / −0.38 | −0.39 / −0.40 | −0.46 / −0.47 | −0.57 / −0.59 |
+| V1 | −0.37 / −0.38 | −0.41 / −0.41 | −0.48 / −0.49 | −0.58 / −0.64 |
+
+What it shows:
+1. **The costly mistake is building a wrong plan without a word, not asking once too often.** Asking pays whenever P(wrong) · r · L > c. With r = 0.8 and L = 3, a question costing a quarter of a small wasted change (c = 0.25) pays once P(wrong) is above 0.10.
+2. **The LLM leads on utility at every cost** even though it asks less on conversations. It objects to 0.75 of wrong plans that come with a stated cause, against 0.53 for Jev's rules. S1, the best Jev objector, is the best Jev policy.
+3. **Always asking beats every Jev rule when c is low** (and beats the LLM too with uniform L at c = 0.05). This depends on the pool: 84 of 239 plans (35%) are wrong, by construction. In real use the share of wrong plans sets where the break-even falls, and that share is unknown.
+4. **A linear cost per question misses something the literature names but doesn't model: trust erodes with repeated questions.** That cost grows with how often Gloss asks across a session, not with any single question.
+
+**What it suggests for G43.** Score candidates by utility as well as by label rates, at stated values of c and of the share of wrong plans. Treat objection recall as the main gap rather than quiet-on-sound. Keep the investigation step. On utility the best Jev candidate is the tree with S1's contradiction questions (T1 steps 1–3, then S1's objection). It was not run as a single policy here.

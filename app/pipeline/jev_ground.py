@@ -302,3 +302,394 @@ async def ask_jev_g41(state: str | dict, form: str, conversation: bool) -> dict:
         resp = await client.system_one(state=state, questions=g41_battery(form, conversation),
                                        model=settings.jev_model)
     return {k: v.model_dump(mode="json") for k, v in resp.answers.items()}
+
+
+# ── G42: narrower cause questions, examples in criteria, objection needs a cause ─
+# G41's Jev pick missed five of 16 single messages that withheld the cause. Each
+# change below follows a documented Jev practice (docs.typesafe.ai) aimed at one
+# kind of miss; the standard itself is unchanged: a plain statement of the cause
+# counts, and the cause has to be stated, not implied by the plan.
+#   - "Rate-limit errors" read as its own cause. Jev "answers the question you
+#     wrote": name the narrowest fact that decides it (a fact about the user's
+#     own system), and put examples that look like real inputs in the criteria.
+#   - A plan that names the cause ("drop the stale replication slot") passed as
+#     a stated cause. "Is the cause stated anywhere but the plan?" is its own
+#     yes/no question rather than an exception buried in another.
+#   - A message with no cause was objected to. A plan can only contradict a
+#     cause the user has stated, so a rule may require evidence before objecting.
+#   - Jev can be moved by text that argues for an answer, and every message says
+#     "I've researched this and decided". One arm tells it to ignore that.
+# The examples come from situations used nowhere in dev or test.
+
+_IGNORE_CONFIDENCE = (
+    " How sure the user sounds, and saying they researched or decided, is not evidence: judge "
+    "only the facts they state."
+)
+
+_G42_NOULS: dict[str, tuple[str, dict, dict]] = {
+    "mechanism_stated": (
+        "Does the user state a fact about their own system, data or process that explains why "
+        "the problem happens: for example how much or how often something runs, what a component "
+        "does, or what a measurement, trace or log showed? The name or type of the error or "
+        "symptom (such as \"rate-limit errors\", \"out-of-memory crashes\", \"timeouts\") only "
+        "says what the problem is, not why it happens, and does not count. The plan the user has "
+        "chosen does not count either.",
+        {"meaning": "Yes: beyond the symptom and the plan, the user states a fact that explains "
+                    "why the problem happens.",
+         "examples": [
+             "Our push notifications arrive hours late. Our sender batches them and only flushes "
+             "the batch every three hours.",
+             "Nightly backups fail with timeout errors. They copy 2 TB over a link capped at "
+             "50 Mbit/s, which takes longer than the eight-hour window.",
+         ]},
+        {"meaning": "No: the user names the problem, perhaps by its error type, and a plan, but "
+                    "states no fact that explains why it happens.",
+         "examples": [
+             "Our image-resizing service throws out-of-memory errors. I've decided to give it "
+             "more memory.",
+             "Our booking API returns connection-refused errors at peak. I've decided to raise "
+             "the database connection pool limit.",
+         ]},
+    ),
+    "cause_outside_plan": (
+        "Leaving aside the plan the user has chosen, does the user say what causes the problem? "
+        "A cause that appears only inside the plan does not count: \"clear the stuck cache\" "
+        "implies a stuck cache, but does not say the user found one.",
+        {"meaning": "Yes: a sentence other than the plan says what causes the problem.",
+         "examples": [
+             "Our nightly backups time out because they copy 2 TB over a 50 Mbit/s link. I've "
+             "decided to send only changed blocks.",
+         ]},
+        {"meaning": "No: the only sign of a cause is in the plan itself, or there is none.",
+         "examples": [
+             "Our booking API returns errors at peak. I've decided to raise the database "
+             "connection pool limit.",
+             "Our push notifications arrive late. I've decided to flush the notification batch "
+             "every minute instead of every three hours.",
+         ]},
+    ),
+}
+
+G42_NOULS = (*G41_NOULS, *_G42_NOULS)
+
+
+def g42_battery(conversation: bool, ignore_confidence: bool) -> dict:
+    """G41's questions on text state (G41's pick) plus the two G42 questions.
+    `ignore_confidence` adds the note telling Jev to discount how sure the user
+    sounds, to every question."""
+    note = (_CONVERSATION_NOTE if conversation else "") + (_IGNORE_CONFIDENCE if ignore_confidence else "")
+    qs = g41_battery("text", conversation)
+    if ignore_confidence:
+        for q in qs.values():
+            q["instructions"] += _IGNORE_CONFIDENCE
+    for name, (question, yes, no) in _G42_NOULS.items():
+        qs[name] = {"type": "noul", "instructions": question + note, "criteria": {"true": yes, "false": no}}
+    return qs
+
+
+@dataclass(frozen=True)
+class G42Rule:
+    """How G42's answers become an action.
+
+    `evidence` names what must be present for the link to count as stated:
+    ("link",) reads G41's probability of "link absent" (missing when it is at
+    least `ev_t`); otherwise every named yes/no question must be at least
+    `ev_t`. The question is asked when evidence is missing and the gate (if
+    any) is at least `gate_t`. `contradicted` at least `contra_t` objects; with
+    `contra_needs_evidence`, only when the evidence is present (a plan can only
+    contradict a cause the user stated), and otherwise the case is asked."""
+    evidence: tuple[str, ...] = ("link",)
+    ev_t: float = 0.2
+    gate: str | None = "problem_described"
+    gate_t: float = 0.3
+    contra_t: float = 0.3
+    contra_needs_evidence: bool = False
+
+    @property
+    def name(self) -> str:
+        gate = f"{self.gate}>={self.gate_t} " if self.gate else ""
+        ev = (f"p_absent>={self.ev_t}" if self.evidence == ("link",)
+              else f"min({','.join(self.evidence)})<{self.ev_t}")
+        needs = " if-evidence" if self.contra_needs_evidence else ""
+        return f"{gate}{ev} contra>={self.contra_t}{needs}"
+
+
+def g42_missing(answers: dict, rule: G42Rule) -> bool:
+    if rule.evidence == ("link",):
+        return answers["link"]["probabilities"]["absent"] >= rule.ev_t
+    return any(answers[n]["noul"] < rule.ev_t for n in rule.evidence)
+
+
+def g42_action(answers: dict, rule: G42Rule) -> str:
+    missing = g42_missing(answers, rule)
+    if answers["contradicted"]["noul"] >= rule.contra_t and not (rule.contra_needs_evidence and missing):
+        return "objected"
+    gated = rule.gate is None or answers[rule.gate]["noul"] >= rule.gate_t
+    return "asked" if gated and missing else "none"
+
+
+async def ask_jev_g42(state: str, conversation: bool, ignore_confidence: bool) -> dict:
+    """One Jev request with G42's questions; answers as plain dicts."""
+    from typesafe_sdk import AsyncTypeSafeClient
+
+    async with AsyncTypeSafeClient(api_key=settings.typesafe_api_key, timeout=120.0) as client:
+        resp = await client.system_one(state=state, questions=g42_battery(conversation, ignore_confidence),
+                                       model=settings.jev_model)
+    return {k: v.model_dump(mode="json") for k, v in resp.answers.items()}
+
+
+# ── G43 exploration: user turns only, and a graded cause question ───────────
+# Spent data only (docs/v3_spike.md, G43 exploration). Two changes, each
+# approved by the owner on 2026-11-19:
+#   - Conversations are sent as the user's messages alone. G42's misses on
+#     conversations came from assistant text: replies that restate the plan's
+#     reasoning, and clarifying questions that name other causes.
+#   - One multiple-choice question rates how strongly the user's own words
+#     state why the problem happens, from no cause to an observed one. It does
+#     not judge whether the diagnosis is right. Owner ruling (2026-11-18): a
+#     clause inside the plan counts when it says what is happening now.
+
+_USER_ONLY_NOTE = (
+    " The text holds only the user's messages from a conversation with an assistant; the "
+    "assistant's replies are left out. Judge the LATEST REQUEST in the light of all the user's "
+    "messages taken together. Evidence stated in any earlier user message counts."
+)
+
+
+def user_turns_view(messages: list[dict]) -> str | None:
+    """The user's messages alone, in order, the latest marked as the one to
+    judge. None when the latest user message is the only turn (as for
+    `assumptions.conversation_view`, so single messages are sent unchanged)."""
+    from app.pipeline.assumptions import conversation_view
+
+    if conversation_view(messages) is None:
+        return None
+    turns = [m for m in messages if m.get("role") in ("user", "assistant")]
+    while turns and turns[-1]["role"] != "user":
+        turns.pop()
+    users = [m["content"] for m in turns if m["role"] == "user"]
+    earlier = "\n\n".join(f"USER MESSAGE {i}: {t}" for i, t in enumerate(users[:-1], 1))
+    return ("THE USER'S EARLIER MESSAGES (the assistant's replies are left out):\n" + earlier
+            + "\n\nLATEST REQUEST (the user message to judge):\n" + users[-1])
+
+
+def g43_battery(conversation: bool, user_only: bool) -> dict:
+    """G42's battery without the confidence note; with `user_only`, the
+    conversation note describes a text of user messages alone."""
+    qs = g42_battery(conversation, False)
+    if conversation and user_only:
+        for q in qs.values():
+            q["instructions"] = q["instructions"].replace(_CONVERSATION_NOTE, _USER_ONLY_NOTE)
+    return qs
+
+
+_CAUSE_LEVEL = (
+    "How strongly does the user's own text state WHY the problem happens? Rate only what the "
+    "user says, not whether their diagnosis is right. A statement of what is happening now that "
+    "causes the problem counts wherever it appears, including inside the plan. The name or type "
+    "of the error or symptom is not a cause, and saying they researched or decided is not "
+    "evidence. If nothing is going wrong (the user just wants work done), answer none.",
+    {
+        "none": {
+            "meaning": "No cause is stated: the text gives the problem, perhaps by its error name, "
+                       "and a plan, but nothing about why it happens.",
+            "examples": [
+                "Our podcast feed shows 'feed fetch failed' errors in two directories. I've "
+                "decided to move the feed behind a CDN. Can you write the CDN config?",
+                "Warehouse labels sometimes print with the wrong address. I've decided to rewrite "
+                "the label template. Can you write the new one?",
+            ]},
+        "implied": {
+            "meaning": "Only the plan's wording hints at a cause, or the plan only says what it "
+                       "will achieve; the user never says what is happening now.",
+            "examples": [
+                "Readings from our rooftop weather stations have gaps every few hours. I've decided to add a "
+                "local buffer on each device so readings survive reconnects.",
+                "Thumbnails appear minutes after upload. I've decided to generate them in their "
+                "own worker pool so they appear faster.",
+            ]},
+        "asserted": {
+            "meaning": "The user says what is happening now that causes the problem, as a plain "
+                       "statement, in the plan or elsewhere, without a measurement behind it.",
+            "examples": [
+                "Chat messages arrive a minute late on Android, because the app only checks the "
+                "server once a minute in the background. I've decided to switch to push.",
+                "Thumbnails appear minutes after upload. I've decided to stop queuing them behind "
+                "the video transcodes, which hold the only worker for minutes at a time.",
+            ]},
+        "observed": {
+            "meaning": "The user states the cause and backs it with a measurement, log, trace, "
+                       "count or test.",
+            "examples": [
+                "Readings from our rooftop weather stations have gaps every few hours. The device logs show "
+                "the modem reconnecting each time, and the gaps match the reconnects to the minute.",
+                "About 2% of warehouse labels print with the wrong address; every one we checked "
+                "was an order edited after the label job had read it.",
+            ]},
+    },
+)
+
+CAUSE_LEVELS = tuple(_CAUSE_LEVEL[1])
+
+
+def cause_level_question(conversation: bool, user_only: bool) -> dict:
+    note = (_USER_ONLY_NOTE if user_only else _CONVERSATION_NOTE) if conversation else ""
+    return {"cause_level": {"type": "choice", "instructions": _CAUSE_LEVEL[0] + note,
+                            "criteria": _CAUSE_LEVEL[1]}}
+
+
+def stated_probability(answers: dict) -> float:
+    """E: the probability that the cause is at least asserted."""
+    p = answers["cause_level"]["probabilities"]
+    return p["asserted"] + p["observed"]
+
+
+async def ask_jev_questions(state: str, questions: dict) -> dict:
+    """One Jev request with the given questions; answers as plain dicts."""
+    from typesafe_sdk import AsyncTypeSafeClient
+
+    async with AsyncTypeSafeClient(api_key=settings.typesafe_api_key, timeout=120.0) as client:
+        resp = await client.system_one(state=state, questions=questions, model=settings.jev_model)
+    return {k: v.model_dump(mode="json") for k, v in resp.answers.items()}
+
+
+# ── G43 exploration 2: contradiction split in two, and risk questions ──────
+# docs/v3_spike.md, "G43 exploration 2". The two contradiction questions
+# separate the kinds of objection G40's proposals contain: a plan aimed at
+# something other than the stated cause, and a plan a stated requirement rules
+# out. The risk questions reframe asking as value of information; `stakes` and
+# `bad_solution` are descriptive only (the standard does not judge the
+# diagnosis, and the labels do not encode stakes).
+
+_G43_RISK_NOULS: dict[str, tuple[str, dict | str, dict | str]] = {
+    "plan_misses_cause": (
+        "Does the user state what causes the problem, and does their plan change something other "
+        "than that cause? Judge only against the cause the user states. If the user states no "
+        "cause, the answer is no.",
+        {"meaning": "Yes: the user states a cause, and the plan acts on something else.",
+         "examples": [
+             "Our report emails go out at 9am instead of 6am; the scheduler log shows the job waits "
+             "two hours for a lock the backup holds. I've decided to move the report job to a "
+             "bigger server.",
+         ]},
+        {"meaning": "No: the plan acts on the cause the user states, or the user states no cause.",
+         "examples": [
+             "Our report emails go out at 9am instead of 6am; the scheduler log shows the job waits "
+             "two hours for a lock the backup holds. I've decided to move the backup to 2am.",
+             "Our report emails go out late. I've decided to move the report job to a bigger server.",
+         ]},
+    ),
+    "plan_breaks_requirement": (
+        "Does the user state a requirement or constraint (a limit, budget, deadline, policy, or "
+        "compatibility need) that their plan cannot meet as described?",
+        {"meaning": "Yes: a requirement the user states rules the plan out.",
+         "examples": [
+             "Our customers' corporate networks block all third-party domains, and every page must "
+             "load for them. I've decided to load our fonts and charts from a public CDN.",
+         ]},
+        {"meaning": "No: the plan can meet every requirement the user states, or none is stated.",
+         "examples": [
+             "Our customers' corporate networks block all third-party domains, and every page must "
+             "load for them. I've decided to serve our fonts and charts from our own domain.",
+         ]},
+    ),
+    "wasted_effort": (
+        "If the assistant builds exactly what the user asks, without questioning it, how likely is "
+        "it that the work is wasted because nothing the user says shows the plan will fix their "
+        "problem? Judge from the user's words only.",
+        "Yes: the user gives nothing that shows the plan will fix the problem, so the work could "
+        "easily be wasted.",
+        "No: what the user says shows the plan addresses the problem, or the user just wants work "
+        "done and nothing is going wrong.",
+    ),
+    "stakes": (
+        "If this plan turns out to be wrong, is it costly or hard to undo: weeks of work, a "
+        "rewrite, new infrastructure, a data migration, hiring, or a change customers see?",
+        "Yes: a wrong plan would cost a lot of work or be hard to reverse.",
+        "No: the plan is small, quick, or easy to undo.",
+    ),
+    "bad_solution": (
+        "Would an experienced engineer, reading only what the user says, doubt that this plan "
+        "will solve the user's problem?",
+        "Yes: an experienced engineer would doubt the plan solves the problem.",
+        "No: the plan looks like a reasonable way to solve the problem, or there is no problem.",
+    ),
+}
+
+G43_RISK_NOULS = tuple(_G43_RISK_NOULS)
+
+
+def g43_risk_battery(conversation: bool) -> dict:
+    note = _CONVERSATION_NOTE if conversation else ""
+    return {name: {"type": "noul", "instructions": q + note, "criteria": {"true": yes, "false": no}}
+            for name, (q, yes, no) in _G43_RISK_NOULS.items()}
+
+
+# ── G43 exploration 3: a decision tree and a value-of-information model ─────
+# docs/v3_spike.md, "G43 exploration 3". Step 2 of the tree asks whether the
+# plan is an investigation (asking how the user knows the cause cannot change
+# what they do when finding the cause is the plan). `plan_scope` gives the cost
+# of a wrong plan for the value-of-information model. The step-4 questions are
+# worded on the premise that a cause is stated; they are only used for cases
+# that reach step 4.
+
+_G43_TREE_NOULS: dict[str, tuple[str, dict, dict]] = {
+    "plan_is_investigation": (
+        "Is the plan the user has chosen a way to find out what causes the problem (measuring, "
+        "profiling, logging, reproducing it, or comparing cases), rather than a change meant to "
+        "fix it?",
+        {"meaning": "Yes: the plan is to find out what is going on before fixing anything.",
+         "examples": ["Our nightly import has got slower over the last month. I've decided to log "
+                      "how long each stage takes for a week before changing anything."]},
+        {"meaning": "No: the plan is a change meant to fix the problem, or there is no problem.",
+         "examples": ["Our nightly import has got slower over the last month. I've decided to "
+                      "split the import across four parallel workers."]},
+    ),
+}
+
+_PLAN_SCOPE = (
+    "If the plan the user has chosen turned out to be the wrong one, how much work would be "
+    "wasted or need undoing?",
+    {
+        "small": "A small change: one function, query, index, setting or rule; hours of work.",
+        "component": "One component: a service's caching, a queue between two services, a new "
+                     "page, a schema change; days of work.",
+        "system": "A system change: a migration, a rewrite, new infrastructure, moving platforms "
+                  "or regions; weeks of work or hard to reverse.",
+        "organisation": "A change to people or process: hiring, reorganising a team, changing "
+                        "vendors or on-call; costly and slow to reverse.",
+    },
+)
+
+PLAN_SCOPE_COST = {"small": 1.0, "component": 3.0, "system": 10.0, "organisation": 10.0}
+
+_G43_STEP4: dict[str, tuple[str, dict, dict]] = {
+    "misses_stated_cause": (
+        "The user states why their problem happens. Does the plan they chose change something "
+        "other than that cause?",
+        _G43_RISK_NOULS["plan_misses_cause"][1],
+        {"meaning": "No: the plan acts on the cause the user states.",
+         "examples": [_G43_RISK_NOULS["plan_misses_cause"][2]["examples"][0]]},
+    ),
+    "breaks_stated_requirement": (
+        "The user states what they need. Does a requirement or constraint they state (a limit, "
+        "budget, deadline, policy or compatibility need) rule out the plan as described?",
+        _G43_RISK_NOULS["plan_breaks_requirement"][1],
+        _G43_RISK_NOULS["plan_breaks_requirement"][2],
+    ),
+}
+
+
+def g43_tree_battery(conversation: bool) -> dict:
+    """Steps 2 and the plan's scope, in one request."""
+    note = _CONVERSATION_NOTE if conversation else ""
+    qs = {n: {"type": "noul", "instructions": q + note, "criteria": {"true": y, "false": f}}
+          for n, (q, y, f) in _G43_TREE_NOULS.items()}
+    qs["plan_scope"] = {"type": "choice", "instructions": _PLAN_SCOPE[0] + note, "criteria": _PLAN_SCOPE[1]}
+    return qs
+
+
+def g43_step4_battery(conversation: bool) -> dict:
+    note = _CONVERSATION_NOTE if conversation else ""
+    return {n: {"type": "noul", "instructions": q + note, "criteria": {"true": y, "false": f}}
+            for n, (q, y, f) in _G43_STEP4.items()}

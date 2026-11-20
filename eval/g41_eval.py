@@ -71,20 +71,26 @@ def dev_cases() -> list[dict]:
 
 
 def test_cases() -> list[dict]:
+    return held_out_cases(h.single_cases(), h.load(), HISTORIES)
+
+
+def held_out_cases(singles: list[dict], convs: list, histories_path: Path,
+                   split: str = "test") -> list[dict]:
+    """Single messages plus the conversations whose frozen histories survived."""
     out = []
-    for c in h.single_cases():
-        out.append({**c, "split": "test", "shape": "single", "context": None,
+    for c in singles:
+        out.append({**c, "split": split, "shape": "single", "context": None,
                     "messages": [{"role": "user", "content": c["query"]}]})
-    if not HISTORIES.exists():
+    if not histories_path.exists():
         return out
-    histories = json.loads(HISTORIES.read_text())["histories"]
-    for c in h.load():
+    histories = json.loads(histories_path.read_text())["histories"]
+    for c in convs:
         rec = histories.get(c.id)
         if not rec or not rec["survived"]:
             continue
         messages = c.messages(rec["replies"])
         scenario = "late_task" if c.family.startswith("task-") else c.scenario
-        out.append({"id": c.id, "split": "test", "shape": "conversation", "scenario": scenario,
+        out.append({"id": c.id, "split": split, "shape": "conversation", "scenario": scenario,
                     "family": c.family,
                     "expected": _LATE_EXPECTED[c.scenario], "query": messages[-1]["content"],
                     "context": assumptions.conversation_view(messages), "messages": messages})
@@ -96,14 +102,18 @@ def test_cases() -> list[dict]:
 async def record(concurrency: int) -> None:
     if h.REVIEW != "owner-checked":
         raise SystemExit("eval/g41_heldout.py is not owner-checked: no run before the review")
-    if HISTORIES.exists():
-        raise SystemExit(f"{HISTORIES} exists: histories are recorded once and frozen")
+    await record_histories(h.load(), HISTORIES, concurrency)
+
+
+async def record_histories(convs: list, path: Path, concurrency: int) -> None:
+    """Record the conversations' earlier answers once and freeze them."""
+    if path.exists():
+        raise SystemExit(f"{path} exists: histories are recorded once and frozen")
     pe.JUDGE_EFFORT = "low"
     # late_answered's turn 1 is answered by the grounding check. Pin the check's
     # classifier to the model the baseline is measured on; .env's default
     # (sonnet-4-6) never asks, so no answered conversation would survive.
     settings.ground_model = g.LLM_GROUND_MODEL
-    convs = h.load()
     sem = asyncio.Semaphore(concurrency)
 
     async def one(c):
@@ -116,8 +126,8 @@ async def record(concurrency: int) -> None:
     results = await asyncio.gather(*(one(c) for c in convs))
     histories = {cid: rec for cid, rec, err in results if err is None}
     failed = [f"{cid}: {err}" for cid, _, err in results if err is not None]
-    OUT.mkdir(parents=True, exist_ok=True)
-    HISTORIES.write_text(json.dumps({"model": HISTORY_MODEL, "judge": HISTORY_JUDGE,
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps({"model": HISTORY_MODEL, "judge": HISTORY_JUDGE,
                                      "failed": failed, "histories": histories}, indent=2))
     by = defaultdict(lambda: [0, 0])
     for c in convs:
@@ -125,7 +135,7 @@ async def record(concurrency: int) -> None:
             key = "late_task" if c.family.startswith("task-") else c.scenario
             by[key][0] += histories[c.id]["survived"]
             by[key][1] += 1
-    print(f"[g41] histories: {len(histories)} recorded, {len(failed)} failed")
+    print(f"[{path.parent.name}] histories: {len(histories)} recorded, {len(failed)} failed")
     for k, (s, n) in sorted(by.items()):
         print(f"    {k}: {s} of {n} survived")
 
@@ -199,29 +209,35 @@ def _answers(arm: str) -> dict[str, list[dict]]:
     return out
 
 
-def predict(answers: dict[str, list[dict]], cases: list[dict], single: G41Rule,
-            conversation: G41Rule | None = None) -> dict[str, list[str]]:
+def predict(answers: dict[str, list[dict]], cases: list[dict], single,
+            conversation=None, action=jev_ground.g41_action) -> dict[str, list[str]]:
     """Actions per case; `conversation` (if given) is the rule for conversations."""
     out = {}
     for c in cases:
         rule = conversation if (conversation and c["shape"] == "conversation") else single
-        out[c["id"]] = [jev_ground.g41_action(a, rule) for a in answers.get(c["id"], [])]
+        out[c["id"]] = [action(a, rule) for a in answers.get(c["id"], [])]
     return out
 
 
-def pick(answers_by_arm: dict[str, dict], dev: list[dict]) -> dict:
+def pick(answers_by_arm: dict[str, dict], dev: list[dict], candidates: list | None = None,
+         action=jev_ground.g41_action) -> dict:
     """The one Jev setup, chosen on dev only (spec: shared thresholds unless
     per-shape ones beat them by PER_SHAPE_MARGIN balanced accuracy)."""
+    candidates = rules() if candidates is None else candidates
     singles = [c for c in dev if c["shape"] == "single"]
     convs = [c for c in dev if c["shape"] == "conversation"]
     shared, per_shape = [], []
+
+    def bal(ans, cases, r, conv=None):
+        return g.score(predict(ans, cases, r, conv, action), cases)["balanced"]
+
     for arm, ans in answers_by_arm.items():
-        scored = [(g.score(predict(ans, dev, r), dev)["balanced"], r) for r in rules()]
+        scored = [(bal(ans, dev, r), r) for r in candidates]
         best_score, best_rule = max(scored, key=lambda x: x[0])
         shared.append((best_score, arm, best_rule, None))
-        best_single = max(rules(), key=lambda r: g.score(predict(ans, singles, r), singles)["balanced"])
-        best_conv = max(rules(), key=lambda r: g.score(predict(ans, convs, r), convs)["balanced"])
-        both = g.score(predict(ans, dev, best_single, best_conv), dev)["balanced"]
+        best_single = max(candidates, key=lambda r: bal(ans, singles, r))
+        best_conv = max(candidates, key=lambda r: bal(ans, convs, r))
+        both = bal(ans, dev, best_single, best_conv)
         per_shape.append((both, arm, best_single, best_conv))
     top_shared = max(shared, key=lambda x: x[0])
     top_split = max(per_shape, key=lambda x: x[0])
