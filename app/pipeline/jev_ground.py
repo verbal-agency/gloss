@@ -837,3 +837,108 @@ def e5b_action(a: dict) -> str:
     if 1 - a["achieves_goal"]["noul"] >= 0.5:
         return "objected"
     return "none"
+
+
+# ── E5c: a claimed cause versus evidence for it ─────────────────────────────
+# docs/v3_spike.md, "E5c". Evidence is an observation that would have come out
+# differently if the claimed cause were wrong. `evidence_for_cause` carries
+# paired examples in one situation: a measured symptom (no), an asserted cause
+# (no), a measured cause (yes). Situations used nowhere in dev or test.
+
+_E5C_NOULS: dict[str, tuple[str, dict, dict]] = {
+    "cause_claimed": (
+        "Does the user say, or does their plan imply, what causes the problem? An implied cause counts: a plan "
+        "to fix a specific thing implies that thing is the cause.",
+        {"meaning": "Yes: a cause is stated or implied by the plan.",
+         "examples": ["Our map is slow to show tiles at peak. It's because the tile server is overloaded.",
+                      "Our map is slow to show tiles at peak. I've decided to cache rendered tiles."]},
+        {"meaning": "No: nothing is going wrong, or the user names the problem and asks for help without "
+                    "pointing at a cause.",
+         "examples": ["Our map is slow to show tiles at peak. Can you help me find out why?"]},
+    ),
+    "evidence_for_cause": (
+        "Does the user report an observation about the CAUSE, not the symptom, that points to that cause rather "
+        "than to other possible causes: a measurement, log, trace, profile, count, test, or a before-and-after? "
+        "A measurement of the symptom itself (how slow, how often, for whom) does not count. A plain statement "
+        "of the cause with nothing behind it does not count. A fact about their system that accounts for the "
+        "specific symptom does count.",
+        {"meaning": "Yes: an observation points to the stated cause rather than to others.",
+         "examples": [
+             "Our map takes four seconds to show tiles at peak. The tile server's logs show every tile is rendered "
+             "on request, while the few tiles already cached come back in 50 ms.",
+             "Product returns rose to 12% this quarter. In 200 return notes we read, 140 say the size ran small.",
+         ]},
+        {"meaning": "No: only the symptom is measured, or the cause is asserted with nothing behind it.",
+         "examples": [
+             "Our map takes four seconds to show tiles at peak and half a second at night.",
+             "Our map is slow to show tiles at peak because the tile server is overloaded.",
+             "Product returns rose to 12% this quarter, mostly on clothing and mostly from new customers.",
+         ]},
+    ),
+}
+
+
+def e5c_battery(conversation: bool) -> dict:
+    note = _CONVERSATION_NOTE if conversation else ""
+    qs = {n: {"type": "noul", "instructions": q + note, "criteria": {"true": y, "false": f}}
+          for n, (q, y, f) in _E5C_NOULS.items()}
+    for name in ("mechanism_stated", "cause_outside_plan"):
+        q, y, f = _G42_NOULS[name]
+        qs[name] = {"type": "noul", "instructions": q + note, "criteria": {"true": y, "false": f}}
+    return qs
+
+
+# ── E5d: is the plan costly or hard to reverse? ─────────────────────────────
+# docs/v3_spike.md, "E5d". Narrow questions about the WHOLE plan, not the step
+# asked for now, with paired examples in one situation used nowhere else.
+
+_E5D_NOULS: dict[str, tuple[str, dict, dict]] = {
+    "plan_reversible": (
+        "Think about the whole plan the user has chosen, not only the piece they ask for now. If the plan "
+        "turns out to be wrong, could the team undo it just by reverting a code or configuration change, "
+        "with no data migration, no rebuilt or replaced system, no new vendor, and no change to people or to "
+        "what customers rely on?",
+        {"meaning": "Yes: reverting a code or configuration change would undo it.",
+         "examples": [
+             "Our ferry booking site's seat map loads slowly. I've decided to lazy-load the deck images. Can "
+             "you write the loader?",
+             "Our ferry booking site's seat map loads slowly. I've decided to migrate the one image-size setting "
+             "from 2000 to 800 pixels. Can you write the config change?",
+         ]},
+        {"meaning": "No: undoing it would mean migrating data back, rebuilding or replacing a system, "
+                    "changing vendors or people, or changing something customers rely on.",
+         "examples": [
+             "Our ferry booking site's seat map loads slowly. I've decided to move the whole site to a new "
+             "front-end framework. Can you write the first component?",
+             "Our ferry booking site's seat map loads slowly. I've decided to change the seat-map format in our "
+             "public API, which partner travel agents read. Can you write the new serializer?",
+         ]},
+    ),
+    "plan_large": (
+        "Think about the whole plan the user has chosen, not only the piece they ask for now. Would carrying "
+        "out the whole plan take more than a couple of weeks of work?",
+        {"meaning": "Yes: the whole plan is weeks of work or more.",
+         "examples": [
+             "Our ferry booking site's seat map loads slowly. I've decided to move the whole site to a new "
+             "front-end framework. Can you write the first component?",
+         ]},
+        {"meaning": "No: the whole plan is hours or days of work.",
+         "examples": [
+             "Our ferry booking site's seat map loads slowly. I've decided to lazy-load the deck images. Can "
+             "you write the loader?",
+         ]},
+    ),
+}
+
+
+def e5d_battery(conversation: bool) -> dict:
+    note = _CONVERSATION_NOTE if conversation else ""
+    qs = {n: {"type": "noul", "instructions": q + note, "criteria": {"true": y, "false": f}}
+          for n, (q, y, f) in _E5D_NOULS.items()}
+    qs["plan_scope"] = {"type": "choice", "instructions": _PLAN_SCOPE[0] + note, "criteria": _PLAN_SCOPE[1]}
+    return qs
+
+
+def plan_costly(a: dict) -> bool:
+    """E5d's fixed rule."""
+    return a["plan_reversible"]["noul"] < 0.5 or a["plan_large"]["noul"] >= 0.5
