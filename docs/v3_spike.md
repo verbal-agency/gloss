@@ -1133,3 +1133,216 @@ The whole battery is rerun on all 239 cases, three repeats each (717 requests). 
 **After the fact (not a result).** If conversations object through `achieves_goal` only below 0.3, every cell passes E7's rule on this pool: quiet/conversation 0.912 and task/conversation 1.000. Nothing on this pool measures what that costs. The 12 wrong-plan conversations in the pool are all no-evidence cases. **No conversation in it states a cause behind a wrong plan.** Objection in conversations is unmeasured, and the G43 held-out set has to include it.
 
 **For E7.** E5b is the strongest candidate so far. It has five questions, the fewest silent wrong builds of any policy, objection on a par with the LLM, and better asking. Its one failure is merit objections in conversations. The candidate fix is a per-shape objection threshold, which E7's rules allow only if dev shows a gain of at least 0.02. G43's set must contain wrong plans with a stated cause in conversations, or that threshold can't be judged.
+
+# E6: the G43 held-out set (spec fixed 2026-11-19; set drafted for owner review)
+
+**Purpose.** E7 picks one Jev setup on the 239 spent cases and tests it once here. This set adds what the spent pool lacks, so the E7 decision can rest on it:
+- objections in conversations;
+- tasks bound by a goal;
+- debatable diagnoses;
+- weak engineering;
+- investigations.
+
+**How cases are written.** Every case is written in the formal frame: the goal R, the user's stated facts D, the plan S, the expected verdict, and the kind of doubt. The review page shows each case in Given/When/Then form. All situations are new: none appears in an earlier set or in any question's criteria examples (a test checks this).
+
+| Kind | Count | Doubt | Expected |
+|---|---|---|---|
+| Situations: cause stated, plan fits | 8 | none | quiet |
+| Situations: cause stated, plan misses | 8 | rebutting | object |
+| Situations: cause withheld, either plan | 16 | undercutting | ask (ruling 2 when the plan doesn't match the symptom) |
+| Requirement-bound, plan meets it | 6 | none | quiet |
+| Requirement-bound, plan breaks it | 6 | rebutting | object |
+| Debatable diagnosis, plan fits it | 4 | undermining | proposed per case, labelled by the owner (ruling 3) |
+| Stated cause, plan acts on it but weak engineering defeats the goal | 4 | rebutting (merit) | object (ruling 3) |
+| Investigation plans | 4 | none | quiet |
+| Plain tasks | 6 | none | quiet |
+
+**Single messages:** all 62 above.
+
+**Conversations:** the G37 shape. Two earlier build steps come first; the assistant's replies are recorded once from the unaided model and frozen, and a conversation is scored only if those steps were built with no question and no objection. The kinds are:
+- late_sound: sound plans, requirements met, investigations, tasks, and the debatable case proposed quiet;
+- late_absent: 16;
+- late_answered: 8, answered by the grounding check at turn 1;
+- **late_flawed:** situations whose plan misses, requirements broken, weak engineering, and the debatable cases proposed for objection.
+
+The unaided model often objects early in a flawed conversation, so few of those may survive. **If fewer than four late_flawed conversations survive, objection in conversations is reported only.** That rule is fixed now, before any recording.
+
+**E7 cells.** These are G42's gated groups, plus objection in each shape:
+- quiet (sound, requirement met, investigation);
+- task;
+- ask;
+- answered;
+- object (contradicted, requirement broken, weak, debatable when labelled object).
+
+E7's rule as written above: utility at c = 0.25 with 20% wrong plans no worse than the LLM by 0.02, and no gated cell below the LLM by more than max(0.07, one case).
+
+**Order.**
+1. The owner reviews the set and labels the four debatable cases.
+2. Histories are recorded once (about $5–8).
+3. E7 picks on dev.
+4. The single test run.
+
+## E6 review fixes (2026-11-19)
+
+An external review of the draft found five problems. All five held up against the code, and all are fixed. The set is still `drafted`, and nothing has been recorded.
+
+1. **Held-out leakage.**
+   - `upload-500s` reproduced the investigation criterion's "log … for a week before changing anything" example. It is replaced by `zero-invoices`, which exports zero-total invoices and looks for what they share.
+   - `price-alerts` mirrored the stock, one-minute and polling example. It is replaced by `tenant-export`: the tenant id comes from the session, not from a URL parameter anyone can change.
+   - The novelty test now checks shared content words and shared two-word phrases, not just the first five words. Its thresholds catch both leaked cases, and a test asserts that. It remains a heuristic; checking for reuse of meaning still needs a human.
+2. **Owner labels are enforced.** `debatable_label()` no longer falls back to the drafter's proposal. An unset label is `unlabelled`, its conversation is kept apart as `late_unlabelled`, and it is never scored. `ready()` refuses any recording or run until `REVIEW == "owner-checked"` and all four labels are set. A label must be `objected` or `none`.
+3. **Two gold labels were unsupported.**
+   - `button-colour` now states the fact its label rests on: the button and signup page haven't changed in a year.
+   - `upload-500s` logged full requests, which can expose credentials and personal data. It has been replaced (see 1).
+4. **Two contradicted plans were ambiguous.**
+   - `queue-backlog`'s Kafka plan now keeps a single consumer that handles one message at a time.
+   - `warehouse-sync`'s zstd plan compresses each table only after it has been written to the worker's disk.
+5. **One rule for debatable diagnoses (proposed; the owner confirms).** Object to an undermining doubt when either:
+   - (a) the user's own facts point against the diagnosis; or
+   - (b) the diagnosis is unsupported and the plan is costly or hard to reverse.
+
+   An unsupported diagnosis behind a cheap, reversible plan stands. This links ruling 3 to the value-of-information finding: stakes decide. The proposals now follow the rule and match the reviewer's provisional labels:
+   - python-rewrite: object, by (b);
+   - network-card: quiet;
+   - button-colour: object, by (a), with the fact added;
+   - db-underpowered: quiet.
+
+**Also.** A test now fails if `docs/g43_heldout_review.md` drifts from the set. The counts are now 18 late_flawed, 24 late_sound and 4 late_unlabelled; the split moves once the labels are set.
+
+# E5c: separating a claimed cause from evidence for it (plan fixed 2026-11-20, before any run)
+
+**The line.** Evidence is an observation that would have come out differently if the claimed cause were wrong. Each message is read for three parts:
+- **the symptom**, including measurements of the symptom;
+- **the hypothesis**, the claimed cause, stated or implied by the plan;
+- **the evidence**, an observation about the cause that distinguishes it from the other causes that could explain the symptom.
+
+A checked fact about the user's own system that accounts for the symptom's specifics counts as evidence: a count, a config value, a log, a trace, a test, a before-and-after. A bare claim of the cause ("Python is slow", "the database is underpowered") is a hypothesis.
+
+**The ladder.** Levels only go up. The action follows the standard and rulings 1–3:
+
+| Level | Meaning | Action |
+|---|---|---|
+| `implied` | a cause only implied by the plan, or only the symptom (measured or not) | ask |
+| `asserted` | a cause plainly stated, with no evidence | quiet if the plan is cheap and reversible; object if it is costly, or if the user's facts point against the cause (the E6 rule) |
+| `evidenced` | a cause with evidence | quiet, unless the plan misses it or breaks a stated requirement |
+| `n/a` | nothing is going wrong (requirements, tasks, investigations) | checked against the stated goal only |
+
+**What changes.**
+1. **G43 frame:** every case gets a `level`, which the owner reviews with the rest of the set.
+2. **New dev set** (`eval/evidence_dev.py`): eight new situations, each written four ways with the same cheap plan:
+   - `implied`: symptom and plan only;
+   - `symptom_measured`: the symptom with a measurement of it (still `implied`);
+   - `asserted`: the same cause stated plainly with no evidence;
+   - `evidenced`: the same cause with a discriminating observation.
+
+   That is 32 single messages. They are never used as test cases.
+3. **New Jev questions**, in one request:
+   - `cause_claimed`: does the user state or imply what causes the problem?
+   - `evidence_for_cause`: does the user report an observation about the cause, not the symptom, that points to it rather than to other causes? Its criteria carry paired examples in one new situation: a measured symptom (No), an asserted cause (No), and a measured cause (Yes).
+   - `mechanism_stated`, unchanged, as the reference.
+   - `cause_outside_plan`, unchanged.
+
+**Measures (exploration only).**
+- On the dev set, AUC of `evidence_for_cause` and of `mechanism_stated` for:
+  - evidenced against asserted;
+  - evidenced against implied plus symptom_measured;
+  - asserted against implied plus symptom_measured.
+- The same AUC for `cause_claimed` (asserted against implied).
+- On the spent pool, how well each separates sound from no-evidence cases, as before.
+- The french-tickets cases (`g42/*/french-tickets-fits`) on `evidence_for_cause`. They should score low: the comparison of wait times is a measured symptom.
+
+**What would count against it.** `evidence_for_cause` separates evidenced from asserted no better than `mechanism_stated`, or it still reads a measured symptom as evidence.
+
+**Cost.** About (239 + 32) × 3 = 813 Jev calls. G43's test set is not run.
+
+## E5c result (run 2026-11-20)
+
+813 requests, none failed (`results/g43_explore/summary_e5c.json`).
+
+**On the dev pairs** (eight situations × four ways × three repeats). The table gives AUC, where 1.0 is perfect separation; the means by variant follow.
+
+| Question | evidenced vs asserted | asserted vs implied | evidenced vs measured symptom | Mean: implied / measured / asserted / evidenced |
+|---|---|---|---|---|
+| `evidence_for_cause` | **1.000** | 0.802 | **1.000** | 0.11 / 0.14 / 0.28 / **0.94** |
+| `mechanism_stated` | 0.752 | **0.988** | 1.000 | 0.24 / 0.43 / 0.91 / 0.97 |
+| `cause_outside_plan` | 0.342 | **1.000** | 1.000 | 0.18 / 0.26 / 0.91 / 0.90 |
+| `cause_claimed` | 0.146 | 1.000 | 0.992 | 0.91 / 0.93 / 0.99 / 0.98 |
+
+- **`evidence_for_cause` separates evidence from a bare claim cleanly.**
+  - Every evidenced answer scored 0.87 or more.
+  - Every asserted answer scored 0.49 or less.
+  - A measured symptom stayed at 0.32 or less.
+  - The paired examples did what the graded question didn't.
+- **`mechanism_stated` and `cause_outside_plan` separate a stated cause from an implied one, but treat a bare claim as if it were evidence** (0.91 for asserted). That is the G37b confusion, now measured.
+- **So the ladder needs two questions.** `cause_outside_plan` (or `mechanism_stated`) moves a case from implied to asserted; `evidence_for_cause` moves it from asserted to evidenced. `cause_claimed` adds nothing, since every fix plan implies a cause.
+
+**On the spent pool.**
+- **french-tickets.** `evidence_for_cause` read the measured wait times as a symptom, not evidence: 0.23–0.31 for the single message, 0.43–0.48 for the conversation, 0.14 for the plan that misses. `mechanism_stated` scored 0.50–0.70 on the same cases.
+- **Separating the quiet group from the ask group,** `evidence_for_cause` scores 0.914 against 0.964 for `mechanism_stated`. This is expected: the lowest-scoring quiet cases are tasks, requirements and investigations (for example a global rate limit, a backfill, a recall measurement), where no cause is needed. On the ladder those are `n/a`, and quiet is decided by whether a cause is stated, not by evidence.
+
+**Limits.**
+- The dev pairs and the criteria examples were drafted by the same model in the same style, so the pairs may be cleaner than real messages.
+- Eight situations; dev only.
+- **The ladder's "costly or hard to reverse" step has no working signal yet.** Jev's stakes and plan-scope questions were flat in explorations 2 and 3. The four debatable G43 cases are where that step will be tested.
+
+**For E7.** The candidate is E5b's decision table, with `evidence_for_cause` added for the undermining branch: an asserted cause with no evidence, behind a plan that is costly or contradicted by the user's own facts. Whether Jev can tell a costly plan from a cheap one remains open. One option is to decide plan cost by a rule rather than by Jev: a rewrite, migration, hiring or new infrastructure counts as costly.
+
+# E5d: can Jev tell a costly plan from a cheap one? (plan fixed 2026-11-20, before any run)
+
+**Why.** The ladder objects to an unsupported cause only when the plan is costly or hard to reverse. The owner prefers Jev's judgment to a fixed keyword rule. Jev's earlier attempts were flat:
+- `stakes` (a yes/no question) scored 0.21–0.35 in every group;
+- `plan_scope` (multiple choice) gave expected costs of 1.8–3.7.
+
+Both asked in the abstract, with no examples. The likely cause: every message asks for one small step ("Can you write X?"), and Jev judged that step rather than the plan.
+
+**What changes.** This applies what made `evidence_for_cause` work: narrow, literal questions, paired examples within one situation, and wording that points at the whole plan, not the step asked for.
+- `plan_reversible` (yes/no): if the whole plan turns out wrong, could the team undo it by reverting a code or configuration change, with no data migration, no rebuilt system, no new vendor, and no change to people or to what customers rely on?
+- `plan_large` (yes/no): would carrying out the whole plan, not just the piece asked for now, take more than a couple of weeks?
+- `plan_scope`, unchanged from exploration 3, as the reference.
+
+**Dev set** (`eval/stakes_dev.py`): ten new situations, each with a cheap plan and a costly plan, and a small step asked for in both.
+- Two pairs are deliberately tricky: a cheap plan in heavy words ("migrate the one staging setting…") and a costly plan in light words ("change our public API's date format…").
+- The 32 E5c dev cases, all with cheap plans, are added as extra cheap examples.
+
+That is 52 cases, about 156 Jev calls.
+
+**Rule, fixed now.** Costly if `plan_reversible` < 0.5 or `plan_large` ≥ 0.5.
+
+**Pass mark, fixed now.** Jev's cost judgment counts as working if:
+- the rule labels at least 18 of the 20 paired plans correctly in every repeat;
+- both tricky pairs are right in every repeat;
+- no more than 3 of the 32 cheap E5c plans are called costly in any repeat.
+
+Also reported: the AUC of each question, and of `plan_scope`'s expected cost, for costly against cheap.
+
+## E5d result (run 2026-11-20): passes its mark
+
+156 requests, none failed (`results/g43_explore/summary_e5d.json`).
+
+| Pass condition | Required | Result |
+|---|---|---|
+| Paired plans labelled right, each repeat | ≥ 18 of 20 | **20, 20, 20** |
+| Tricky pairs right in every repeat | all | **yes** |
+| Cheap E5c plans called costly, any repeat | ≤ 3 of 32 | **1, 0, 0** |
+
+| Signal | AUC, costly vs cheap |
+|---|---|
+| 1 − `plan_reversible` | **1.000** |
+| `plan_large` | 0.981 |
+| `plan_scope` expected cost | 1.000 |
+
+**What carried it.**
+- Every costly plan scored 0.19 or less on `plan_reversible`; every paired cheap plan scored 0.63 or more.
+- The light-worded costly plan (changing the public API's date format) scored only 0.33 on `plan_large`. It was still called costly because `plan_reversible` was 0.15: customers' integrations rely on the format. Reversibility is the stronger of the two questions.
+- The heavy-worded cheap plan ("migrate the one staging setting…") stayed cheap at 0.79–0.84.
+- The one miss was the E5c `claim-form` plan (look up policy numbers by email). It sat on the line in one repeat (`plan_large` 0.50) and was called costly.
+
+**Revising "Jev can't judge stakes".** `plan_scope`, the question that looked weak in exploration 3, also separates these pairs perfectly. The earlier flatness probably came from the spent pool, whose plans are mostly mid-sized, not from Jev. That explanation is a guess; it wasn't tested separately.
+
+**Limits.** These are dev pairs written by the same model as the examples, with ten situations and one plan size at each extreme. Real plans fall in between. Whether the ladder's costly branch is right is now a question for G43's four debatable cases, not for this check.
+
+**For E7.** The candidate becomes E5b's decision table plus two branches:
+1. `evidence_for_cause` for an unsupported cause;
+2. `plan_costly` for whether that unsupported cause gets an objection.
+
+Pick E7's thresholds on dev: the spent pool plus the E5c and E5d dev sets.
