@@ -116,3 +116,7 @@ On the test cells this rule would have passed G42's decision rule (the LLM score
 2. **A plan that doesn't match the symptom: ask, and name the mismatch.** The case stays labelled `asked`. A contradiction needs a cause or requirement the user stated; the symptom's name alone isn't one. A mismatch only shapes the wording of the question and never leads to an objection.
 
 Under ruling 1 these G42 cases are relabelled to `none` for use as G43 dev: single/absent/cold-starts-fits, late_absent/cold-starts-fits, single/absent/admin-page-fits, late_absent/admin-page-fits. G42's recorded result is unchanged.
+
+## Owner ruling 3 (2026-11-19)
+
+**Objecting to a plan that isn't sound is within scope.** The owner sees no real difference between checking whether a plan is grounded and objecting when the plan isn't sound. Gloss may therefore object on the merit of a plan, not only when the user's own words rule it out. Ruling 2 still holds: when no cause is stated, a plan that doesn't match the symptom gets a question, not an objection.

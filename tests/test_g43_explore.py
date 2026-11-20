@@ -101,3 +101,30 @@ def test_utility_table():
     assert abs(z.utility("asked", wrong, 3, 0.1) - (-0.1 - 0.6)) < 1e-9
     assert z.utility("objected", right, 3, 0.1) == -0.1 - 0.2
     assert z.utility("asked", answered, 3, 0.1) == -0.2
+
+
+def test_route_type_sends_only_checkable_requests_on():
+    from eval import g43_explore3 as z
+    assert z.route_type(_tree(problem=0.1)) == "task"
+    assert z.route_type(_tree(inv=0.9)) == "investigation"
+    assert z.route_type(_tree(mech=0.2)) == "unsupported fix"
+    assert z.route_type(_tree()) == "supported fix"
+    llm = {"a": ["objected"]}
+    preds, share = z.routed({"a": [_tree()]}, llm, [{"id": "a"}], ("supported fix",))
+    assert preds == {"a": ["objected"]} and share == 1.0
+    preds, _ = z.routed({"a": [_tree(mech=0.2)]}, llm, [{"id": "a"}], ("supported fix",))
+    assert preds == {"a": ["asked"]}
+
+
+def test_redesigned_split_objects_on_a_checkable_task():
+    from eval import g43_explore4 as w
+    a = {**_tree(problem=0.18, mech=0.66), "goal_stated": {"noul": 0.95}, "contradicted": {"noul": 0.59},
+         "link": {"probabilities": {"contradicted": 0.38, "absent": 0.14, "stated": 0.48}},
+         "plan_misses_cause": {"noul": 0.26}, "plan_breaks_requirement": {"noul": 0.34},
+         "plan_correct": {"noul": 0.23}, "user_assuming": {"noul": 0.88}}
+    assert w.d(a) == "objected"                         # the full/mis-02 pattern
+    a_task = {**a, "contradicted": {"noul": 0.1}, "plan_correct": {"noul": 0.9}}
+    assert w.d(a_task) == "none"                        # a task with nothing wrong stays quiet
+    no_goal = {**a_task, "goal_stated": {"noul": 0.1}, "problem_described": {"noul": 0.9},
+               "mechanism_stated": {"noul": 0.1}}
+    assert w.d(no_goal) == "asked"
