@@ -1346,3 +1346,39 @@ Also reported: the AUC of each question, and of `plan_scope`'s expected cost, fo
 2. `plan_costly` for whether that unsupported cause gets an objection.
 
 Pick E7's thresholds on dev: the spent pool plus the E5c and E5d dev sets.
+
+# E8: nuanced dev cases from a different author (authored 2026-11-20, waiting for owner review)
+
+**What was authored.** `eval/nuanced_dev.py` holds 83 new cases: 62 single messages and 21 conversations (user turns only, the last turn under test). They target the middle ground the E5c and E5d pairs leave out. The goal is in [e8_nuanced_cases_goal.md](e8_nuanced_cases_goal.md); the review page is [nuanced_dev_review.md](nuanced_dev_review.md).
+
+**By which model.** Claude Fable 5.2 (`claude-fable-5-2`), in a separate session. Claude Opus 5.5 drafted the Jev questions, their examples and every earlier dev set.
+
+**Independence.**
+- Not read: `eval/g43_heldout.py`, `docs/g43_heldout_review.md`, the criteria examples in `app/pipeline/jev_ground.py`, and this file's "E6: the G43 held-out set" section with its review fixes.
+- No Jev or LLM call was made. The labels are the author's reading of the ladder and rulings 1–3.
+- Read, because the goal names it as the source of the overlap check: `tests/test_g43_heldout.py`. It quotes two messages written to resemble criteria examples (an upload endpoint's 500 errors, a stock-price alert) and one G43 situation key (`network-card`). No case here uses those situations.
+- The overlap check ran as code and reported only this set's case ids and match counts, never the text matched. It flagged 11 cases against G43 and none against the criteria examples:
+  - eight shared two or three two-word phrases with low word overlap, and were reworded blind;
+  - three were replaced with new situations: one whose key matched a G43 key (`app-rating`), and two whose word overlap came close to the limit (0.14 against 0.16).
+
+| Field | Counts |
+|---|---|
+| Level | implied 14, asserted 28, evidenced 29, n/a 12 |
+| Cost | cheap 38, mid 25, costly 20 |
+| Expected | none 38, asked 12, objected 22, owner 11 |
+| Confidence | high 58, low 25 (the 11 owner labels included) |
+
+Every category has at least five single cases. Seven conversations spread cause, evidence and plan across turns.
+
+**Tests.** `tests/test_nuanced_dev.py` checks counts, fields, values, unique ids, new situations, and the word and phrase overlap check against the criteria examples, the G43 cases and every earlier set. All 15 pass. The full suite has 12 failures in this session's container, the same 12 as before this work: the Jev SDK (`typesafe_sdk`) isn't installed, `results/` isn't recorded there, and three API tests hit an `httpx` version mismatch.
+
+**Left for the owner.**
+1. **Which ladder holds.** The goal's brief says an asserted cause is quiet "if cheap or reversible" and objected "if costly and hard to reverse". E5c says quiet "if cheap and reversible" and objected "if costly". They disagree on costly-but-reversible and cheap-but-irreversible plans. Three cases are labelled `owner` for this reason alone (`carousel-ctr`, `warehouse-mispicks`, `login-failures-reset`).
+2. **Mid-sized plans.** The set treats mid as not costly: mid and reversible is quiet, mid and hard to reverse is `owner` (`egress-bill`, `revenue-double-count`, `late-deliveries`, `meeting-room-echo`, `annual-churn`).
+3. **Three cases the ladder doesn't reach.**
+   - `quote-latency`: an evidenced cause, and a costly plan where the user's own experiment shows a cheap one works.
+   - `pdf-worker-oom`: a plan that leaves the evidenced cause alone but delivers the goal.
+   - `backup-window`: a plan that fits the stated goal and breaks an unstated one.
+4. **The conventions.** A hedged or second-hand cause is `asserted` unless an observation of the user's own system comes with it. Timing or a single instance doesn't raise the level. An unstated requirement that follows from the domain can support an objection under ruling 3.
+5. **The 14 low-confidence labels,** listed second on the review page.
+6. Set `REVIEW = "owner-checked"` in the module once read. Then the blind second labelling and E7, as the goal lists.
