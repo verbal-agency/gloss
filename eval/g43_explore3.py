@@ -173,3 +173,129 @@ def main(argv: list[str] | None = None) -> None:
 
 if __name__ == "__main__":
     main()
+
+
+# --------------------------------------------------------------------------- cost comparison
+# The tree variation proposed after exploration 3: T1's steps 1-3, then S1's
+# separately asked contradiction questions at step 4. Compared at the three
+# question costs the owner was offered (about 5-10%, a quarter, a half of a
+# wasted small change), and at three shares of wrong plans (the pool's 35%
+# reweighted to 20% and 10%), since the break-even depends on that share.
+
+COMPARE_COSTS = (0.075, 0.25, 0.5)
+WRONG_SHARES = (0.351, 0.2, 0.1)
+
+
+def t2(a: dict, t4: float = 0.5) -> str:
+    if _n(a, "problem_described") < 0.3 or _n(a, "plan_is_investigation") >= 0.5:
+        return "none"
+    if _n(a, "mechanism_stated") < 0.7:
+        return "asked"
+    if max(_n(a, "plan_misses_cause"), _n(a, "plan_breaks_requirement")) >= t4:
+        return "objected"
+    return "none"
+
+
+def weighted_utility(preds: dict, cases: list[dict], L, cost: float, share: float) -> dict:
+    """Mean utility per decision with wrong and right plans reweighted to
+    `share`, and where the loss comes from."""
+    pool_share = sum(plan_wrong(c) for c in cases) / len(cases)
+    w = {True: share / pool_share, False: (1 - share) / (1 - pool_share)}
+    tot = wsum = 0.0
+    parts = {"silent wrong builds": 0.0, "questions on right plans": 0.0, "false objections": 0.0,
+             "caught wrong plans (residual)": 0.0}
+    for c in cases:
+        wrong = plan_wrong(c)
+        for i, act in enumerate(preds.get(c["id"], [])):
+            Li = L[c["id"]][i] if isinstance(L[c["id"]], list) else L[c["id"]]
+            u = utility(act, c, Li, cost) * w[wrong]
+            tot += u
+            wsum += w[wrong]
+            if act == "none" and wrong:
+                parts["silent wrong builds"] += u
+            elif act == "asked" and not wrong:
+                parts["questions on right plans"] += u
+            elif act == "objected" and not wrong:
+                parts["false objections"] += u
+            else:
+                parts["caught wrong plans (residual)"] += u
+    return {"mean": round(tot / wsum, 3), **{k: round(v / wsum, 3) for k, v in parts.items()}}
+
+
+def compare() -> dict:
+    cases = x.pool()
+    ans = answers()
+    flat_L = {c["id"]: UNIFORM_L for c in cases}
+    jev_L = {c["id"]: [scope_cost(a) for a in ans[c["id"]]] for c in cases}
+    pols = {"always ask": {c["id"]: ["asked"] * REPEATS for c in cases}, "llm": x.llm_preds(cases),
+            "R1": y._preds(ans, x.r1, cases), "S1": y._preds(ans, y.s1, cases),
+            "T1": y._preds(ans, t1, cases), "T2": y._preds(ans, t2, cases),
+            "T2@0.3": y._preds(ans, lambda a: t2(a, 0.3), cases)}
+    out = {"rates": {k: x.rates(v, cases) for k, v in pols.items() if k.startswith("T2")}, "utility": {}}
+    for cost in COMPARE_COSTS:
+        for share in WRONG_SHARES:
+            key = f"c={cost} wrong={share}"
+            ps = {**pols, "V1": y._preds(ans, lambda a, c=cost: v1(a, c, share), cases)}
+            out["utility"][key] = {k: {"uniform_L": weighted_utility(p, cases, flat_L, cost, share),
+                                       "jev_L": weighted_utility(p, cases, jev_L, cost, share)["mean"]}
+                                   for k, p in ps.items()}
+    (OUT / "compare_costs.json").write_text(json.dumps(out, indent=2))
+    return out
+
+
+# --------------------------------------------------------------------------- routing by request type
+# Jev sorts the request; only the type that needs a judgment of plan against
+# stated cause goes to the LLM. Types: no problem (task) -> quiet; investigation
+# -> quiet (H1) or LLM (H2); no stated cause -> ask; stated cause -> LLM.
+
+def route_type(a: dict) -> str:
+    if _n(a, "problem_described") < 0.3:
+        return "task"
+    if _n(a, "plan_is_investigation") >= 0.5:
+        return "investigation"
+    if _n(a, "mechanism_stated") < 0.7:
+        return "unsupported fix"
+    return "supported fix"
+
+
+def routed(ans: dict, llm: dict, cases: list[dict], to_llm: tuple[str, ...]) -> tuple[dict, float]:
+    local = {"task": "none", "investigation": "none", "unsupported fix": "asked"}
+    preds, sent, total = {}, 0, 0
+    for c in cases:
+        out = []
+        for i, a in enumerate(ans.get(c["id"], [])):
+            total += 1
+            kind = route_type(a)
+            if kind in to_llm:
+                sent += 1
+                got = llm.get(c["id"], [])
+                if i < len(got):
+                    out.append(got[i])
+            else:
+                out.append(local[kind])
+        preds[c["id"]] = out
+    return preds, round(sent / total, 3)
+
+
+def compare_routing() -> dict:
+    cases = x.pool()
+    ans = answers()
+    llm = x.llm_preds(cases)
+    flat_L = {c["id"]: UNIFORM_L for c in cases}
+    h1, s1_share = routed(ans, llm, cases, ("supported fix",))
+    h2, s2_share = routed(ans, llm, cases, ("supported fix", "investigation"))
+    pols = {"llm": llm, "T2": y._preds(ans, t2, cases), "H1": h1, "H2": h2}
+    out = {"sent_to_llm": {"H1": s1_share, "H2": s2_share},
+           "rates": {k: x.rates(v, cases) for k, v in pols.items()},
+           "utility": {f"c={c} wrong={s}": {k: weighted_utility(p, cases, flat_L, c, s) for k, p in pols.items()}
+                       for c in COMPARE_COSTS for s in WRONG_SHARES}}
+    (OUT / "compare_routing.json").write_text(json.dumps(out, indent=2))
+    return out
+
+
+def t3(a: dict) -> str:
+    """T2, but a request with no problem is still checked against the
+    requirements it states (G40's infeasible proposals read as tasks)."""
+    if _n(a, "problem_described") < 0.3:
+        return "objected" if _n(a, "plan_breaks_requirement") >= 0.5 else "none"
+    return t2(a)

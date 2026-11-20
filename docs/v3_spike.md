@@ -782,3 +782,249 @@ What it shows:
 4. **A linear cost per question misses something the literature names but doesn't model: trust erodes with repeated questions.** That cost grows with how often Gloss asks across a session, not with any single question.
 
 **What it suggests for G43.** Score candidates by utility as well as by label rates, at stated values of c and of the share of wrong plans. Treat objection recall as the main gap rather than quiet-on-sound. Keep the investigation step. On utility the best Jev candidate is the tree with S1's contradiction questions (T1 steps 1–3, then S1's objection). It was not run as a single policy here.
+
+## The tree variation at three question costs (2026-11-19)
+
+**What was compared.** T2 is T1's steps 1–3 with S1's separately asked contradiction questions at step 4, at 0.5 (and 0.3, reported only). The question cost c is set at the three levels offered to the owner, as a fraction of a wasted small change:
+- about 5–10%, scored at c = 0.075;
+- a quarter;
+- a half.
+
+Because the break-even depends on how often plans are wrong, the pool's 35% is also reweighted to 20% and 10%. Utility is the exploration-3 model with a uniform L = 3; Jev's own L gives the same ordering. All answers are the recorded ones; nothing new was sent to Jev (`results/g43_explore/compare_costs.json`).
+
+**Rates.**
+
+| Cell | T1 | T2 | T2 @0.3 |
+|---|---|---|---|
+| quiet / single | 0.943 | **0.962** | 0.943 |
+| quiet / conversation | 0.912 | 0.912 | 0.860 |
+| ask / single and conversation | 0.992 / 0.980 | 0.992 / 0.980 | 0.992 / 0.980 |
+| answered / conversation | 1.000 | 1.000 | 1.000 |
+| object / single | 0.525 | **0.489** | 0.546 |
+
+In the tree, the requirement question only runs after a cause is stated, so wrong plans with no stated cause are asked rather than objected. The investigation step also lets four wrong proposals through. Both lower T2's objection recall below S1's 0.61.
+
+**Mean utility per decision** (higher is better):
+
+| c | wrong share | always ask | LLM | R1 | S1 | T1 | T2 | V1 |
+|---|---|---|---|---|---|---|---|---|
+| 0.075 | 35% | −0.291 | **−0.289** | −0.376 | −0.337 | −0.389 | −0.406 | −0.395 |
+| 0.075 | 20% | −0.202 | **−0.172** | −0.225 | −0.203 | −0.231 | −0.241 | −0.251 |
+| 0.075 | 10% | −0.143 | **−0.095** | −0.124 | −0.114 | −0.127 | −0.131 | −0.155 |
+| 0.25 | 35% | −0.479 | **−0.371** | −0.462 | −0.429 | −0.471 | −0.486 | −0.498 |
+| 0.25 | 20% | −0.393 | **−0.237** | −0.297 | −0.281 | −0.300 | −0.308 | −0.334 |
+| 0.25 | 10% | −0.336 | **−0.148** | −0.188 | −0.183 | −0.187 | −0.189 | −0.214 |
+| 0.5 | 35% | −0.748 | **−0.488** | −0.584 | −0.559 | −0.589 | −0.600 | −0.654 |
+| 0.5 | 20% | −0.666 | **−0.329** | −0.401 | −0.392 | −0.400 | −0.403 | −0.411 |
+| 0.5 | 10% | −0.612 | −0.223 | −0.280 | −0.282 | −0.274 | −0.273 | **−0.211** |
+
+**Where the loss comes from** (c = 0.25, 20% wrong):
+
+| Policy | Silent wrong builds | Questions on right plans | False objections | Residual after catching a wrong plan |
+|---|---|---|---|---|
+| LLM | −0.064 | −0.047 | 0.000 | −0.125 |
+| T2 | **−0.136** | −0.057 | 0.000 | −0.115 |
+| always ask | 0.000 | −0.223 | 0.000 | −0.170 |
+
+**Reading.**
+- **The cost of a question doesn't change the ranking.** Across all three costs and all three wrong-plan shares, the LLM scores best. The one exception is c = 0.5 with 10% wrong plans, where the value-of-information policy asks rarely and edges ahead. Among the Jev rules, S1, T1 and T2 sit within about 0.03 of one another.
+- **The tree's gain doesn't show up in utility.** Staying quiet on sound plans saves little, because a question is cheap next to a wrong build.
+- **T2 trails the LLM almost entirely on silent wrong builds,** 0.136 against 0.064 at the middle setting. These are wrong plans that come with a stated cause and get no objection, plus the four wrong proposals the investigation step waved through.
+- **Fixing objection matters more than picking c.** The setting of c only decides how much asking on sound plans hurts, and for the Jev rules that cost is already small.
+
+## Correction, and routing by request type (2026-11-19)
+
+**Correction.** The cost comparison above said T2 loses objection recall because "wrong plans with no stated cause are asked rather than objected". The case-by-case breakdown shows no such case: wherever T2 asks on a wrong plan, S1 asks too. The whole drop from S1 (0.61) to T2 (0.49) comes from two places:
+- **The tree's first step.** Jev reads 14 of G40's wrong proposals (42 answers) as tasks, because they state a goal and a plan with nothing going wrong. Example: "The goal of the screen is that no real reversal gets past it… set the flag threshold so that the screen produces very few false positives", with `problem_described` = 0.18. The tree stays quiet on these. S1 asked its requirement question without the gate.
+- **The investigation step,** which let four wrong proposals through.
+
+**Asking rather than objecting when no cause is stated** is already the behaviour of both S1 and T2 on no-evidence cases, and it follows the owner's second ruling. The LLM objects to some of them (6 answers, such as mail-connections-misses).
+
+**Routing by request type.** Jev sorts each request, and only the kind that needs plan-against-stated-facts judgment goes to the LLM. The LLM answers are the cached ones; nothing new was sent.
+
+| Route | Task | Investigation | Unsupported fix | Supported fix |
+|---|---|---|---|---|
+| H1 | quiet | quiet | ask (Jev) | LLM |
+| H3 | LLM | quiet | ask (Jev) | LLM |
+| T3 (Jev only) | object if `plan_breaks_requirement` ≥ 0.5, else quiet | quiet | ask | T2's step 4 |
+
+| Cell / measure | LLM | T2 | T3 | H1 | H3 |
+|---|---|---|---|---|---|
+| quiet / single | 0.895 | 0.962 | 0.933 | 0.933 | 0.933 |
+| quiet / conversation | 0.956 | 0.912 | 0.912 | 0.912 | 0.912 |
+| ask / single and conversation | 0.930 / 0.735 | 0.992 / 0.980 | 0.992 / 0.980 | 1.000 / 0.980 | 1.000 / 0.990 |
+| answered / conversation | 1.000 | 1.000 | 1.000 | 1.000 | 1.000 |
+| object / single | 0.752 | 0.489 | 0.610 | 0.532 | 0.709 |
+| share sent to the LLM | 100% | 0% | 0% | 43% | 61% |
+| utility, c = 0.25, 35% / 20% / 10% wrong | −0.371 / −0.237 / **−0.148** | −0.486 / −0.308 / −0.189 | −0.431 / −0.278 / −0.177 | −0.452 / −0.289 / −0.181 | **−0.364** / −0.239 / −0.156 |
+| silent wrong builds, c = 0.25, 20% wrong | −0.064 | −0.136 | — | −0.110 | **−0.048** |
+
+**Reading.**
+- **H3 matches the LLM on utility while sending 61% of requests to it.** It keeps Jev's advantage on asking and on quiet single messages, and leaves fewer wrong plans unflagged than the LLM does.
+- **Sending only supported fixes (H1) isn't enough,** because the plans with requirements that read as tasks are where the silent wrong builds are.
+- **The type worth naming is a plan the user has given something to check against: a stated cause or a stated requirement.** Judging a plan against those facts is a comparison Jev does poorly. Detecting whether such facts are present is something it does well.
+- **A Jev question that asks whether a requirement or goal is stated** would send only those tasks on, which could bring the LLM share well below 61%. Not yet tested.
+
+## One failure, step by step: full/mis-02 (2026-11-19)
+
+**The message Jev sees** (single message; the state is exactly this text): a cheap first-pass score screens model answers for position reversals and sends what it flags to an accurate reviewer. "The goal of the screen is that no real reversal gets past it." The plan: "set the flag threshold at the 95th percentile of the score's run-to-run noise so that the screen produces very few false positives". The request: the calibration script. Label: objected. A screen in front of an accurate reviewer needs recall, and the plan tunes it for precision.
+
+**What the tree does** (Jev's answers in three repeats; they barely move):
+
+| Step | Question (abridged) | Jev | Branch |
+|---|---|---|---|
+| 1 | `problem_described`: is something going wrong? "Work the user wants done for its own sake … is not something going wrong." | 0.18–0.19 | below 0.3: **task, stay quiet. Exit.** |
+| 2 | `plan_is_investigation` | 0.26–0.29 | not reached |
+| 3 | `mechanism_stated` | 0.64–0.68 | not reached; would have asked about a cause that doesn't exist |
+| 4 | `plan_misses_cause` / `plan_breaks_requirement` | 0.23–0.28 / 0.34–0.42 | not reached; neither clears 0.5 |
+
+**What Jev saw but the tree never read.**
+- `contradicted`: 0.58–0.60.
+- The link question's P(contradicted): 0.38–0.43.
+- `bad_solution`: 0.86–0.87.
+- `request`: task at 0.97.
+
+The LLM also calls it a task, and objects in all three repeats ("their stated requirement of zero missed reversals conflicts with a high threshold designed to minimize false positives"). G42's simple rule, which objects whenever `contradicted` ≥ 0.3, would have objected too.
+
+**Why it fails.**
+1. **The first step merges two decisions.** "Should we ask what causes the problem?" needs a problem. "Does the plan conflict with what the user says they need?" applies to any request that states a goal. The LLM's standard keeps them apart: the request type decides whether to ask, and a contradiction is objected to whatever the type (`GroundResult.action`). From G41 on, the Jev rules put the task gate in front of everything, so a task can never be objected to.
+2. **The fix-or-task split doesn't mark a real difference for checking.** A problem is a goal that isn't being met; a task is a goal to build toward. Either can come with a plan that misses its goal. What matters for objection is whether the user states something the plan can be checked against: a cause, a goal or a requirement.
+3. **The step-4 wording doesn't fit this case.** There is no cause, so `plan_misses_cause` is correctly low. The goal is phrased as "the goal of the screen is…", which `plan_breaks_requirement` reads only half as a requirement. Seeing the conflict also takes a step of inference: a threshold set for few false positives lets more real reversals through. The broader `contradicted` question ("facts or requirements the user states show the plan will not achieve what they need") is the one that caught it.
+
+**Across the pool.** Among requests Jev reads as tasks, requiring both `contradicted` ≥ 0.5 and link P(contradicted) ≥ 0.2 fires on 12 of 42 answers for wrong plans and 0 of 87 for right ones. On tasks, objection can be ungated without false objections, but these two signals catch only about 30% of the wrong plans.
+
+# G43 exploration 4: correctness and assumption questions, and a split by what the plan can be checked against (plan fixed 2026-11-19, before any run)
+
+Same 239 spent cases, full state, three repeats, one new Jev request per case with three yes/no questions. Examples are drawn from situations used nowhere in the pool.
+- `goal_stated`: the user states a goal, requirement or constraint the result must meet (what it has to achieve, a limit, a deadline, a policy). Wanting a described problem to go away doesn't count on its own.
+- `plan_correct`: how likely the plan will actually achieve what the user needs. This judges the plan itself, which the standard forbids, so it is reported and tried only as an alternative signal.
+- `user_assuming`: the user takes for granted something they haven't checked or stated: about the cause, about what the plan will do, or about what they need.
+
+**Policy D, the redesigned split.** Two branches are judged side by side:
+- **Checkable:** `mechanism_stated` ≥ 0.7 (a stated cause) or `goal_stated` ≥ 0.5.
+- **Conflict:** `contradicted` ≥ 0.5 with link P(contradicted) ≥ 0.2, or a stated cause with `plan_misses_cause` ≥ 0.5, or a stated goal with `plan_breaks_requirement` ≥ 0.5.
+
+Then:
+1. Object if the request is checkable and conflicts.
+2. Otherwise ask if something is going wrong (`problem_described` ≥ 0.3), no cause is stated, and the plan isn't an investigation.
+3. Otherwise stay quiet.
+
+**Reported variants.**
+- D@0.3: every conflict threshold at 0.3, with link P(contradicted) at 0.1.
+- D+correct: a checkable request also conflicts when `plan_correct` < 0.3.
+- D+assume: the ask branch fires when `user_assuming` ≥ 0.5, in place of a missing cause.
+- HD: checkable requests go to the LLM, and the ask branch stays with Jev.
+
+**Descriptive.** For `plan_correct` (reversed), `user_assuming`, `bad_solution`, `contradicted` and `goal_stated`: how well each separates wrong plans from right ones (AUC), and the mean for each group. Also the answers on full/mis-02.
+
+Scoring is the same as before: label rates, and utility at c = 0.25 with 35%, 20% and 10% wrong plans and a uniform L = 3.
+
+## G43 exploration 4 result (run 2026-11-19)
+
+717 requests, none failed (`results/g43_explore/summary4.json`).
+
+| Cell / measure | LLM | T2 (tree) | D | D@0.3 | D+correct | D+assume | HD |
+|---|---|---|---|---|---|---|---|
+| quiet / single | 0.895 | 0.962 | 0.924 | 0.886 | 0.924 | 0.190 | 0.924 |
+| quiet / conversation | 0.956 | 0.912 | 0.912 | 0.860 | 0.912 | 0.254 | 0.956 |
+| task / both shapes | 1.000 | 1.000 | 1.000 | 1.000 | 1.000 | 1.000 | 1.000 |
+| ask / single | 0.930 | 0.992 | 0.969 | 0.969 | 0.853 | 0.977 | 0.953 |
+| ask / conversation | 0.735 | 0.980 | 0.980 | 0.980 | 0.980 | 0.961 | 0.794 |
+| answered / conversation | 1.000 | 1.000 | 1.000 | 1.000 | 1.000 | 0.907 | 1.000 |
+| object / single | 0.752 | 0.489 | 0.674 | **0.830** | **0.794** | 0.674 | 0.752 |
+| utility, c = 0.25, 35% / 20% / 10% wrong | −0.371 / −0.237 / **−0.148** | −0.486 / −0.308 / −0.189 | −0.409 / −0.267 / −0.172 | −0.357 / −0.244 / −0.169 | **−0.353 / −0.236** / −0.158 | −0.442 / −0.322 / −0.243 | −0.373 / −0.239 / −0.150 |
+| silent wrong builds (20% wrong) | −0.064 | −0.136 | −0.081 | **−0.038** | −0.045 | −0.062 | −0.064 |
+
+**The split by what the plan can be checked against works.** D objects to full/mis-02 in all three repeats (`goal_stated` 0.95). Objection recall rises from 0.49 under the tree to 0.67, and to 0.83 under D@0.3, above the LLM. The asking cells hold. D@0.3 beats the LLM on utility when 35% of plans are wrong and nearly ties at 20%.
+
+**`goal_stated` doesn't discriminate.** It averages 0.65–0.75 in every group, and its AUC between wrong and right plans is 0.49. Jev finds a goal in almost every message. So in practice "checkable" means nearly everything, and the gain comes from letting the conflict signals run on every request. For the same reason HD would send 94% of requests to the LLM, which saves nothing.
+
+**"How correct is this plan?" is strong where the user has stated something, and weak where they haven't.**
+
+| `plan_correct` | AUC, wrong vs right |
+|---|---|
+| Whole pool | 0.931 |
+| Cases with a stated cause or goal (sound, contradicted, answered) | **0.988** |
+| No-evidence cases (the plans that fit against those that miss) | 0.744 |
+
+So it is close to a perfect detector of conflict with the user's own facts, and only a fair guess at hidden causes. D+correct leads every policy on utility at 35% and 20% wrong plans. But its ask/single drops to 0.853, because it objects to some no-evidence plans it guesses are wrong. That goes against the owner's second ruling, and it is the part where it judges the diagnosis. Limiting `plan_correct` to requests with a stated cause, where its signal comes from the user's facts, has not been tried.
+
+**"Is the user making an assumption?" is high everywhere.** It averages 0.70–0.89 in every group (AUC 0.875 between wrong and right, but 0.70 even on quiet, sound plans). As the trigger for asking (D+assume), it asks on 80% of sound plans. Jev reads "I've researched this and decided" as an assumption in every message.
+
+On full/mis-02: `plan_correct` 0.22–0.23, `user_assuming` 0.86–0.88.
+
+# A formal frame for the scenarios (2026-11-19)
+
+Four formalisms fit the problem, and each gives one piece of the frame.
+
+**1. Satisfaction argument (Zave and Jackson, requirements engineering).** A specification S meets a requirement R in a domain D when D, S ⊨ R. Here R is what the user needs (the problem gone, or the stated goal met), S is the plan, and D is what the user states about their world (cause, measurements, constraints). Gloss's three actions are the three states of that argument:
+
+| D, S ⊨ ? | Meaning | Action |
+|---|---|---|
+| D, S ⊨ R plausibly | the stated facts support the plan | quiet |
+| D too thin to tell | the link from plan to goal rests on facts not stated | **ask** for the missing part of D |
+| D, S ⊨ ¬R, or the plan is unlikely to give R | the stated facts, or the plan's merit, count against it | **object** |
+
+**2. Toulmin's argument model.** The user's message is an argument. The claim is "this plan fixes it". The grounds are the stated facts. The warrant is the causal link from plan to goal. A rebuttal is anything that defeats it. "Absent" means there is a claim and grounds but no warrant; "contradicted" means a rebuttal is present.
+
+**3. Defeaters, from eliminative argumentation and assurance cases (Goodenough, Weinstock and Klein; GSN).** Doubts about a claim come in three kinds, and each maps to an action:
+- *Undercutting* (the inference from grounds to claim isn't established) is the no-evidence case → ask.
+- *Rebutting* (evidence that the claim is false: the plan misses the stated cause or breaks a stated requirement) → object.
+- *Undermining* (the grounds themselves are doubtful: a debatable diagnosis) → under ruling 3, object if it makes the plan unsound; this is the new case.
+
+**4. Critical questions for argumentation schemes (Walton).** Two schemes cover Gloss's requests:
+- *Practical reasoning:* goal G; action A brings about G; so do A.
+- *Cause to effect:* C causes S; so acting on C removes S.
+
+Each scheme comes with a standard list of critical questions, and those map onto Jev questions:
+
+| Critical question | Kind of doubt | Jev question so far |
+|---|---|---|
+| Is the causal link established (cause to effect)? | undercutting | `mechanism_stated` |
+| Will A bring about G, given the stated facts? | rebutting | `plan_correct`, `contradicted` |
+| Does A conflict with another stated goal or constraint? | rebutting | `plan_breaks_requirement` |
+| Is A about finding C rather than acting on it? | (no doubt applies) | `plan_is_investigation` |
+| What is G: a problem to remove, or a requirement to meet? | (sets R) | `problem_described`, `goal_stated` |
+
+**What the frame changes.**
+- It explains the task-gate failure. "Task or fix" decided *which* R applies, but the rules used it to decide *whether* to check D, S ⊨ R at all.
+- It gives a small question set with a reason for each question, in place of the eight-plus ad hoc ones.
+- It gives a compact way to write cases: each held-out case can be written as (R, D, S, expected verdict, defeater kind), in Given/When/Then form. For example:
+
+  > **Given** a goal "no real reversal passes the screen" and the fact "flagged items go to an accurate reviewer",
+  > **when** the plan sets the threshold for few false positives,
+  > **then** object: a rebutting defeater against the goal.
+
+  The routing rules can be written the same way, as one decision table.
+
+# Next experiments (defined 2026-11-19)
+
+**E5: the critical-questions battery** (spent data, 239 cases). Replace the accumulated questions with one critical question per kind of doubt:
+- the goal type (problem / requirement / both / neither, as one multiple-choice question);
+- whether the causal link is stated;
+- given the stated facts, whether the plan achieves the goal (outcome wording, which beat the contradiction wording in exploration 4);
+- whether the plan conflicts with a stated constraint;
+- whether the plan is an investigation.
+
+Rules are written as a decision table and fixed before the run:
+1. Object when a rebutting doubt is at least 0.5.
+2. Otherwise ask when the goal is a problem, the causal link is not stated, and the plan isn't an investigation.
+3. Otherwise stay quiet.
+
+Under ruling 3, merit objections are allowed, so `plan_correct`-style doubt counts as rebutting whenever any goal is present. Under ruling 2, no-cause cases are never objected to for symptom mismatch alone. The same thresholds are reported at 0.3.
+
+Compared against D, D+correct and the LLM, on label rates and on utility at c = 0.25 with 35%, 20% and 10% wrong plans. Cost: about 717 Jev calls.
+
+**E6: write the G43 held-out set in the frame.** Every case is a (R, D, S, verdict, defeater) tuple in Given/When/Then form, drafted by the model and reviewed by the owner before any run. It includes kinds the pool lacks:
+- requirement-bound tasks with a rebutting defeater, like full/mis-02;
+- a stated but debatable diagnosis with a plan that fits it (an undermining defeater; under ruling 3 the expected verdict is object when the diagnosis makes the plan unsound, and the owner labels each one);
+- stated cause, fitting plan, weak engineering (under ruling 3, object when the weakness defeats the goal);
+- the existing kinds: sound, no evidence (plans that fit and plans that miss), symptom mismatch, investigations, plain tasks, answered conversations.
+
+Both shapes, as in G41 and G42.
+
+**E7: the G43 held-out run.** One Jev setup is fixed on the 239 spent cases (E5's battery or D+correct, whichever is better on dev), plus one routing variant if E5 leaves a type that only the LLM handles well. It runs once against the LLM classifier. Decision rule:
+- **Co-primary:** utility at c = 0.25 with 20% wrong plans. Jev must be no worse than the LLM by more than 0.02 per decision.
+- **Also required:** no gated label cell more than max(0.07, one case) below the LLM, as in G41 and G42.
+
+Objection becomes a gated cell, since ruling 3 makes it part of the standard. Nothing is changed after the result.

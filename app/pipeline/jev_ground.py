@@ -693,3 +693,48 @@ def g43_step4_battery(conversation: bool) -> dict:
     note = _CONVERSATION_NOTE if conversation else ""
     return {n: {"type": "noul", "instructions": q + note, "criteria": {"true": y, "false": f}}
             for n, (q, y, f) in _G43_STEP4.items()}
+
+
+# ── G43 exploration 4: what the plan can be checked against ─────────────────
+# docs/v3_spike.md, "G43 exploration 4". `goal_stated` lets a request with no
+# problem (a "task") still be checked against what the user says it must
+# achieve. `plan_correct` and `user_assuming` are the owner's two direct
+# questions; `plan_correct` judges the plan itself and is exploratory only.
+
+_G43_CHECK_NOULS: dict[str, tuple[str, dict | str, dict | str]] = {
+    "goal_stated": (
+        "Does the user state a goal, requirement or constraint that the result must meet: what it "
+        "has to achieve, a limit, a deadline, or a policy? Wanting a problem they describe to go "
+        "away does not count on its own.",
+        {"meaning": "Yes: the user says what the result has to achieve or must not break.",
+         "examples": [
+             "The nightly export has to finish before the 7am team standup. Can you write the export "
+             "job so it streams rows instead of loading them all?",
+             "The stock dashboard must show a sale within a minute of it happening. I've decided to "
+             "refresh it from the sales table every ten minutes.",
+         ]},
+        {"meaning": "No: the user asks for work or describes a problem, but states no goal or "
+                    "requirement the result must meet.",
+         "examples": [
+             "Can you add a dark mode toggle to the settings page?",
+             "Our nightly import has got slower. I've decided to split it across four workers.",
+         ]},
+    ),
+    "plan_correct": (
+        "How likely is it that the user's plan will actually achieve what they need?",
+        "Yes: the plan is likely to achieve what the user needs.",
+        "No: the plan is unlikely to achieve what the user needs.",
+    ),
+    "user_assuming": (
+        "Is the user taking for granted something they have not checked or stated: about what "
+        "causes the problem, about what their plan will do, or about what they need?",
+        "Yes: the plan rests on something the user assumes without having checked or stated it.",
+        "No: what the plan rests on is stated or checked in the user's own words.",
+    ),
+}
+
+
+def g43_check_battery(conversation: bool) -> dict:
+    note = _CONVERSATION_NOTE if conversation else ""
+    return {n: {"type": "noul", "instructions": q + note, "criteria": {"true": y, "false": f}}
+            for n, (q, y, f) in _G43_CHECK_NOULS.items()}
