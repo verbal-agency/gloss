@@ -142,3 +142,12 @@ def test_review_page_lists_every_case():
     assert all(c["id"] in page for c in h.single_cases())
     assert all(f"#### {c.id}" in page for c in h.load())
     assert "set each `label`" in page
+
+
+def test_recording_refuses_before_the_review(monkeypatch):
+    import asyncio
+    import pytest
+    from eval import g43_eval as e
+    monkeypatch.setattr(h, "REVIEW", "drafted")
+    with pytest.raises(SystemExit):
+        asyncio.run(e.record(1))
