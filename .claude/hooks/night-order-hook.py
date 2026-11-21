@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Night Order hook for Claude Code (Stop and SubagentStop) that sends the turn itself.
+"""Night Order hook for Claude Code (Stop, SubagentStop and UserPromptSubmit) that sends the turn itself.
 
 For sessions whose transcript Night Order can't read from disk: a cloud session, or any machine
 other than the one Night Order runs on. It posts the hook's payload with the current turn's own
@@ -7,6 +7,9 @@ transcript entries (the prompt, the tool calls and their results, the reply), so
 store them as a transcript of its own. When the project's own writing changes (its README,
 instructions, plans and other Markdown), it sends those files too, so cards can be written with
 the project's context and in its own words.
+
+When you send a prompt, it tells the server only that the session has moved on (no text), so the
+card for the turn before is put away while the next one runs. That send doesn't wait for an answer.
 
 It never gets in the way: it prints nothing (Claude Code reads a Stop hook's stdout as
 decisions), gives up after a few seconds, and always exits 0. Standard library only.
@@ -257,12 +260,30 @@ def post(url, body):
     return answer if isinstance(answer, dict) else {}
 
 
+def note_prompt(url, payload):
+    """Tell the server the session got a prompt: its id and nothing of what was said. Started and left,
+    because a UserPromptSubmit hook holds the prompt back until it returns."""
+    note = {"hook_event_name": "UserPromptSubmit", "session_id": payload.get("session_id")}
+    curl = shutil.which("curl")
+    if not curl:
+        return
+    command = [curl, "-s", "-o", os.devnull, "--max-time", str(SEND_SECONDS), "-H", "Content-Type: application/json",
+               "--data-binary", json.dumps(note), url + "/v1/connectors/claude-code"]
+    token = os.environ.get("CALLMEIF_TOKEN", "")
+    if token:
+        command[1:1] = ["-H", f"Authorization: Bearer {token}"]
+    subprocess.Popen(command, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
+
+
 def main():
     url = os.environ.get("CALLMEIF_URL", "").strip().rstrip("/")
     if not url:
         return
     payload = json.load(sys.stdin)
     if not isinstance(payload, dict):
+        return
+    if payload.get("hook_event_name") == "UserPromptSubmit":
+        note_prompt(url, payload)
         return
     try:
         turn = the_turn(payload)

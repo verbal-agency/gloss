@@ -21,6 +21,17 @@
           }
         ]
       }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "f=\"$CLAUDE_PROJECT_DIR/.claude/hooks/night-order-hook.py\"; [ -f \"$f\" ] && python3 \"$f\"; exit 0",
+            "timeout": 10
+          }
+        ]
+      }
     ]
   }
 }
