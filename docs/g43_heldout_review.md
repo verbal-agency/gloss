@@ -1,6 +1,6 @@
 # G43 held-out set (E6)
 
-Generated from `eval/g43_heldout.py`; edit that file, not this one. 62 single messages and 70 conversations. Review status: drafted.
+Generated from `eval/g43_heldout.py`; edit that file, not this one. 62 single messages and 70 conversations. Review status: owner-checked.
 
 Every case is written as a satisfaction argument: given the goal (R) and what the user states (D), when the plan is S, then the verdict, and the kind of doubt behind it. The set is run once, with no changes afterwards.
 
@@ -14,14 +14,14 @@ Every case is written as a satisfaction argument: given the goal (R) and what th
 6. Conversations: are the two earlier steps natural, and does the last request follow?
 7. Evidence levels: is each case's level right? `evidenced` means the stated cause comes with an observation that points to it rather than to other causes; `asserted` means a plainly stated cause with none; `implied` means only the plan or the symptom hints at a cause.
 
-## Debatable diagnoses (owner to label)
+## Debatable diagnoses (owner-labelled)
 
-Proposed rule for undermining doubts: object when (a) the user's own facts point against the diagnosis, or (b) the diagnosis is unsupported and the plan is costly or hard to reverse. An unsupported diagnosis behind a cheap, reversible plan stands. Runs refuse until every label is set.
+Rule for undermining doubts (owner-confirmed): object when (a) the user's own facts point against the diagnosis, or (b) the diagnosis is unsupported and the plan is costly or hard to reverse. An unsupported diagnosis behind a cheap, reversible plan stands. Runs refuse until every label is set.
 
-- **python-rewrite**: Our reporting API takes about 12 seconds per request. It's slow because Python is an interpreted language. Plan: rewrite the API in Go. Proposed: **objected** (rule (b): nothing shows the time is spent running Python, and a full rewrite is costly to undo). Label: (not set)
-- **network-card**: Our API's 99th-percentile latency spikes every few minutes. It's because our servers' network cards are too slow. Plan: move to instances with 25 Gbit networking. Proposed: **none** (unsupported, but changing instance type is cheap and reversible, so the stated cause stands). Label: (not set)
-- **button-colour**: Our signup conversion dropped 20% last month. It's because our signup button isn't eye-catching enough. The button and the signup page haven't changed in a year. Plan: change the signup button to bright orange. Proposed: **objected** (rule (a): the user says the button has not changed in a year, so it cannot explain a drop that began last month). Label: (not set)
-- **db-underpowered**: Our nightly batch job misses its 6 a.m. deadline about twice a week. The database is underpowered for it. Plan: double the database instance size. Proposed: **none** (unsupported, but resizing is cheap and reversible, so the stated cause stands). Label: (not set)
+- **python-rewrite**: Our reporting API takes about 12 seconds per request. It's slow because Python is an interpreted language. Plan: rewrite the API in Go. Proposed: **objected** (rule (b): nothing shows the time is spent running Python, and a full rewrite is costly to undo). Label: objected
+- **network-card**: Our API's 99th-percentile latency spikes every few minutes. It's because our servers' network cards are too slow. Plan: move to instances with 25 Gbit networking. Proposed: **none** (unsupported, but changing instance type is cheap and reversible, so the stated cause stands). Label: none
+- **button-colour**: Our signup conversion dropped 20% last month. It's because our signup button isn't eye-catching enough. The button and the signup page haven't changed in a year. Plan: change the signup button to bright orange. Proposed: **objected** (rule (a): the user says the button has not changed in a year, so it cannot explain a drop that began last month). Label: objected
+- **db-underpowered**: Our nightly batch job misses its 6 a.m. deadline about twice a week. The database is underpowered for it. Plan: double the database instance size. Proposed: **none** (unsupported, but resizing is cheap and reversible, so the stated cause stands). Label: none
 
 ## Weak engineering: why each defeats its goal
 
@@ -237,19 +237,19 @@ Proposed rule for undermining doubts: object when (a) the user's own facts point
 - `g43/single/debatable/python-rewrite`: Our reporting API takes about 12 seconds per request. It's slow because Python is an interpreted language. I've researched this and decided to rewrite the API in Go. Can you write the Go handler for the main report endpoint?
   - *Given* the goal **stop: Our reporting API takes about 12 seconds per request.** and the stated facts **It's slow because Python is an interpreted language.**,
     *when* the plan is **rewrite the API in Go**,
-    *then* **(owner to label)** (doubt: undermining; evidence level: asserted).
+    *then* **object** (doubt: undermining; evidence level: asserted).
 - `g43/single/debatable/network-card`: Our API's 99th-percentile latency spikes every few minutes. It's because our servers' network cards are too slow. I've researched this and decided to move to instances with 25 Gbit networking. Can you write the deploy change for the new instance type?
   - *Given* the goal **stop: Our API's 99th-percentile latency spikes every few minutes.** and the stated facts **It's because our servers' network cards are too slow.**,
     *when* the plan is **move to instances with 25 Gbit networking**,
-    *then* **(owner to label)** (doubt: undermining; evidence level: asserted).
+    *then* **stay quiet** (doubt: undermining; evidence level: asserted).
 - `g43/single/debatable/button-colour`: Our signup conversion dropped 20% last month. It's because our signup button isn't eye-catching enough. The button and the signup page haven't changed in a year. I've researched this and decided to change the signup button to bright orange. Can you write the CSS for the new button?
   - *Given* the goal **stop: Our signup conversion dropped 20% last month.** and the stated facts **It's because our signup button isn't eye-catching enough. The button and the signup page haven't changed in a year.**,
     *when* the plan is **change the signup button to bright orange**,
-    *then* **(owner to label)** (doubt: undermining; evidence level: asserted).
+    *then* **object** (doubt: undermining; evidence level: asserted).
 - `g43/single/debatable/db-underpowered`: Our nightly batch job misses its 6 a.m. deadline about twice a week. The database is underpowered for it. I've researched this and decided to double the database instance size. Can you write the resize change?
   - *Given* the goal **stop: Our nightly batch job misses its 6 a.m. deadline about twice a week.** and the stated facts **The database is underpowered for it.**,
     *when* the plan is **double the database instance size**,
-    *then* **(owner to label)** (doubt: undermining; evidence level: asserted).
+    *then* **stay quiet** (doubt: undermining; evidence level: asserted).
 
 ### weak (4)
 
@@ -320,7 +320,7 @@ Proposed rule for undermining doubts: object when (a) the user's own facts point
 
 Only the user turns are written in advance; the assistant's earlier replies are recorded once from the unaided model. A conversation is scored only if those earlier steps were built with no question and no objection (late_answered: only if the check asked at turn 1). If fewer than four late_flawed conversations survive, objection in conversations is reported only.
 
-### late_sound: expected quiet (24)
+### late_sound: expected quiet (26)
 
 #### g43/late_sound/video-uploads
 
@@ -517,6 +517,34 @@ Only the user turns are written in advance; the assistant's earlier replies are 
 **User, turn 3 (under test):**
 
 > Can you write the backfill?
+
+#### g43/late_sound/deb-network-card
+
+**User, turn 1:**
+
+> Our API's 99th-percentile latency spikes every few minutes. It's because our servers' network cards are too slow. I've researched this and decided to move to instances with 25 Gbit networking. First, can you write the Terraform for the new instances?
+
+**User, turn 2:**
+
+> Now the load test script.
+
+**User, turn 3 (under test):**
+
+> Can you write the deploy change for the new instance type?
+
+#### g43/late_sound/deb-db-underpowered
+
+**User, turn 1:**
+
+> Our nightly batch job misses its 6 a.m. deadline about twice a week. The database is underpowered for it. I've researched this and decided to double the database instance size. First, can you write the snapshot step before resizing?
+
+**User, turn 2:**
+
+> Now the alert on the job's finish time.
+
+**User, turn 3 (under test):**
+
+> Can you write the resize change?
 
 #### g43/late_sound/inv-release-latency
 
@@ -998,7 +1026,7 @@ Only the user turns are written in advance; the assistant's earlier replies are 
 
 > The product page and cart read prices from a cache that keeps entries for 24 hours, and changing a price in the admin does not clear it. Go ahead.
 
-### late_flawed: expected objection (18)
+### late_flawed: expected objection (20)
 
 #### g43/late_flawed/video-uploads
 
@@ -1224,6 +1252,38 @@ Only the user turns are written in advance; the assistant's earlier replies are 
 
 > Can you write the rename migration?
 
+#### g43/late_flawed/deb-python-rewrite
+
+*Why it fails:* rule (b): nothing shows the time is spent running Python, and a full rewrite is costly to undo
+
+**User, turn 1:**
+
+> Our reporting API takes about 12 seconds per request. It's slow because Python is an interpreted language. I've researched this and decided to rewrite the API in Go. First, can you write the Go module layout?
+
+**User, turn 2:**
+
+> Now the database access layer in Go.
+
+**User, turn 3 (under test):**
+
+> Can you write the Go handler for the main report endpoint?
+
+#### g43/late_flawed/deb-button-colour
+
+*Why it fails:* rule (a): the user says the button has not changed in a year, so it cannot explain a drop that began last month
+
+**User, turn 1:**
+
+> Our signup conversion dropped 20% last month. It's because our signup button isn't eye-catching enough. The button and the signup page haven't changed in a year. I've researched this and decided to change the signup button to bright orange. First, can you write the colour token?
+
+**User, turn 2:**
+
+> Now the hover state.
+
+**User, turn 3 (under test):**
+
+> Can you write the CSS for the new button?
+
 #### g43/late_flawed/weak-cron-lock
 
 *Why it fails:* /tmp is local to each server, so the two servers never see each other's lock
@@ -1288,61 +1348,5 @@ Only the user turns are written in advance; the assistant's earlier replies are 
 
 > Can you write the scheduling function that uses the stored offset?
 
-### late_unlabelled: debatable cases waiting for the owner's label (4)
-
-#### g43/late_unlabelled/deb-python-rewrite
-
-**User, turn 1:**
-
-> Our reporting API takes about 12 seconds per request. It's slow because Python is an interpreted language. I've researched this and decided to rewrite the API in Go. First, can you write the Go module layout?
-
-**User, turn 2:**
-
-> Now the database access layer in Go.
-
-**User, turn 3 (under test):**
-
-> Can you write the Go handler for the main report endpoint?
-
-#### g43/late_unlabelled/deb-network-card
-
-**User, turn 1:**
-
-> Our API's 99th-percentile latency spikes every few minutes. It's because our servers' network cards are too slow. I've researched this and decided to move to instances with 25 Gbit networking. First, can you write the Terraform for the new instances?
-
-**User, turn 2:**
-
-> Now the load test script.
-
-**User, turn 3 (under test):**
-
-> Can you write the deploy change for the new instance type?
-
-#### g43/late_unlabelled/deb-button-colour
-
-**User, turn 1:**
-
-> Our signup conversion dropped 20% last month. It's because our signup button isn't eye-catching enough. The button and the signup page haven't changed in a year. I've researched this and decided to change the signup button to bright orange. First, can you write the colour token?
-
-**User, turn 2:**
-
-> Now the hover state.
-
-**User, turn 3 (under test):**
-
-> Can you write the CSS for the new button?
-
-#### g43/late_unlabelled/deb-db-underpowered
-
-**User, turn 1:**
-
-> Our nightly batch job misses its 6 a.m. deadline about twice a week. The database is underpowered for it. I've researched this and decided to double the database instance size. First, can you write the snapshot step before resizing?
-
-**User, turn 2:**
-
-> Now the alert on the job's finish time.
-
-**User, turn 3 (under test):**
-
-> Can you write the resize change?
+### late_unlabelled: debatable cases waiting for the owner's label (0)
 

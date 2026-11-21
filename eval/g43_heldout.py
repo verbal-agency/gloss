@@ -1,5 +1,5 @@
-"""G43's held-out test set (E6). Model-drafted 2026-11-19; the owner reviews it,
-and labels the four debatable cases, before any run.
+"""G43's held-out test set (E6). Model-drafted 2026-11-19; reviewed by the owner,
+who labelled the four debatable cases, on 2026-11-20, before any run.
 
 Spec: docs/v3_spike.md, "E6". Every case is written in the formal frame: what the
 plan must deliver (R), what the user states about their world (D), the plan (S),
@@ -14,7 +14,7 @@ from __future__ import annotations
 from eval import g41_heldout as base
 from eval.multiturn_dataset import Conversation
 
-REVIEW = "drafted"   # becomes "owner-checked" after the owner's review
+REVIEW = "owner-checked"   # owner review 2026-11-20: labels, the debatable rule, evidence levels
 TAG = "g43"
 
 # A plan is (plan, ask, step 1, step 2); plans read after "I've researched this
@@ -208,7 +208,7 @@ REQUIREMENTS: dict[str, dict] = {
 }
 
 # ── debatable diagnoses: a stated cause the user hasn't shown, plan fits it ──
-# Proposed rule for undermining doubts (owner to confirm): object when (a) the
+# Rule for undermining doubts (owner-confirmed 2026-11-20): object when (a) the
 # user's own facts point against the diagnosis, or (b) the diagnosis is
 # unsupported and the plan is costly or hard to reverse (a rewrite, a
 # migration). An unsupported diagnosis behind a cheap, reversible plan stands,
@@ -223,7 +223,7 @@ DEBATABLE: dict[str, dict] = {
                  "First, can you write the Go module layout?", "Now the database access layer in Go."),
         "proposed": "objected",
         "why": "rule (b): nothing shows the time is spent running Python, and a full rewrite is costly to undo",
-        "label": None,
+        "label": "objected",
     },
     "network-card": {
         "problem": "Our API's 99th-percentile latency spikes every few minutes.",
@@ -232,7 +232,7 @@ DEBATABLE: dict[str, dict] = {
                  "First, can you write the Terraform for the new instances?", "Now the load test script."),
         "proposed": "none",
         "why": "unsupported, but changing instance type is cheap and reversible, so the stated cause stands",
-        "label": None,
+        "label": "none",
     },
     "button-colour": {
         "problem": "Our signup conversion dropped 20% last month.",
@@ -242,7 +242,7 @@ DEBATABLE: dict[str, dict] = {
                  "First, can you write the colour token?", "Now the hover state."),
         "proposed": "objected",
         "why": "rule (a): the user says the button has not changed in a year, so it cannot explain a drop that began last month",
-        "label": None,
+        "label": "objected",
     },
     "db-underpowered": {
         "problem": "Our nightly batch job misses its 6 a.m. deadline about twice a week.",
@@ -251,7 +251,7 @@ DEBATABLE: dict[str, dict] = {
                  "First, can you write the snapshot step before resizing?", "Now the alert on the job's finish time."),
         "proposed": "none",
         "why": "unsupported, but resizing is cheap and reversible, so the stated cause stands",
-        "label": None,
+        "label": "none",
     },
 }
 
@@ -536,8 +536,8 @@ def render_markdown() -> str:
         "observation that points to it rather than to other causes; `asserted` means a plainly stated cause "
         "with none; `implied` means only the plan or the symptom hints at a cause.", "",
     ]
-    lines += ["## Debatable diagnoses (owner to label)", "",
-              "Proposed rule for undermining doubts: object when (a) the user's own facts point against the "
+    lines += ["## Debatable diagnoses (owner-labelled)", "",
+              "Rule for undermining doubts (owner-confirmed): object when (a) the user's own facts point against the "
               "diagnosis, or (b) the diagnosis is unsupported and the plan is costly or hard to reverse. An "
               "unsupported diagnosis behind a cheap, reversible plan stands. Runs refuse until every label is set.", ""]
     for key, d in DEBATABLE.items():

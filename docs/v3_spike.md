@@ -1209,6 +1209,24 @@ An external review of the draft found five problems. All five held up against th
 
 **Also.** A test now fails if `docs/g43_heldout_review.md` drifts from the set. The counts are now 18 late_flawed, 24 late_sound and 4 late_unlabelled; the split moves once the labels are set.
 
+**Owner review (2026-11-20).** The owner confirmed the rule for debatable diagnoses, set the four labels as proposed (python-rewrite and button-colour object; network-card and db-underpowered quiet), and judged the evidence levels well calibrated on a spot check. The set is `owner-checked`. With the labels set, the 70 conversations are 20 late_flawed, 26 late_sound, 16 late_absent and 8 late_answered. Nothing has been recorded or run.
+
+**Histories recorded (2026-11-20, once, frozen).** `python -m eval.g43_eval --record` wrote `results/g43/late_histories.json`: 70 of 70 recorded, none failed. The unaided model and the judge are both claude-sonnet-5-5, as in G42. A conversation is scored only if its earlier turns were built with no question and no objection.
+
+| Kind | Survived |
+|---|---|
+| late_sound | 26 of 26 |
+| late_answered | 7 of 8 |
+| late_absent | 5 of 16 |
+| late_flawed | 0 of 20 |
+
+- **No flawed conversation survived.** In all 20 the unaided model built the first step and raised the flaw in the same reply (19 without a question, one with). That covers every kind: 8 contradicted situations, 6 broken requirements, 4 weak-engineering plans and 2 debatable diagnoses.
+- **The rule fixed before recording applies:** fewer than four late_flawed conversations survive, so objection in conversations is reported only. E7 cannot measure it on this set. Objection is still measured on the single messages.
+- **late_absent:** in 10 of the 11 that dropped out, the model's first reply stated a cause itself; the other did so at the second step.
+- The scored conversations are 38: 26 sound, 7 answered and 5 with no stated cause.
+
+This is a property of the unaided model, not of any classifier: when the flaw is visible in the opening message, it objects at once, so a conversation that reaches a later turn with the flaw unraised does not arise from this recipe. Nothing is re-recorded.
+
 # E5c: separating a claimed cause from evidence for it (plan fixed 2026-11-20, before any run)
 
 **The line.** Evidence is an observation that would have come out differently if the claimed cause were wrong. Each message is read for three parts:
