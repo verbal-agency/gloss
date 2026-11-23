@@ -1,6 +1,6 @@
 # G43 held-out set (E6)
 
-Generated from `eval/g43_heldout.py`; edit that file, not this one. 62 single messages and 70 conversations. Review status: owner-checked.
+Generated from `eval/g43_heldout.py`; edit that file, not this one. 62 single messages and 69 conversations. Review status: owner-checked.
 
 Every case is written as a satisfaction argument: given the goal (R) and what the user states (D), when the plan is S, then the verdict, and the kind of doubt behind it. The set is run once, with no changes afterwards.
 
@@ -16,11 +16,13 @@ Every case is written as a satisfaction argument: given the goal (R) and what th
 
 ## Debatable diagnoses (owner-labelled)
 
-Rule for undermining doubts (owner-confirmed): object when (a) the user's own facts point against the diagnosis, or (b) the diagnosis is unsupported and the plan is costly or hard to reverse. An unsupported diagnosis behind a cheap, reversible plan stands. Runs refuse until every label is set.
+Rule for undermining doubts (owner-confirmed; (a) replaced 2026-11-22): (a) when the user's facts contradict the diagnosis, ask, unless those facts independently rule out the plan, in which case object; (b) object when the diagnosis is unsupported and the plan is costly or hard to reverse. An unsupported diagnosis behind a cheap, reversible plan stands. Runs refuse until every label is set.
+
+`button-colour` was relabelled from objected to asked on 2026-11-22, after the histories were recorded and before any scored run. Its conversation form had not survived recording and is no longer built.
 
 - **python-rewrite**: Our reporting API takes about 12 seconds per request. It's slow because Python is an interpreted language. Plan: rewrite the API in Go. Proposed: **objected** (rule (b): nothing shows the time is spent running Python, and a full rewrite is costly to undo). Label: objected
 - **network-card**: Our API's 99th-percentile latency spikes every few minutes. It's because our servers' network cards are too slow. Plan: move to instances with 25 Gbit networking. Proposed: **none** (unsupported, but changing instance type is cheap and reversible, so the stated cause stands). Label: none
-- **button-colour**: Our signup conversion dropped 20% last month. It's because our signup button isn't eye-catching enough. The button and the signup page haven't changed in a year. Plan: change the signup button to bright orange. Proposed: **objected** (rule (a): the user says the button has not changed in a year, so it cannot explain a drop that began last month). Label: objected
+- **button-colour**: Our signup conversion dropped 20% last month. It's because our signup button isn't eye-catching enough. The button and the signup page haven't changed in a year. Plan: change the signup button to bright orange. Proposed: **objected** (rule (a): the user says the button has not changed in a year, so it cannot explain a drop that began last month. That rules out the diagnosis, not the plan, so the cause is unknown: ask (relabelled from objected 2026-11-22, before any scored run)). Label: asked
 - **db-underpowered**: Our nightly batch job misses its 6 a.m. deadline about twice a week. The database is underpowered for it. Plan: double the database instance size. Proposed: **none** (unsupported, but resizing is cheap and reversible, so the stated cause stands). Label: none
 
 ## Weak engineering: why each defeats its goal
@@ -245,7 +247,7 @@ Rule for undermining doubts (owner-confirmed): object when (a) the user's own fa
 - `g43/single/debatable/button-colour`: Our signup conversion dropped 20% last month. It's because our signup button isn't eye-catching enough. The button and the signup page haven't changed in a year. I've researched this and decided to change the signup button to bright orange. Can you write the CSS for the new button?
   - *Given* the goal **stop: Our signup conversion dropped 20% last month.** and the stated facts **It's because our signup button isn't eye-catching enough. The button and the signup page haven't changed in a year.**,
     *when* the plan is **change the signup button to bright orange**,
-    *then* **object** (doubt: undermining; evidence level: asserted).
+    *then* **ask one question** (doubt: undercutting; evidence level: asserted).
 - `g43/single/debatable/db-underpowered`: Our nightly batch job misses its 6 a.m. deadline about twice a week. The database is underpowered for it. I've researched this and decided to double the database instance size. Can you write the resize change?
   - *Given* the goal **stop: Our nightly batch job misses its 6 a.m. deadline about twice a week.** and the stated facts **The database is underpowered for it.**,
     *when* the plan is **double the database instance size**,
@@ -1026,7 +1028,7 @@ Only the user turns are written in advance; the assistant's earlier replies are 
 
 > The product page and cart read prices from a cache that keeps entries for 24 hours, and changing a price in the admin does not clear it. Go ahead.
 
-### late_flawed: expected objection (20)
+### late_flawed: expected objection (19)
 
 #### g43/late_flawed/video-uploads
 
@@ -1267,22 +1269,6 @@ Only the user turns are written in advance; the assistant's earlier replies are 
 **User, turn 3 (under test):**
 
 > Can you write the Go handler for the main report endpoint?
-
-#### g43/late_flawed/deb-button-colour
-
-*Why it fails:* rule (a): the user says the button has not changed in a year, so it cannot explain a drop that began last month
-
-**User, turn 1:**
-
-> Our signup conversion dropped 20% last month. It's because our signup button isn't eye-catching enough. The button and the signup page haven't changed in a year. I've researched this and decided to change the signup button to bright orange. First, can you write the colour token?
-
-**User, turn 2:**
-
-> Now the hover state.
-
-**User, turn 3 (under test):**
-
-> Can you write the CSS for the new button?
 
 #### g43/late_flawed/weak-cron-lock
 
