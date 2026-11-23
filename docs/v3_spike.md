@@ -1241,7 +1241,7 @@ A checked fact about the user's own system that accounts for the symptom's speci
 | Level | Meaning | Action |
 |---|---|---|
 | `implied` | a cause only implied by the plan, or only the symptom (measured or not) | ask |
-| `asserted` | a cause plainly stated, with no evidence | quiet if the plan is cheap and reversible; object if it is costly, or if the user's facts point against the cause (the E6 rule) |
+| `asserted` | a cause plainly stated, with no evidence | quiet if the plan is cheap and reversible; object if it is costly (the E6 rule); ask if the user's facts contradict the cause, unless those facts rule out the plan itself (owner, 2026-11-22) |
 | `evidenced` | a cause with evidence | quiet, unless the plan misses it or breaks a stated requirement |
 | `n/a` | nothing is going wrong (requirements, tasks, investigations) | checked against the stated goal only |
 
@@ -1400,3 +1400,79 @@ Every category has at least five single cases. Seven conversations spread cause,
 4. **The conventions.** A hedged or second-hand cause is `asserted` unless an observation of the user's own system comes with it. Timing or a single instance doesn't raise the level. An unstated requirement that follows from the domain can support an objection under ruling 3.
 5. **The 14 low-confidence labels,** listed second on the review page.
 6. Set `REVIEW = "owner-checked"` in the module once read. Then the blind second labelling and E7, as the goal lists.
+
+# E9: the late-flaw held-out set, G44 (spec fixed 2026-11-21; set owner-checked 2026-11-22)
+
+**Why.** G43's histories left objection in conversations unmeasured: the unaided model raised the flaw in its first reply in all 20 flawed conversations, so none survived. Only 5 of 16 no-cause conversations survived, which is too few to compare two classifiers. The cause is the recipe, which puts the situation and the bad plan in the first message. That was a design miss in E6: the "fewer than four survive" rule anticipated the problem and did not prevent it.
+
+**The recipe.** `eval/g44_heldout.py` holds 64 three-turn conversations. The first two user turns are sound: an evidenced cause with a plan that acts on it, or a plain task. The unaided model should build both steps quietly. The last turn, under test, is where something arrives:
+
+| Kind | What the last turn brings | Cases | Expected | Doubt |
+|---|---|---|---|---|
+| `late_fact_for` | a new fact that agrees with the stated cause | 8 | none | none |
+| `late_fact_against` | a new fact that points against the stated cause; the user carries on | 8 | asked | undercutting |
+| `late_switch_fits` | a new plan that still acts on the stated cause | 8 | none | none |
+| `late_switch_misses` | a new plan that does not act on the stated cause | 8 | objected | rebutting |
+| `late_req_met` | a requirement, and a step that meets it | 6 | none | none |
+| `late_req_broken` | the same requirement, and a step that breaks it | 6 | objected | rebutting |
+| `late_problem_stated` | a new problem with its cause, and a plan that acts on it | 10 | none | none |
+| `late_problem_absent` | the same problem and plan, with no cause | 10 | asked | undercutting |
+
+That is 14 objections, 32 quiet and 18 questions. The cases come from 8 situations (four last turns each), 6 requirements (two each) and 10 late problems (two each). Within a family only the last turn differs, so each objection or question has a quiet twin with the same history shape.
+
+**Rules, fixed now, before any recording.**
+
+1. The owner reviews the set first. Recording refuses until `REVIEW` is `owner-checked`.
+2. Histories are recorded once, from the unaided model, and frozen. Each earlier turn is judged as a sound step: a conversation is scored only if both steps were built with no question and no objection.
+3. A kind with fewer than four surviving conversations is reported only.
+4. No case is changed, dropped or relabelled after recording.
+5. G44 is run once, together with G43, in E7. E7's questions, thresholds and decision rule are fixed on dev before that run.
+
+**What the owner is asked to rule on.**
+
+- **A fact against the cause: object or ask?** Ruled by the owner, confirmed 2026-11-22: **ask**. See "One global rule" below. The first draft said object and was relabelled before any recording.
+
+**One global rule (owner, 2026-11-22).** Presentation order does not change the verdict:
+
+- **Object** when the facts show the plan itself is wrong, unsafe or incompatible with the goal.
+- **Ask** when the facts only invalidate the stated diagnosis, leaving the real cause unknown.
+- **Stay quiet** when the diagnosis remains supported and the plan fits it.
+
+Debatable rule (a) from E6 is replaced by: "When the user's facts contradict the diagnosis, ask, unless those facts independently rule out the plan, in which case object." Rule (b), on costly plans behind an unsupported diagnosis, is unchanged.
+
+*What changed, and when.*
+
+| Case | Before | After | Timing |
+|---|---|---|---|
+| G44 `late_fact_against` (8 conversations) | objected (draft) | asked | before owner review and before any recording |
+| G43 `button-colour` (single message) | objected | asked | after the G43 histories were recorded (2026-11-20), before any scored run |
+| G43 `late_flawed/deb-button-colour` (conversation) | expected objection | no longer built | it was recorded as a flawed conversation and did not survive, so it was never going to be scored |
+
+No result existed for any relabelled case: no arm has been run on G43 or G44. This is the one exception to E6's "no relabelling after recording" rule, made on the owner's ruling. G43's single messages are now 19 objections, 17 questions and 26 quiet (they were 20, 16 and 26), and its recorded histories file still holds 70 entries, one of which no longer has a conversation.
+
+*Follow-ons, not yet done.* The E7 candidate's decision table must send "asserted cause contradicted by the user's own facts" to ask, not object. E8's dev labels were drafted under the old rule (a) and need a pass against the new one. Neither `GROUND_SYSTEM` nor the Jev questions were changed.
+- **A late problem with no cause, after an unrelated task: ask?** Ask, as for any fix with no stated cause. The owner approved the set as drafted on 2026-11-22.
+
+**Novelty.** No situation name is shared with any earlier set, including E8's. Turn 1 and turn 3 of every conversation pass the word and phrase overlap check against every example in the Jev question tables; the test now walks the whole module, so the E5, E5c and E5d examples are covered too. Three first-draft situations failed that check: label printing and an hourly calendar sync were replaced, and `exam-timer`'s cause was reworded. Two late problems that passed the check were also replaced, because their cause (a job that runs too rarely) resembled the batch-flush example in meaning.
+
+**Limits.**
+
+- Same author as the Jev questions and their examples, as with G43. The overlap check is a heuristic; reuse of meaning still needs the owner's eye.
+- The same check against the dev sets and G43's single messages flags four loose matches on shared phrases (`parking-gate`, `field-rename`, `refund-approval`, `report-cards`). I read them as shared vocabulary, not shared cases; `field-rename` and stakes_dev's `date-complaints` both change a public API field.
+- Every flawed last turn is flawed in the open: the user states the fact, the switch or the requirement in the same message as the request. A flaw that needs facts from two turns apart to see is not covered.
+- All conversations have three turns and an evidenced cause in turn 1. Asserted and hedged causes arriving late are left to E8's dev cases.
+
+**Histories recorded (2026-11-22, once, frozen).** `python -m eval.g43_eval --record-g44` wrote `results/g44/late_histories.json`: 64 recorded, 0 failed, model and judge claude-sonnet-5-5. Every conversation survived: the unaided model built both earlier steps with no question and no objection.
+
+| Kind | Survived | Expected |
+|---|---|---|
+| `late_fact_for` | 8 of 8 | none |
+| `late_fact_against` | 8 of 8 | asked |
+| `late_switch_fits` | 8 of 8 | none |
+| `late_switch_misses` | 8 of 8 | objected |
+| `late_req_met` | 6 of 6 | none |
+| `late_req_broken` | 6 of 6 | objected |
+| `late_problem_stated` | 10 of 10 | none |
+| `late_problem_absent` | 10 of 10 | asked |
+
+Every kind clears the four-survivor floor, so all eight are scored in E7. With G43's survivors, conversations now give 14 objections (all G44), 23 questions (18 G44, 5 G43) and 65 quiet (32 G44, 33 G43). The set is frozen from here: no case is changed, dropped or relabelled.
