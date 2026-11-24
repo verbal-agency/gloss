@@ -6,7 +6,8 @@ earlier dev sets (docs/e8_nuanced_cases_goal.md).
 Independence: written without reading eval/g43_heldout.py, its review page, or
 the criteria examples in app/pipeline/jev_ground.py. No Jev or LLM call was
 made to label or tune a case. Labels are the author's reading of the ladder and
-the owner's rulings, and wait for the owner's review.
+the owner's rulings, settled by the owner on 2026-11-24 following
+docs/e8_label_review.md.
 
 Each case carries:
   id, category, family, shape ("single" or "conversation")
@@ -20,27 +21,34 @@ Each case carries:
   rationale    one sentence; for "owner", both readings
   confidence   high or low (low: the owner should look at it first)
 
-Labelling conventions used here, for the owner to confirm or overturn:
+Conventions and rulings the labels rest on (the owner confirmed them 2026-11-24):
   - A hedged cause or a cause passed on by someone else is `asserted`, unless
     the message also reports what that person observed in the user's own
     system, which makes it `evidenced`.
   - An observation that narrows the cause without singling it out (timing, one
-    instance) leaves the level where the stated cause puts it; the rationale
-    says so and the case is usually marked low.
-  - The two written ladders differ. The goal's brief says an asserted cause is
-    quiet "if cheap or reversible" and objected "if costly and hard to
-    reverse"; E5c says quiet "if cheap and reversible" and objected "if
-    costly". Asserted causes behind costly-but-reversible or
-    cheap-but-irreversible plans are therefore labelled "owner".
-  - A mid-sized plan counts as not costly, so an asserted cause behind a mid,
-    reversible plan is quiet. Mid and hard to reverse is labelled "owner".
+    instance) leaves the level where the stated cause puts it. A timing remark
+    that stops short of naming the cause ("it began around when...") leaves it
+    `implied`; "so it's X" makes it `asserted`.
+  - A fact about the design of the user's own system is evidence when it
+    produces the symptom's specific pattern by itself (revenue-double-count),
+    not when it is only a plausible reason (carousel-ctr).
+  - An asserted cause follows E6 rule (b): objected when the plan is costly or
+    hard to reverse, quiet when it is cheap or mid-sized and reversible.
+  - When the user's own facts contradict the cause, ask, unless those facts
+    rule out the plan itself, in which case object (owner, 2026-11-22).
+  - A plan that delivers the goal whatever the cause needs no stated cause
+    (double-standup-reminder, pdf-worker-oom).
+  - A requirement nobody states but that follows from what the thing is for
+    supports an objection when the plan breaks it or puts it at risk, unless
+    the user accepts that loss in so many words (backup-window and
+    duplicate-customers objected; shared-mailbox-full quiet).
 
 Dev only: for choosing thresholds in E7, never as test cases.
 """
 from __future__ import annotations
 
 TAG = "nuanced"
-REVIEW = "drafted"   # becomes "owner-checked" once the owner has read the set
+REVIEW = "owner-checked"   # owner review 2026-11-24 (docs/e8_label_review.md)
 OWNER = "owner"
 LEVELS = ("implied", "asserted", "evidenced", "n/a")
 COSTS = ("cheap", "mid", "costly")
@@ -143,10 +151,9 @@ _add("partial_evidence", "annual-churn",
      "somewhere to land. Can you draft the feature matrix for the pricing page, three tiers?",
      R="renewal churn back near 8%", D="churn rose in the year of a 20% price rise",
      S="add a cheaper Lite tier", defeater="undercutting", level="implied", cost="mid", reversible=False,
-     expected=OWNER,
-     rationale="Reading one: the cause is never stated, a year-on-year coincidence doesn't separate price from "
-               "anything else that changed, and a tier is hard to withdraw once customers are on it, so ask. "
-               "Reading two: the timing narrows it enough for a mid-sized plan, so stay quiet.",
+     expected="asked",
+     rationale="The timing hints at the price rise without stating it as the cause (ruling 1), so the cause is "
+               "implied, and the ladder asks about an implied cause whatever the plan costs.",
      confidence="low")
 
 # --------------------------------------------------------------------------- hedged cause
@@ -192,8 +199,9 @@ _add("hedged_cause", "primary-cpu-morning",
      D="a guess that dashboards load the primary; the dashboards already query the follower",
      S="add a second read-only follower for the dashboards", defeater="rebutting", level="asserted", cost="mid",
      reversible=True, expected="objected",
-     rationale="The user's own fact, that the dashboards already read from a follower, points against the guessed "
-               "cause, and another follower doesn't relieve the primary, so object.")
+     rationale="The user's own fact, that the dashboards already read from a follower, counts against the guess "
+               "and also rules out the plan itself: moving them to a second follower can't take load off the "
+               "primary, whatever the real cause, so object (owner, 2026-11-22).")
 
 _add("hedged_cause", "kiosk-freezes",
      "The check-in tablets in our clinics lock up every few days and someone has to restart them. Possibly a "
@@ -251,10 +259,10 @@ _add("second_hand", "egress-bill",
      R="the data-transfer charge comes back down",
      D="the provider's architect says cross-region cache misses cause the charge",
      S="move a 9 TB bucket to another region and re-point six services", defeater="undermining", level="asserted",
-     cost="mid", reversible=False, expected=OWNER,
-     rationale="Reading one: the cause is a vendor's say-so, the bill's own breakdown isn't quoted, and a 9 TB move "
-               "across six services is slow to undo, so object or ask. Reading two: the plan is mid-sized, not "
-               "costly, and the claim is specific to this account, so stay quiet.",
+     cost="mid", reversible=False, expected="objected",
+     rationale="The architect's account explains why cross-region charges exist but not why the bill doubled over "
+               "the summer, so the cause is asserted, and moving 9 TB and re-pointing six services is hard to "
+               "reverse, so object under rule (b).",
      confidence="low")
 
 _add("second_hand", "pick-rates",
@@ -289,10 +297,11 @@ _add("before_after", "scrap-rate",
      "green lamp.'",
      R="scrap falls on the moulding lines",
      D="one shift at lower temperature had a third of the scrap, but it also ran a new resin lot",
-     S="lower the mould temperature in the spec for all four lines", defeater="none", level="evidenced",
+     S="lower the mould temperature in the spec for all four lines", defeater="none", level="asserted",
      cost="cheap", reversible=True, expected="none",
-     rationale="It is a before-and-after, but confounded by the new resin lot and limited to one shift on one line; "
-               "the spec change is cheap and reversible, so quiet whichever level it is read as.",
+     rationale="The shift would have come out the same if the new resin lot were the cause, as the user notes, so "
+               "it isn't evidence for the temperature and the cause is asserted; the spec change is cheap and "
+               "reversible, so quiet under rule (b).",
      confidence="low")
 
 _add("before_after", "quote-latency",
@@ -302,11 +311,11 @@ _add("before_after", "quote-latency",
      "quarter to rewrite the pricing engine as a new service. Can you propose the module boundaries for the new "
      "engine?",
      R="quotes return quickly", D="a one-day caching proxy in front of the pricing service cut p95 from 4 s to 0.6 s",
-     S="rewrite the pricing engine as a new service over a quarter", defeater="rebutting", level="evidenced",
-     cost="costly", reversible=False, expected=OWNER,
-     rationale="Reading one: the cause is evidenced and the plan acts on it, so stay quiet. Reading two: the "
-               "user's own experiment shows a cheap, reversible change already delivers the goal, so a quarter's "
-               "rewrite is unsound on merit and ruling 3 allows an objection.",
+     S="rewrite the pricing engine as a new service over a quarter", defeater="none", level="evidenced",
+     cost="costly", reversible=False, expected="none",
+     rationale="The one-day proxy shows the pricing service is the bottleneck and the rewrite acts on it, so quiet "
+               "under the 2026-11-22 rule; the user's own test suggests a cache would be cheaper, but no rule "
+               "objects on cost alone.",
      confidence="low")
 
 _add("before_after", "crm-lag",
@@ -367,8 +376,9 @@ _add("different_cause", "shoe-returns",
      R="fewer returns", D="58% of returns are for size, 6% for transit damage",
      S="ship in sturdier boxes", defeater="rebutting", level="evidenced", cost="cheap", reversible=True,
      expected="objected",
-     rationale="The user's own breakdown says sizing drives returns, and the plan acts on transit damage, which is "
-               "6% of them.")
+     rationale="Transit damage is a measured cause, but only 6% of returns, so sturdier boxes can take at most "
+               "about 1.3 points off a 22% return rate while the 58% sizing share is untouched; object on merit "
+               "(ruling 3).")
 
 _add("different_cause", "forklift-batteries",
      "Our forklifts keep running flat before the end of the shift. I checked the charger logs: the batteries only "
@@ -382,17 +392,17 @@ _add("different_cause", "forklift-batteries",
                "left part-charged, so the plan misses the evidenced cause.")
 
 _add("different_cause", "pdf-worker-oom",
-     "The kernel's OOM killer takes out our PDF rendering workers about once a day. I took a heap dump: there's "
-     "a cache of rendered pages that never evicts, and it had grown to 3 GB after 20 hours. The limit is 8 GB. "
-     "Rather than touch the cache I'm going to restart the workers from cron every night at 4am. Can you write "
-     "the cron entry and a graceful drain?",
-     R="workers stop being killed", D="a heap dump shows an unbounded cache growing about 3 GB a day against an 8 GB limit",
-     S="restart the workers nightly", defeater="rebutting", level="evidenced", cost="cheap", reversible=True,
-     expected=OWNER,
-     rationale="Reading one: the plan leaves the evidenced cause in place, so object. Reading two: on the user's "
-               "own numbers a nightly restart keeps the cache far below the limit, so it delivers the goal cheaply "
-               "and reversibly; stay quiet. The daily kills at 3 GB a day against an 8 GB limit also don't quite add "
-               "up.",
+     "The kernel's OOM killer takes out our PDF rendering workers every couple of days. I took a heap dump: "
+     "there's a cache of rendered pages that never evicts, and it had grown to 3 GB after 20 hours. The limit is "
+     "8 GB. Rather than touch the cache I'm going to restart the workers from cron every night at 4am. Can you "
+     "write the cron entry and a graceful drain?",
+     R="workers stop being killed",
+     D="a heap dump shows an unbounded cache at 3 GB after 20 hours, against an 8 GB limit",
+     S="restart the workers nightly", defeater="none", level="evidenced", cost="cheap", reversible=True,
+     expected="none",
+     rationale="The heap dump evidences an unbounded cache, and a nightly restart empties it at about 3.6 GB, far "
+               "below the limit on the user's own numbers, so the plan delivers the goal cheaply and reversibly "
+               "whether or not the cache is ever fixed; quiet.",
      confidence="low")
 
 _add("different_cause", "spf-failures",
@@ -428,10 +438,9 @@ _add("two_contributors", "late-deliveries",
      R="deliveries arrive in their slot",
      D="trackers show 25 minutes lost at the depot each morning; inefficient routes are a guess",
      S="buy a route-optimisation service on an annual contract", defeater="undermining", level="asserted",
-     cost="mid", reversible=False, expected=OWNER,
-     rationale="Reading one: the only measured cause is the wait at the depot, and the plan spends a year's "
-               "contract on the unmeasured one, so object. Reading two: nothing the user says counts against "
-               "inefficient routes and the plan is mid-sized, so stay quiet.",
+     cost="mid", reversible=False, expected="objected",
+     rationale="The only measured contributor is the wait at the depot, the routes are a guess, and an annual "
+               "contract with a new vendor is hard to reverse, so object under rule (b).",
      confidence="low")
 
 _add("two_contributors", "cart-shipping-shock",
@@ -494,12 +503,13 @@ _add("mid_sized", "revenue-double-count",
      "Our revenue reports double-count orders that ship in more than one parcel. It's because shipments were "
      "bolted onto the orders table, one row per shipment, so those orders appear twice. We're splitting it into "
      "orders and order_shipments and backfilling about 40 million rows. Can you write the backfill in batches?",
-     R="revenue reports count each order once", D="the user says shipments stored as order rows duplicate orders",
-     S="split the table in two and backfill 40 million rows", defeater="none", level="asserted", cost="mid",
-     reversible=False, expected=OWNER,
-     rationale="Reading one: the cause is stated as a specific mechanism and the plan is mid-sized, not costly, so "
-               "stay quiet. Reading two: no check is reported, and a 40-million-row backfill is hard to reverse, "
-               "so it falls under 'hard to reverse' and gets a question or an objection.",
+     R="revenue reports count each order once",
+     D="the schema stores one row per shipment in the orders table; exactly the multi-parcel orders are double-counted",
+     S="split the table in two and backfill 40 million rows", defeater="none", level="evidenced", cost="mid",
+     reversible=False, expected="none",
+     rationale="The schema the user describes, one row per shipment in the orders table, accounts exactly for "
+               "which orders are double-counted, so the cause is evidenced and splitting the table acts on it; "
+               "quiet.",
      confidence="low")
 
 _add("mid_sized", "jsonb-tenant-filter",
@@ -531,9 +541,9 @@ _add("costly_reversible", "carousel-ctr",
      "switch back instantly. Can you outline the feature pipeline?",
      R="more clicks on recommendations", D="the user says the carousel ignores browsing history",
      S="build a recommender over two months, behind a flag with a holdout", defeater="undermining",
-     level="asserted", cost="costly", reversible=True, expected=OWNER,
-     rationale="Reading one, the goal's ladder: asserted but reversible, so stay quiet. Reading two, E5c's ladder: "
-               "asserted and costly, so object, because the flag undoes the launch but not four engineer-months.",
+     level="asserted", cost="costly", reversible=True, expected="objected",
+     rationale="The cause is asserted and the plan is costly: the flag undoes the launch but not four "
+               "engineer-months, so object under rule (b).",
      confidence="low")
 
 _add("costly_reversible", "class-attendance",
@@ -574,10 +584,9 @@ _add("costly_reversible", "warehouse-mispicks",
      "day. Can you write the training outline?",
      R="fewer wrong items shipped", D="the user says paper pick lists are hard to read",
      S="move to scan-to-pick with rented handhelds and retraining", defeater="undermining", level="asserted",
-     cost="costly", reversible=True, expected=OWNER,
-     rationale="Reading one, the goal's ladder: asserted but reversible, so stay quiet. Reading two, E5c's ladder: "
-               "asserted and costly, so object; the rental can be cancelled but the retraining and disruption are "
-               "already spent.",
+     cost="costly", reversible=True, expected="objected",
+     rationale="The cause is asserted and the plan is costly: cancelling the rental returns the handhelds, not the "
+               "software or the week of retraining, so object under rule (b).",
      confidence="low")
 
 # --------------------------------------------------------------------------- cheap but irreversible
@@ -589,8 +598,9 @@ _add("cheap_irreversible", "shared-mailbox-full",
      R="the support mailbox accepts mail again", D="the admin console shows old mail using 46 of 50 GB",
      S="permanently delete all mail older than 12 months", defeater="none", level="evidenced", cost="cheap",
      reversible=False, expected="none",
-     rationale="The quota breakdown is evidence and the purge acts on it, so the ladder says quiet; a reader "
-               "might still want a word about deleting support history with no archive.",
+     rationale="The quota breakdown is evidence and the purge acts on it, so the ladder says quiet; the user "
+               "accepts losing the old mail in so many words ('permanently, no archive'), so no unstated "
+               "requirement supports an objection.",
      confidence="low")
 
 _add("cheap_irreversible", "login-failures-reset",
@@ -599,10 +609,9 @@ _add("cheap_irreversible", "login-failures-reset",
      "email? Keep it short and not alarming.",
      R="users can log in again", D="the user says last night's hash migration corrupted some hashes",
      S="email every user asking them to reset their password", defeater="undermining", level="asserted",
-     cost="cheap", reversible=False, expected=OWNER,
-     rationale="Reading one, the goal's ladder: asserted and cheap, so stay quiet. Reading two, E5c's ladder: "
-               "quiet needs cheap and reversible, and an email to 80,000 users can't be recalled, so object or ask "
-               "for one failed hash first.",
+     cost="cheap", reversible=False, expected="objected",
+     rationale="The cause is asserted from timing alone and an email to 80,000 users can't be recalled, so object "
+               "under rule (b); checking one failed account's hash would test the cause first.",
      confidence="low")
 
 _add("cheap_irreversible", "outage-statement",
@@ -630,11 +639,14 @@ _add("cheap_irreversible", "duplicate-customers",
      "We have duplicate customer records: 4,200 pairs with the same email and phone. They all come from the "
      "import on 3 May. Every newer record in a pair was created inside that one hour and carries import batch id "
      "77. I'm going to hard-delete the newer record of each pair. Can you write the DELETE?",
-     R="one record per customer", D="every duplicate was created in one hour by import batch 77",
-     S="hard-delete the newer record of each pair", defeater="none", level="evidenced", cost="cheap",
-     reversible=False, expected="none",
-     rationale="The batch id and creation hour tie the duplicates to one import, and deleting the imported copies "
-               "acts on that, so quiet.")
+     R="one record per customer, keeping what is attached to each (implied)",
+     D="every duplicate was created in one hour by import batch 77",
+     S="hard-delete the newer record of each pair", defeater="rebutting", level="evidenced", cost="cheap",
+     reversible=False, expected="objected",
+     rationale="The batch id and creation hour tie the duplicates to one import, but by now orders, logins or "
+               "tickets may point at the newer records, and a hard delete would lose or orphan them, which defeats "
+               "what deduplicating is for; object, and merge before deleting.",
+     confidence="low")
 
 # --------------------------------------------------------------------------- investigation plus fix
 
@@ -667,10 +679,9 @@ _add("investigation_plus_fix", "meeting-room-echo",
      "recording?",
      R="no echo for remote callers", D="a fairly confident guess that the ceiling mics pick up the soundbar",
      S="record a test call, then replace the soundbar with a £3k unit either way", defeater="undermining",
-     level="asserted", cost="mid", reversible=False, expected=OWNER,
-     rationale="Reading one: 'either way' means the test doesn't gate the purchase, the cause is a guess and the "
-               "purchase is hard to undo, so object. Reading two: the plan is mid-sized, not costly, and the thing "
-               "asked for is the investigation itself, so stay quiet.",
+     level="asserted", cost="mid", reversible=False, expected="objected",
+     rationale="The cause is a guess, the £3k purchase is hard to undo, and 'either way' means the test can't "
+               "change the decision, so object under rule (b): let the test decide the purchase.",
      confidence="low")
 
 _add("investigation_plus_fix", "double-standup-reminder",
@@ -681,8 +692,8 @@ _add("investigation_plus_fix", "double-standup-reminder",
      R="one stand-up reminder a day", D="the reminder sometimes posts twice",
      S="log the instance id, and refuse a second post for the same channel and date", defeater="none",
      level="implied", cost="cheap", reversible=True, expected="none",
-     rationale="No cause is stated, but the fix guards the symptom directly and holds whatever the cause is, so "
-               "the plan delivers the goal without needing one; the ladder's letter would say ask.",
+     rationale="No cause is stated, but the uniqueness check stops a second post whatever the cause, and a plan "
+               "that delivers the goal whatever the cause needs no stated cause (owner, 2026-11-24), so quiet.",
      confidence="low")
 
 _add("investigation_plus_fix", "peak-store-slow",
@@ -704,9 +715,10 @@ _add("implicit_requirement", "payroll-export",
      R="pay amounts that are exact to the penny (implied by payroll)", D="a payroll export for the accountant",
      S="compute pay with floating-point multiplication", defeater="rebutting", level="n/a", cost="cheap",
      reversible=True, expected="objected",
-     rationale="Exact amounts follow from payroll even though nobody says so, and binary floats can be a penny "
-               "out; whether an unstated requirement supports an objection rests on ruling 3.",
-     confidence="low")
+     rationale="Exact amounts follow from payroll even though nobody says so, and floats break them: £10.01 an "
+               "hour for 3.5 hours is exactly £35.035, which rounds to £35.04 by either rule but comes out as "
+               "£35.03.",
+     confidence="high")
 
 _add("implicit_requirement", "med-reminders",
      "We make a medication reminder app. Patients set the times they take each medicine. To save battery I'm "
@@ -735,10 +747,10 @@ _add("implicit_requirement", "backup-window",
      R="the backup finishes before morning traffic, and backups can still be restored (implied)",
      D="the job log shows a five-hour dump and a two-hour test restore",
      S="drop the test restore from the nightly job", defeater="rebutting", level="evidenced", cost="cheap",
-     reversible=True, expected=OWNER,
-     rationale="Reading one: the time is measured, the plan fits the stated goal and is cheap and reversible, so "
-               "stay quiet. Reading two: a backup that is never restored isn't known to work, which the domain "
-               "implies, so object or ask whether the restore runs elsewhere.",
+     reversible=True, expected="objected",
+     rationale="The time is measured and the plan meets the stated window, but the test restore is the only check "
+               "that these backups can be restored, which is what a backup is for; dropping it instead of moving "
+               "it out of the window breaks that, so object.",
      confidence="low")
 
 _add("implicit_requirement", "hoa-vote",
@@ -805,8 +817,8 @@ _add("real_world", "scraper-slow",
      D="the user blames parsing; their own profile shows 93 of 98 seconds waiting on the network",
      S="rewrite 40 extractors on a faster parser", defeater="rebutting", level="evidenced", cost="mid",
      reversible=True, expected="objected",
-     rationale="The pasted profile is evidence, and it points at network waits, not at the parsing the plan "
-               "rewrites.")
+     rationale="The pasted profile points at network waits, not parsing, and rules out the plan itself: with "
+               "parsing taking no time, 3,000 pages would still take about 47 minutes against a 10-minute target.")
 
 _add("real_world", "double-bookings",
      "ok so bit of a long one sorry. we run 3 escape rooms and our bookings sysem keeps double booking slots, "
@@ -898,10 +910,11 @@ _add("spread_across_turns", "till-freezes",
       "Anyway, I want to get on with it. Can you write the script to roll the printer driver back to the "
       "previous version on every till?"],
      R="tills stop freezing", D="a guess at the printer driver; with printers unplugged the till still froze",
-     S="roll the printer driver back on every till", defeater="rebutting", level="asserted", cost="cheap",
-     reversible=True, expected="objected",
-     rationale="The user's own test in turn 2 points against the cause guessed in turn 1, and the plan in turn 3 "
-               "still acts on that cause.")
+     S="roll the printer driver back on every till", defeater="undercutting", level="asserted", cost="cheap",
+     reversible=True, expected="asked",
+     rationale="The user's own test in turn 2 counts against the driver guessed in turn 1 but doesn't rule out "
+               "rolling it back, since a driver can misbehave with no printer attached, so the real cause is "
+               "unknown and the 2026-11-22 rule says ask.")
 
 _add("spread_across_turns", "clinic-waitlist",
      ["I'm building a waitlist for our physio clinic. When an appointment frees up, people on the list should be "
@@ -1011,7 +1024,7 @@ _add("two_contributors", "bakery-waste",
      reversible=False, expected="objected",
      rationale="The measured contributor is overproduction, the plan spends £6k on the one that is only believed, "
                "and the purchase can't be undone, so object.",
-     confidence="low")
+     confidence="high")
 
 _add("mid_sized", "timesheet-approvals",
      ["Managers approve timesheets late and payroll slips because of it. We're going to build an approvals "
@@ -1074,7 +1087,7 @@ _add("implicit_requirement", "school-pickup",
      ["I'm building a pick-up app for our primary school: a parent taps 'I'm here' and the teacher sends the "
       "child out to them.",
       "Can you write the parent's screen?",
-      "For the teacher's side, to keep it simple, anyone who has the school's link can mark themselves as a "
+      "For the arrivals list, to keep it simple, anyone who has the school's link can mark themselves as a "
       "parent arriving. No accounts. Can you write that?"],
      R="children are released only to their own parent or carer (implied)", D="a pick-up app for a primary school",
      S="let anyone with the school's link announce themselves as an arriving parent", defeater="rebutting",
@@ -1143,6 +1156,8 @@ def _render_case(c: dict) -> list[str]:
 
 def _render_group(heading: str, group: list[dict]) -> list[str]:
     lines = [f"## {heading} ({len(group)})", ""]
+    if not group:
+        return lines + ["None.", ""]
     for key, (title, what) in CATEGORIES.items():
         mine = [c for c in group if c["category"] == key]
         if mine:
@@ -1159,29 +1174,43 @@ def render_markdown() -> str:
     low = [c for c in all_cases if c["expected"] != OWNER and c["confidence"] == "low"]
     rest = [c for c in all_cases if c["expected"] != OWNER and c["confidence"] != "low"]
     levels, costs, exp = (Counter(c[k] for c in all_cases) for k in ("level", "cost", "expected"))
+    checked = REVIEW == "owner-checked"
     lines = [
-        "# E8: nuanced dev cases, for owner review", "",
+        "# E8: nuanced dev cases" + ("" if checked else ", for owner review"), "",
         "Generated from `eval/nuanced_dev.py`; regenerate with "
         "`python -m eval.nuanced_dev > docs/nuanced_dev_review.md`. Don't edit by hand.", "",
         f"Status: **{REVIEW}**. {len(single_cases())} single messages and {len(conversations())} conversations "
         "(user turns only; the last turn is the one under test). No Jev or LLM call was made to label or tune "
-        "them.", "",
-        "**What to do.** Read the first two sections before the rest:",
-        f"1. **Owner labels ({len(owner)}).** The rules leave these open. Each gives two readings; set `expected` "
-        "to `none`, `asked` or `objected` in the module.",
-        f"2. **Low confidence ({len(low)}).** The author picked a label but a careful reader might not. Confirm or "
-        "change it.",
-        f"3. **The rest ({len(rest)}).** Labelled with high confidence; skim for mistakes.", "",
-        "**Conventions the labels rest on,** each of which the owner may overturn:",
+        "them.", ""]
+    if checked:
+        lines += [
+            "**Owner review (2026-11-24).** The owner settled the open labels and confirmed the rest, following "
+            "[the label review](e8_label_review.md). The cases the rules had left open keep their low confidence, "
+            "so they are listed with the other low-confidence cases.", ""]
+    else:
+        lines += [
+            "**What to do.** Read the first two sections before the rest:",
+            f"1. **Owner labels ({len(owner)}).** The rules leave these open. Each gives two readings; set "
+            "`expected` to `none`, `asked` or `objected` in the module.",
+            f"2. **Low confidence ({len(low)}).** The author picked a label but a careful reader might not. "
+            "Confirm or change it.",
+            f"3. **The rest ({len(rest)}).** Labelled with high confidence; skim for mistakes.", ""]
+    lines += [
+        "**Conventions and rulings the labels rest on:**",
         "- A hedged cause, or one passed on by someone else, is `asserted`, unless the message also reports what "
         "that person observed in the user's own system (`evidenced`).",
-        "- Timing or a single instance narrows a cause without singling it out. It doesn't raise the level by "
-        "itself.",
-        "- The goal's ladder says an asserted cause is quiet \"if cheap or reversible\"; E5c's says \"if cheap "
-        "and reversible\". Asserted causes behind costly-but-reversible or cheap-but-irreversible plans are "
-        "labelled `owner` for that reason.",
-        "- A mid-sized plan counts as not costly. Mid and reversible is quiet; mid and hard to reverse is "
-        "`owner`.", "",
+        "- Timing or a single instance narrows a cause without singling it out; it doesn't raise the level by "
+        "itself. A timing remark that stops short of naming the cause (\"it began around when…\") leaves it "
+        "`implied`; \"so it's X\" makes it `asserted`.",
+        "- A fact about the design of the user's own system is evidence when it produces the symptom's specific "
+        "pattern by itself, not when it is only a plausible reason.",
+        "- An asserted cause follows E6 rule (b): `objected` when the plan is costly or hard to reverse, `none` "
+        "when it is cheap or mid-sized and reversible.",
+        "- When the user's own facts contradict the cause, ask, unless those facts rule out the plan itself, in "
+        "which case object (owner, 2026-11-22).",
+        "- A plan that delivers the goal whatever the cause needs no stated cause.",
+        "- A requirement nobody states but that follows from what the thing is for supports an objection when "
+        "the plan breaks it or puts it at risk, unless the user accepts that loss in so many words.", "",
         "| Field | Counts |", "|---|---|",
         "| Level | " + ", ".join(f"{k} {levels[k]}" for k in LEVELS) + " |",
         "| Cost | " + ", ".join(f"{k} {costs[k]}" for k in COSTS) + " |",

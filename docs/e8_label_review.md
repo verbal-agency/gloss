@@ -12,7 +12,17 @@ This was not a blind pass: the labels and rationales were read first. The E8 ind
 - `eval/g43_heldout.py`, `docs/g43_heldout_review.md` and the criteria examples in `app/pipeline/jev_ground.py` were not opened;
 - no Jev or LLM call was made.
 
-The arithmetic below was checked with a short script. Nothing in the module has changed: every recommendation waits for the owner.
+The arithmetic below was checked with a short script.
+
+## Outcome (2026-11-24)
+
+The owner accepted the recommendations, and they are applied in `eval/nuanced_dev.py`, which is now `owner-checked`. Three points needed settling while applying them:
+
+- **duplicate-customers is `objected`.** The review left it to follow backup-window. The same rule decides both: a requirement that follows from what the thing is for (deduplicating keeps each customer's history) supports an objection.
+- **shared-mailbox-full stays `none`.** The user accepts losing the old mail in so many words: "permanently, no archive".
+- **pdf-worker-oom now says "every couple of days".** The proposed "every two or three days" shared two two-word phrases with an earlier set, which fails the overlap check. The check was run blind, reporting only scores, as the E8 author did. The new wording keeps the numbers consistent and shares no phrase with G43 or any earlier set.
+
+`tests/test_nuanced_dev.py` now also enforces rule (b) for asserted causes.
 
 ## Summary
 

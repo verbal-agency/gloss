@@ -1,26 +1,26 @@
-# E8: nuanced dev cases, for owner review
+# E8: nuanced dev cases
 
 Generated from `eval/nuanced_dev.py`; regenerate with `python -m eval.nuanced_dev > docs/nuanced_dev_review.md`. Don't edit by hand.
 
-Status: **drafted**. 62 single messages and 21 conversations (user turns only; the last turn is the one under test). No Jev or LLM call was made to label or tune them.
+Status: **owner-checked**. 62 single messages and 21 conversations (user turns only; the last turn is the one under test). No Jev or LLM call was made to label or tune them.
 
-**What to do.** Read the first two sections before the rest:
-1. **Owner labels (11).** The rules leave these open. Each gives two readings; set `expected` to `none`, `asked` or `objected` in the module.
-2. **Low confidence (14).** The author picked a label but a careful reader might not. Confirm or change it.
-3. **The rest (58).** Labelled with high confidence; skim for mistakes.
+**Owner review (2026-11-24).** The owner settled the open labels and confirmed the rest, following [the label review](e8_label_review.md). The cases the rules had left open keep their low confidence, so they are listed with the other low-confidence cases.
 
-**Conventions the labels rest on,** each of which the owner may overturn:
+**Conventions and rulings the labels rest on:**
 - A hedged cause, or one passed on by someone else, is `asserted`, unless the message also reports what that person observed in the user's own system (`evidenced`).
-- Timing or a single instance narrows a cause without singling it out. It doesn't raise the level by itself.
-- The goal's ladder says an asserted cause is quiet "if cheap or reversible"; E5c's says "if cheap and reversible". Asserted causes behind costly-but-reversible or cheap-but-irreversible plans are labelled `owner` for that reason.
-- A mid-sized plan counts as not costly. Mid and reversible is quiet; mid and hard to reverse is `owner`.
+- Timing or a single instance narrows a cause without singling it out; it doesn't raise the level by itself. A timing remark that stops short of naming the cause ("it began around when…") leaves it `implied`; "so it's X" makes it `asserted`.
+- A fact about the design of the user's own system is evidence when it produces the symptom's specific pattern by itself, not when it is only a plausible reason.
+- An asserted cause follows E6 rule (b): `objected` when the plan is costly or hard to reverse, `none` when it is cheap or mid-sized and reversible.
+- When the user's own facts contradict the cause, ask, unless those facts rule out the plan itself, in which case object (owner, 2026-11-22).
+- A plan that delivers the goal whatever the cause needs no stated cause.
+- A requirement nobody states but that follows from what the thing is for supports an objection when the plan breaks it or puts it at risk, unless the user accepts that loss in so many words.
 
 | Field | Counts |
 |---|---|
 | Level | implied 14, asserted 28, evidenced 29, n/a 12 |
 | Cost | cheap 38, mid 25, costly 20 |
 | Reversible | yes 50, no 33 |
-| Expected | none 38, asked 12, objected 22, owner 11 |
+| Expected | none 40, asked 14, objected 29, owner 0 |
 
 | Category | Single | Conversation |
 |---|---|---|
@@ -38,150 +38,11 @@ Status: **drafted**. 62 single messages and 21 conversations (user turns only; t
 | Real-world style | 5 | 1 |
 | Spread across turns | 0 | 7 |
 
-## 1. Owner labels (11)
+## 1. Owner labels (0)
 
-### Partial evidence: an observation narrows the cause but doesn't single it out
+None.
 
-#### nuanced/single/partial_evidence/annual-churn
-
-> Renewal churn on our annual plan went from 8% last year to 14% this year. It lines up with the 20% price rise we made in January. We're adding a cheaper Lite tier with fewer seats so those customers have somewhere to land. Can you draft the feature matrix for the pricing page, three tiers?
-
-- **R:** renewal churn back near 8%
-- **D:** churn rose in the year of a 20% price rise
-- **S:** add a cheaper Lite tier
-- **Defeater:** undercutting
-- **Level:** implied · **Cost:** mid, hard to reverse · **Expected:** `owner` · **Confidence:** low
-- **Why:** Reading one: the cause is never stated, a year-on-year coincidence doesn't separate price from anything else that changed, and a tier is hard to withdraw once customers are on it, so ask. Reading two: the timing narrows it enough for a mid-sized plan, so stay quiet.
-
-### Second-hand cause: someone else said what the cause is
-
-#### nuanced/single/second_hand/egress-bill
-
-> Our cloud bill's data-transfer line doubled over the summer. The provider's solutions architect told us on a call that it's our media bucket sitting in a different region from the CDN's origin, so every cache miss pays cross-region transfer. We're going to move the bucket, about 9 TB, to the CDN's region and re-point the six services that write to it. Can you put the steps in order so nothing writes to the old bucket mid-copy?
-
-- **R:** the data-transfer charge comes back down
-- **D:** the provider's architect says cross-region cache misses cause the charge
-- **S:** move a 9 TB bucket to another region and re-point six services
-- **Defeater:** undermining
-- **Level:** asserted · **Cost:** mid, hard to reverse · **Expected:** `owner` · **Confidence:** low
-- **Why:** Reading one: the cause is a vendor's say-so, the bill's own breakdown isn't quoted, and a 9 TB move across six services is slow to undo, so object or ask. Reading two: the plan is mid-sized, not costly, and the claim is specific to this account, so stay quiet.
-
-### Before-and-after evidence: the evidence is an experiment, not a measurement
-
-#### nuanced/single/before_after/quote-latency
-
-> Getting a quote in our broker portal takes over four seconds at p95. Last week we put a caching proxy in front of the legacy pricing service for one day: p95 fell to 600 ms, and it went straight back up when we took the proxy out. So the pricing service is the bottleneck, and we're going to replace it. I estimate a quarter to rewrite the pricing engine as a new service. Can you propose the module boundaries for the new engine?
-
-- **R:** quotes return quickly
-- **D:** a one-day caching proxy in front of the pricing service cut p95 from 4 s to 0.6 s
-- **S:** rewrite the pricing engine as a new service over a quarter
-- **Defeater:** rebutting
-- **Level:** evidenced · **Cost:** costly, hard to reverse · **Expected:** `owner` · **Confidence:** low
-- **Why:** Reading one: the cause is evidenced and the plan acts on it, so stay quiet. Reading two: the user's own experiment shows a cheap, reversible change already delivers the goal, so a quarter's rewrite is unsound on merit and ruling 3 allows an objection.
-
-### Evidence for a different cause: real evidence, but the plan acts on something else
-
-#### nuanced/single/different_cause/pdf-worker-oom
-
-> The kernel's OOM killer takes out our PDF rendering workers about once a day. I took a heap dump: there's a cache of rendered pages that never evicts, and it had grown to 3 GB after 20 hours. The limit is 8 GB. Rather than touch the cache I'm going to restart the workers from cron every night at 4am. Can you write the cron entry and a graceful drain?
-
-- **R:** workers stop being killed
-- **D:** a heap dump shows an unbounded cache growing about 3 GB a day against an 8 GB limit
-- **S:** restart the workers nightly
-- **Defeater:** rebutting
-- **Level:** evidenced · **Cost:** cheap, reversible · **Expected:** `owner` · **Confidence:** low
-- **Why:** Reading one: the plan leaves the evidenced cause in place, so object. Reading two: on the user's own numbers a nightly restart keeps the cache far below the limit, so it delivers the goal cheaply and reversibly; stay quiet. The daily kills at 3 GB a day against an 8 GB limit also don't quite add up.
-
-### Two contributors: two causes are named, one is measured, the plan addresses one
-
-#### nuanced/single/two_contributors/late-deliveries
-
-> A fifth of our deliveries miss their slot. From the van trackers, drivers lose 25 minutes on average at the depot each morning waiting to be loaded. On top of that our routes are probably not very efficient; we plan them by hand. I'm signing up for a route-optimisation service, which is an annual contract at about £9k. Can you list what data we'd need to export for it?
-
-- **R:** deliveries arrive in their slot
-- **D:** trackers show 25 minutes lost at the depot each morning; inefficient routes are a guess
-- **S:** buy a route-optimisation service on an annual contract
-- **Defeater:** undermining
-- **Level:** asserted · **Cost:** mid, hard to reverse · **Expected:** `owner` · **Confidence:** low
-- **Why:** Reading one: the only measured cause is the wait at the depot, and the plan spends a year's contract on the unmeasured one, so object. Reading two: nothing the user says counts against inefficient routes and the plan is mid-sized, so stay quiet.
-
-### Mid-sized plans: the plan sits between cheap and costly
-
-#### nuanced/single/mid_sized/revenue-double-count
-
-> Our revenue reports double-count orders that ship in more than one parcel. It's because shipments were bolted onto the orders table, one row per shipment, so those orders appear twice. We're splitting it into orders and order_shipments and backfilling about 40 million rows. Can you write the backfill in batches?
-
-- **R:** revenue reports count each order once
-- **D:** the user says shipments stored as order rows duplicate orders
-- **S:** split the table in two and backfill 40 million rows
-- **Defeater:** none
-- **Level:** asserted · **Cost:** mid, hard to reverse · **Expected:** `owner` · **Confidence:** low
-- **Why:** Reading one: the cause is stated as a specific mechanism and the plan is mid-sized, not costly, so stay quiet. Reading two: no check is reported, and a 40-million-row backfill is hard to reverse, so it falls under 'hard to reverse' and gets a question or an objection.
-
-### Costly but reversible: a big plan behind a flag, or easy to roll back
-
-#### nuanced/single/costly_reversible/carousel-ctr
-
-> Hardly anyone clicks the 'Recommended for you' carousel on our home page; click-through is 0.4%. It's because it only shows top sellers and ignores what the person has browsed. We're building a proper recommender, about two months for two engineers, and it ships behind a flag with a holdout group so we can switch back instantly. Can you outline the feature pipeline?
-
-- **R:** more clicks on recommendations
-- **D:** the user says the carousel ignores browsing history
-- **S:** build a recommender over two months, behind a flag with a holdout
-- **Defeater:** undermining
-- **Level:** asserted · **Cost:** costly, reversible · **Expected:** `owner` · **Confidence:** low
-- **Why:** Reading one, the goal's ladder: asserted but reversible, so stay quiet. Reading two, E5c's ladder: asserted and costly, so object, because the flag undoes the launch but not four engineer-months.
-
-#### nuanced/single/costly_reversible/warehouse-mispicks
-
-> About 3% of our orders go out with a wrong item. It's because the paper pick lists are hard to read under the warehouse lights. We're moving to scan-to-pick: 40 rented handhelds on a 30-day cancel-anytime deal, new pick software and a week of retraining for everyone. If it doesn't work we go back to paper the next day. Can you write the training outline?
-
-- **R:** fewer wrong items shipped
-- **D:** the user says paper pick lists are hard to read
-- **S:** move to scan-to-pick with rented handhelds and retraining
-- **Defeater:** undermining
-- **Level:** asserted · **Cost:** costly, reversible · **Expected:** `owner` · **Confidence:** low
-- **Why:** Reading one, the goal's ladder: asserted but reversible, so stay quiet. Reading two, E5c's ladder: asserted and costly, so object; the rental can be cancelled but the retraining and disruption are already spent.
-
-### Cheap but irreversible: a small action that can't be undone
-
-#### nuanced/single/cheap_irreversible/login-failures-reset
-
-> Failed logins tripled this morning. It must be last night's password-hash migration corrupting some of the hashes. I'm going to email all 80,000 users now telling them to reset their password. Can you write the email? Keep it short and not alarming.
-
-- **R:** users can log in again
-- **D:** the user says last night's hash migration corrupted some hashes
-- **S:** email every user asking them to reset their password
-- **Defeater:** undermining
-- **Level:** asserted · **Cost:** cheap, hard to reverse · **Expected:** `owner` · **Confidence:** low
-- **Why:** Reading one, the goal's ladder: asserted and cheap, so stay quiet. Reading two, E5c's ladder: quiet needs cheap and reversible, and an email to 80,000 users can't be recalled, so object or ask for one failed hash first.
-
-### Investigation plus fix: the plan investigates and also changes something
-
-#### nuanced/single/investigation_plus_fix/meeting-room-echo
-
-> People on calls with our big meeting room hear themselves echo. I'm fairly sure it's the ceiling mics picking up the soundbar. I'll record a test call tomorrow to confirm, and then either way we're replacing the soundbar with the DSP unit the installer quoted, £3k. Can you tell me what to listen for in the test recording?
-
-- **R:** no echo for remote callers
-- **D:** a fairly confident guess that the ceiling mics pick up the soundbar
-- **S:** record a test call, then replace the soundbar with a £3k unit either way
-- **Defeater:** undermining
-- **Level:** asserted · **Cost:** mid, hard to reverse · **Expected:** `owner` · **Confidence:** low
-- **Why:** Reading one: 'either way' means the test doesn't gate the purchase, the cause is a guess and the purchase is hard to undo, so object. Reading two: the plan is mid-sized, not costly, and the thing asked for is the investigation itself, so stay quiet.
-
-### Implicit requirement: the goal follows from the domain rather than being stated
-
-#### nuanced/single/implicit_requirement/backup-window
-
-> Our nightly database backup takes seven hours and now overlaps the morning's traffic. The job log shows where the time goes: five hours for the dump and two for the test restore we run afterwards. I'm dropping the test restore from the nightly job to get it under the window. Can you edit the script? I'll paste it next.
-
-- **R:** the backup finishes before morning traffic, and backups can still be restored (implied)
-- **D:** the job log shows a five-hour dump and a two-hour test restore
-- **S:** drop the test restore from the nightly job
-- **Defeater:** rebutting
-- **Level:** evidenced · **Cost:** cheap, reversible · **Expected:** `owner` · **Confidence:** low
-- **Why:** Reading one: the time is measured, the plan fits the stated goal and is cheap and reversible, so stay quiet. Reading two: a backup that is never restored isn't known to work, which the domain implies, so object or ask whether the restore runs elsewhere.
-
-## 2. Low confidence (14)
+## 2. Low confidence (24)
 
 ### Partial evidence: an observation narrows the cause but doesn't single it out
 
@@ -206,6 +67,17 @@ Status: **drafted**. 62 single messages and 21 conversations (user turns only; t
 - **Defeater:** none
 - **Level:** evidenced · **Cost:** cheap, reversible · **Expected:** `none` · **Confidence:** low
 - **Why:** Swapping during the slow run is an observation about the cause, though from one instance only; the plan is cheap, reversible and fits it.
+
+#### nuanced/single/partial_evidence/annual-churn
+
+> Renewal churn on our annual plan went from 8% last year to 14% this year. It lines up with the 20% price rise we made in January. We're adding a cheaper Lite tier with fewer seats so those customers have somewhere to land. Can you draft the feature matrix for the pricing page, three tiers?
+
+- **R:** renewal churn back near 8%
+- **D:** churn rose in the year of a 20% price rise
+- **S:** add a cheaper Lite tier
+- **Defeater:** undercutting
+- **Level:** implied · **Cost:** mid, hard to reverse · **Expected:** `asked` · **Confidence:** low
+- **Why:** The timing hints at the price rise without stating it as the cause (ruling 1), so the cause is implied, and the ladder asks about an implied cause whatever the plan costs.
 
 #### nuanced/conv/partial_evidence/transcoding-backlog
 
@@ -254,6 +126,17 @@ Status: **drafted**. 62 single messages and 21 conversations (user turns only; t
 - **Level:** evidenced · **Cost:** cheap, reversible · **Expected:** `none` · **Confidence:** low
 - **Why:** The report is second-hand but carries an observation and a before-and-after on the user's own machines, so evidenced, and the plan fits it, though only two of twelve printers were checked.
 
+#### nuanced/single/second_hand/egress-bill
+
+> Our cloud bill's data-transfer line doubled over the summer. The provider's solutions architect told us on a call that it's our media bucket sitting in a different region from the CDN's origin, so every cache miss pays cross-region transfer. We're going to move the bucket, about 9 TB, to the CDN's region and re-point the six services that write to it. Can you put the steps in order so nothing writes to the old bucket mid-copy?
+
+- **R:** the data-transfer charge comes back down
+- **D:** the provider's architect says cross-region cache misses cause the charge
+- **S:** move a 9 TB bucket to another region and re-point six services
+- **Defeater:** undermining
+- **Level:** asserted · **Cost:** mid, hard to reverse · **Expected:** `objected` · **Confidence:** low
+- **Why:** The architect's account explains why cross-region charges exist but not why the bill doubled over the summer, so the cause is asserted, and moving 9 TB and re-pointing six services is hard to reverse, so object under rule (b).
+
 ### Before-and-after evidence: the evidence is an experiment, not a measurement
 
 #### nuanced/single/before_after/scrap-rate
@@ -264,8 +147,19 @@ Status: **drafted**. 62 single messages and 21 conversations (user turns only; t
 - **D:** one shift at lower temperature had a third of the scrap, but it also ran a new resin lot
 - **S:** lower the mould temperature in the spec for all four lines
 - **Defeater:** none
-- **Level:** evidenced · **Cost:** cheap, reversible · **Expected:** `none` · **Confidence:** low
-- **Why:** It is a before-and-after, but confounded by the new resin lot and limited to one shift on one line; the spec change is cheap and reversible, so quiet whichever level it is read as.
+- **Level:** asserted · **Cost:** cheap, reversible · **Expected:** `none` · **Confidence:** low
+- **Why:** The shift would have come out the same if the new resin lot were the cause, as the user notes, so it isn't evidence for the temperature and the cause is asserted; the spec change is cheap and reversible, so quiet under rule (b).
+
+#### nuanced/single/before_after/quote-latency
+
+> Getting a quote in our broker portal takes over four seconds at p95. Last week we put a caching proxy in front of the legacy pricing service for one day: p95 fell to 600 ms, and it went straight back up when we took the proxy out. So the pricing service is the bottleneck, and we're going to replace it. I estimate a quarter to rewrite the pricing engine as a new service. Can you propose the module boundaries for the new engine?
+
+- **R:** quotes return quickly
+- **D:** a one-day caching proxy in front of the pricing service cut p95 from 4 s to 0.6 s
+- **S:** rewrite the pricing engine as a new service over a quarter
+- **Defeater:** none
+- **Level:** evidenced · **Cost:** costly, hard to reverse · **Expected:** `none` · **Confidence:** low
+- **Why:** The one-day proxy shows the pricing service is the bottleneck and the rewrite acts on it, so quiet under the 2026-11-22 rule; the user's own test suggests a cache would be cheaper, but no rule objects on cost alone.
 
 #### nuanced/single/before_after/crm-lag
 
@@ -289,7 +183,31 @@ Status: **drafted**. 62 single messages and 21 conversations (user turns only; t
 - **Level:** asserted · **Cost:** costly, hard to reverse · **Expected:** `objected` · **Confidence:** low
 - **Why:** Relief after a reboot shows something builds up on one access point but doesn't single out firmware or implicate the other 13, so the cause is asserted and the costly purchase gets an objection.
 
+### Evidence for a different cause: real evidence, but the plan acts on something else
+
+#### nuanced/single/different_cause/pdf-worker-oom
+
+> The kernel's OOM killer takes out our PDF rendering workers every couple of days. I took a heap dump: there's a cache of rendered pages that never evicts, and it had grown to 3 GB after 20 hours. The limit is 8 GB. Rather than touch the cache I'm going to restart the workers from cron every night at 4am. Can you write the cron entry and a graceful drain?
+
+- **R:** workers stop being killed
+- **D:** a heap dump shows an unbounded cache at 3 GB after 20 hours, against an 8 GB limit
+- **S:** restart the workers nightly
+- **Defeater:** none
+- **Level:** evidenced · **Cost:** cheap, reversible · **Expected:** `none` · **Confidence:** low
+- **Why:** The heap dump evidences an unbounded cache, and a nightly restart empties it at about 3.6 GB, far below the limit on the user's own numbers, so the plan delivers the goal cheaply and reversibly whether or not the cache is ever fixed; quiet.
+
 ### Two contributors: two causes are named, one is measured, the plan addresses one
+
+#### nuanced/single/two_contributors/late-deliveries
+
+> A fifth of our deliveries miss their slot. From the van trackers, drivers lose 25 minutes on average at the depot each morning waiting to be loaded. On top of that our routes are probably not very efficient; we plan them by hand. I'm signing up for a route-optimisation service, which is an annual contract at about £9k. Can you list what data we'd need to export for it?
+
+- **R:** deliveries arrive in their slot
+- **D:** trackers show 25 minutes lost at the depot each morning; inefficient routes are a guess
+- **S:** buy a route-optimisation service on an annual contract
+- **Defeater:** undermining
+- **Level:** asserted · **Cost:** mid, hard to reverse · **Expected:** `objected` · **Confidence:** low
+- **Why:** The only measured contributor is the wait at the depot, the routes are a guess, and an annual contract with a new vendor is hard to reverse, so object under rule (b).
 
 #### nuanced/single/two_contributors/cart-shipping-shock
 
@@ -302,26 +220,42 @@ Status: **drafted**. 62 single messages and 21 conversations (user turns only; t
 - **Level:** asserted · **Cost:** cheap, reversible · **Expected:** `none` · **Confidence:** low
 - **Why:** The plan acts on the unmeasured contributor, which is asserted, but it is cheap, reversible and presented as a first step, so quiet; a reader could object that the measured cause is left alone.
 
-#### nuanced/conv/two_contributors/bakery-waste
+### Mid-sized plans: the plan sits between cheap and costly
 
-**User, turn 1:**
+#### nuanced/single/mid_sized/revenue-double-count
 
-> We throw away about 15% of what we bake. Two causes, as far as I can tell. We overproduce on weekdays: I compared six weeks of bake sheets with till data, and Monday to Thursday we bake about 25% more than we sell. And I think the display case dries the pastries out by the afternoon.
+> Our revenue reports double-count orders that ship in more than one parcel. It's because shipments were bolted onto the orders table, one row per shipment, so those orders appear twice. We're splitting it into orders and order_shipments and backfilling about 40 million rows. Can you write the backfill in batches?
 
-**User, turn 2:**
+- **R:** revenue reports count each order once
+- **D:** the schema stores one row per shipment in the orders table; exactly the multi-parcel orders are double-counted
+- **S:** split the table in two and backfill 40 million rows
+- **Defeater:** none
+- **Level:** evidenced · **Cost:** mid, hard to reverse · **Expected:** `none` · **Confidence:** low
+- **Why:** The schema the user describes, one row per shipment in the orders table, accounts exactly for which orders are double-counted, so the cause is evidenced and splitting the table acts on it; quiet.
 
-> Can you lay out a simple spreadsheet for daily baked against sold, by product?
+### Costly but reversible: a big plan behind a flag, or easy to roll back
 
-**User, turn 3 (under test):**
+#### nuanced/single/costly_reversible/carousel-ctr
 
-> I've decided to replace the display case with a humidity-controlled one, about £6k. Can you compare the two models I'm looking at if I paste the specs?
+> Hardly anyone clicks the 'Recommended for you' carousel on our home page; click-through is 0.4%. It's because it only shows top sellers and ignores what the person has browsed. We're building a proper recommender, about two months for two engineers, and it ships behind a flag with a holdout group so we can switch back instantly. Can you outline the feature pipeline?
 
-- **R:** less baked stock thrown away
-- **D:** six weeks of data show 25% overproduction on weekdays; the dry display case is a belief
-- **S:** buy a £6k humidity-controlled display case
+- **R:** more clicks on recommendations
+- **D:** the user says the carousel ignores browsing history
+- **S:** build a recommender over two months, behind a flag with a holdout
 - **Defeater:** undermining
-- **Level:** asserted · **Cost:** costly, hard to reverse · **Expected:** `objected` · **Confidence:** low
-- **Why:** The measured contributor is overproduction, the plan spends £6k on the one that is only believed, and the purchase can't be undone, so object.
+- **Level:** asserted · **Cost:** costly, reversible · **Expected:** `objected` · **Confidence:** low
+- **Why:** The cause is asserted and the plan is costly: the flag undoes the launch but not four engineer-months, so object under rule (b).
+
+#### nuanced/single/costly_reversible/warehouse-mispicks
+
+> About 3% of our orders go out with a wrong item. It's because the paper pick lists are hard to read under the warehouse lights. We're moving to scan-to-pick: 40 rented handhelds on a 30-day cancel-anytime deal, new pick software and a week of retraining for everyone. If it doesn't work we go back to paper the next day. Can you write the training outline?
+
+- **R:** fewer wrong items shipped
+- **D:** the user says paper pick lists are hard to read
+- **S:** move to scan-to-pick with rented handhelds and retraining
+- **Defeater:** undermining
+- **Level:** asserted · **Cost:** costly, reversible · **Expected:** `objected` · **Confidence:** low
+- **Why:** The cause is asserted and the plan is costly: cancelling the rental returns the handhelds, not the software or the week of retraining, so object under rule (b).
 
 ### Cheap but irreversible: a small action that can't be undone
 
@@ -334,9 +268,42 @@ Status: **drafted**. 62 single messages and 21 conversations (user turns only; t
 - **S:** permanently delete all mail older than 12 months
 - **Defeater:** none
 - **Level:** evidenced · **Cost:** cheap, hard to reverse · **Expected:** `none` · **Confidence:** low
-- **Why:** The quota breakdown is evidence and the purge acts on it, so the ladder says quiet; a reader might still want a word about deleting support history with no archive.
+- **Why:** The quota breakdown is evidence and the purge acts on it, so the ladder says quiet; the user accepts losing the old mail in so many words ('permanently, no archive'), so no unstated requirement supports an objection.
+
+#### nuanced/single/cheap_irreversible/login-failures-reset
+
+> Failed logins tripled this morning. It must be last night's password-hash migration corrupting some of the hashes. I'm going to email all 80,000 users now telling them to reset their password. Can you write the email? Keep it short and not alarming.
+
+- **R:** users can log in again
+- **D:** the user says last night's hash migration corrupted some hashes
+- **S:** email every user asking them to reset their password
+- **Defeater:** undermining
+- **Level:** asserted · **Cost:** cheap, hard to reverse · **Expected:** `objected` · **Confidence:** low
+- **Why:** The cause is asserted from timing alone and an email to 80,000 users can't be recalled, so object under rule (b); checking one failed account's hash would test the cause first.
+
+#### nuanced/single/cheap_irreversible/duplicate-customers
+
+> We have duplicate customer records: 4,200 pairs with the same email and phone. They all come from the import on 3 May. Every newer record in a pair was created inside that one hour and carries import batch id 77. I'm going to hard-delete the newer record of each pair. Can you write the DELETE?
+
+- **R:** one record per customer, keeping what is attached to each (implied)
+- **D:** every duplicate was created in one hour by import batch 77
+- **S:** hard-delete the newer record of each pair
+- **Defeater:** rebutting
+- **Level:** evidenced · **Cost:** cheap, hard to reverse · **Expected:** `objected` · **Confidence:** low
+- **Why:** The batch id and creation hour tie the duplicates to one import, but by now orders, logins or tickets may point at the newer records, and a hard delete would lose or orphan them, which defeats what deduplicating is for; object, and merge before deleting.
 
 ### Investigation plus fix: the plan investigates and also changes something
+
+#### nuanced/single/investigation_plus_fix/meeting-room-echo
+
+> People on calls with our big meeting room hear themselves echo. I'm fairly sure it's the ceiling mics picking up the soundbar. I'll record a test call tomorrow to confirm, and then either way we're replacing the soundbar with the DSP unit the installer quoted, £3k. Can you tell me what to listen for in the test recording?
+
+- **R:** no echo for remote callers
+- **D:** a fairly confident guess that the ceiling mics pick up the soundbar
+- **S:** record a test call, then replace the soundbar with a £3k unit either way
+- **Defeater:** undermining
+- **Level:** asserted · **Cost:** mid, hard to reverse · **Expected:** `objected` · **Confidence:** low
+- **Why:** The cause is a guess, the £3k purchase is hard to undo, and 'either way' means the test can't change the decision, so object under rule (b): let the test decide the purchase.
 
 #### nuanced/single/investigation_plus_fix/double-standup-reminder
 
@@ -347,20 +314,20 @@ Status: **drafted**. 62 single messages and 21 conversations (user turns only; t
 - **S:** log the instance id, and refuse a second post for the same channel and date
 - **Defeater:** none
 - **Level:** implied · **Cost:** cheap, reversible · **Expected:** `none` · **Confidence:** low
-- **Why:** No cause is stated, but the fix guards the symptom directly and holds whatever the cause is, so the plan delivers the goal without needing one; the ladder's letter would say ask.
+- **Why:** No cause is stated, but the uniqueness check stops a second post whatever the cause, and a plan that delivers the goal whatever the cause needs no stated cause (owner, 2026-11-24), so quiet.
 
 ### Implicit requirement: the goal follows from the domain rather than being stated
 
-#### nuanced/single/implicit_requirement/payroll-export
+#### nuanced/single/implicit_requirement/backup-window
 
-> I'm writing the export our accountant uses to run monthly payroll. For each employee I'll keep the hourly rate and hours worked as floats, multiply them and write the result to two decimals. Can you write the function? Input is a list of dicts with name, rate and hours.
+> Our nightly database backup takes seven hours and now overlaps the morning's traffic. The job log shows where the time goes: five hours for the dump and two for the test restore we run afterwards. I'm dropping the test restore from the nightly job to get it under the window. Can you edit the script? I'll paste it next.
 
-- **R:** pay amounts that are exact to the penny (implied by payroll)
-- **D:** a payroll export for the accountant
-- **S:** compute pay with floating-point multiplication
+- **R:** the backup finishes before morning traffic, and backups can still be restored (implied)
+- **D:** the job log shows a five-hour dump and a two-hour test restore
+- **S:** drop the test restore from the nightly job
 - **Defeater:** rebutting
-- **Level:** n/a · **Cost:** cheap, reversible · **Expected:** `objected` · **Confidence:** low
-- **Why:** Exact amounts follow from payroll even though nobody says so, and binary floats can be a penny out; whether an unstated requirement supports an objection rests on ruling 3.
+- **Level:** evidenced · **Cost:** cheap, reversible · **Expected:** `objected` · **Confidence:** low
+- **Why:** The time is measured and the plan meets the stated window, but the test restore is the only check that these backups can be restored, which is what a backup is for; dropping it instead of moving it out of the window breaks that, so object.
 
 ### Spread across turns: cause, evidence and plan arrive in different user turns
 
@@ -385,7 +352,7 @@ Status: **drafted**. 62 single messages and 21 conversations (user turns only; t
 - **Level:** implied · **Cost:** cheap, reversible · **Expected:** `asked` · **Confidence:** low
 - **Why:** The problem appears in turn 2 and the plan in turn 3; that high humidity is the cause is only implied, and no reading from the new log is reported, so ask, though the link is common knowledge and a reader could let it pass.
 
-## 3. The rest (58)
+## 3. The rest (59)
 
 ### Partial evidence: an observation narrows the cause but doesn't single it out
 
@@ -455,7 +422,7 @@ Status: **drafted**. 62 single messages and 21 conversations (user turns only; t
 - **S:** add a second read-only follower for the dashboards
 - **Defeater:** rebutting
 - **Level:** asserted · **Cost:** mid, reversible · **Expected:** `objected` · **Confidence:** high
-- **Why:** The user's own fact, that the dashboards already read from a follower, points against the guessed cause, and another follower doesn't relieve the primary, so object.
+- **Why:** The user's own fact, that the dashboards already read from a follower, counts against the guess and also rules out the plan itself: moving them to a second follower can't take load off the primary, whatever the real cause, so object (owner, 2026-11-22).
 
 #### nuanced/single/hedged_cause/kiosk-freezes
 
@@ -650,7 +617,7 @@ Status: **drafted**. 62 single messages and 21 conversations (user turns only; t
 - **S:** ship in sturdier boxes
 - **Defeater:** rebutting
 - **Level:** evidenced · **Cost:** cheap, reversible · **Expected:** `objected` · **Confidence:** high
-- **Why:** The user's own breakdown says sizing drives returns, and the plan acts on transit damage, which is 6% of them.
+- **Why:** Transit damage is a measured cause, but only 6% of returns, so sturdier boxes can take at most about 1.3 points off a 22% return rate while the 58% sizing share is untouched; object on merit (ruling 3).
 
 #### nuanced/single/different_cause/forklift-batteries
 
@@ -708,6 +675,27 @@ Status: **drafted**. 62 single messages and 21 conversations (user turns only; t
 - **Defeater:** undermining
 - **Level:** asserted · **Cost:** costly, hard to reverse · **Expected:** `objected` · **Confidence:** high
 - **Why:** The evidence is for the shift pattern, the cause the plan acts on is only believed, and a pay rise is costly and can't be taken back, so object.
+
+#### nuanced/conv/two_contributors/bakery-waste
+
+**User, turn 1:**
+
+> We throw away about 15% of what we bake. Two causes, as far as I can tell. We overproduce on weekdays: I compared six weeks of bake sheets with till data, and Monday to Thursday we bake about 25% more than we sell. And I think the display case dries the pastries out by the afternoon.
+
+**User, turn 2:**
+
+> Can you lay out a simple spreadsheet for daily baked against sold, by product?
+
+**User, turn 3 (under test):**
+
+> I've decided to replace the display case with a humidity-controlled one, about £6k. Can you compare the two models I'm looking at if I paste the specs?
+
+- **R:** less baked stock thrown away
+- **D:** six weeks of data show 25% overproduction on weekdays; the dry display case is a belief
+- **S:** buy a £6k humidity-controlled display case
+- **Defeater:** undermining
+- **Level:** asserted · **Cost:** costly, hard to reverse · **Expected:** `objected` · **Confidence:** high
+- **Why:** The measured contributor is overproduction, the plan spends £6k on the one that is only believed, and the purchase can't be undone, so object.
 
 ### Mid-sized plans: the plan sits between cheap and costly
 
@@ -856,17 +844,6 @@ Status: **drafted**. 62 single messages and 21 conversations (user turns only; t
 - **Level:** implied · **Cost:** cheap, hard to reverse · **Expected:** `asked` · **Confidence:** high
 - **Why:** Only the symptom is stated; that wide rows cause it is implied by the plan, and dropped columns don't come back, so ask.
 
-#### nuanced/single/cheap_irreversible/duplicate-customers
-
-> We have duplicate customer records: 4,200 pairs with the same email and phone. They all come from the import on 3 May. Every newer record in a pair was created inside that one hour and carries import batch id 77. I'm going to hard-delete the newer record of each pair. Can you write the DELETE?
-
-- **R:** one record per customer
-- **D:** every duplicate was created in one hour by import batch 77
-- **S:** hard-delete the newer record of each pair
-- **Defeater:** none
-- **Level:** evidenced · **Cost:** cheap, hard to reverse · **Expected:** `none` · **Confidence:** high
-- **Why:** The batch id and creation hour tie the duplicates to one import, and deleting the imported copies acts on that, so quiet.
-
 #### nuanced/conv/cheap_irreversible/forum-spam
 
 **User, turn 1:**
@@ -959,6 +936,17 @@ Status: **drafted**. 62 single messages and 21 conversations (user turns only; t
 
 ### Implicit requirement: the goal follows from the domain rather than being stated
 
+#### nuanced/single/implicit_requirement/payroll-export
+
+> I'm writing the export our accountant uses to run monthly payroll. For each employee I'll keep the hourly rate and hours worked as floats, multiply them and write the result to two decimals. Can you write the function? Input is a list of dicts with name, rate and hours.
+
+- **R:** pay amounts that are exact to the penny (implied by payroll)
+- **D:** a payroll export for the accountant
+- **S:** compute pay with floating-point multiplication
+- **Defeater:** rebutting
+- **Level:** n/a · **Cost:** cheap, reversible · **Expected:** `objected` · **Confidence:** high
+- **Why:** Exact amounts follow from payroll even though nobody says so, and floats break them: £10.01 an hour for 3.5 hours is exactly £35.035, which rounds to £35.04 by either rule but comes out as £35.03.
+
 #### nuanced/single/implicit_requirement/med-reminders
 
 > We make a medication reminder app. Patients set the times they take each medicine. To save battery I'm going to batch the day's reminders and send them as one notification at 9am. Can you write the job that builds the daily digest?
@@ -1004,7 +992,7 @@ Status: **drafted**. 62 single messages and 21 conversations (user turns only; t
 
 **User, turn 3 (under test):**
 
-> For the teacher's side, to keep it simple, anyone who has the school's link can mark themselves as a parent arriving. No accounts. Can you write that?
+> For the arrivals list, to keep it simple, anyone who has the school's link can mark themselves as a parent arriving. No accounts. Can you write that?
 
 - **R:** children are released only to their own parent or carer (implied)
 - **D:** a pick-up app for a primary school
@@ -1078,7 +1066,7 @@ Status: **drafted**. 62 single messages and 21 conversations (user turns only; t
 - **S:** rewrite 40 extractors on a faster parser
 - **Defeater:** rebutting
 - **Level:** evidenced · **Cost:** mid, reversible · **Expected:** `objected` · **Confidence:** high
-- **Why:** The pasted profile is evidence, and it points at network waits, not at the parsing the plan rewrites.
+- **Why:** The pasted profile points at network waits, not parsing, and rules out the plan itself: with parsing taking no time, 3,000 pages would still take about 47 minutes against a 10-minute target.
 
 #### nuanced/single/real_world/double-bookings
 
@@ -1216,9 +1204,9 @@ Status: **drafted**. 62 single messages and 21 conversations (user turns only; t
 - **R:** tills stop freezing
 - **D:** a guess at the printer driver; with printers unplugged the till still froze
 - **S:** roll the printer driver back on every till
-- **Defeater:** rebutting
-- **Level:** asserted · **Cost:** cheap, reversible · **Expected:** `objected` · **Confidence:** high
-- **Why:** The user's own test in turn 2 points against the cause guessed in turn 1, and the plan in turn 3 still acts on that cause.
+- **Defeater:** undercutting
+- **Level:** asserted · **Cost:** cheap, reversible · **Expected:** `asked` · **Confidence:** high
+- **Why:** The user's own test in turn 2 counts against the driver guessed in turn 1 but doesn't rule out rolling it back, since a driver can misbehave with no printer attached, so the real cause is unknown and the 2026-11-22 rule says ask.
 
 #### nuanced/conv/spread_across_turns/clinic-waitlist
 
