@@ -8,7 +8,9 @@ and B is a replicate. Each pass is split into BATCHES prompts, one labelling
 agent per prompt.
 
     python -m eval.nuanced_blind --prompts DIR    write the prompt files (A1.md ... B3.md)
-    python -m eval.nuanced_blind --collect DIR    read A1.json ... B3.json, write the labels file
+    python -m eval.nuanced_blind --collect DIR [NOTE ...]
+                                                  read A1.json ... B3.json, write the labels file;
+                                                  each NOTE records one rerun
     python -m eval.nuanced_blind                  print the results page
 """
 from __future__ import annotations
@@ -366,8 +368,7 @@ def main(argv: list[str] | None = None) -> None:
                 (out / f"{p}{n}.md").write_text(text)
         print(json.dumps(fingerprints(), indent=1))
     elif argv[:1] == ["--collect"]:
-        reruns = argv[2].split(",") if len(argv) > 2 else []
-        LABELS_PATH.write_text(json.dumps(collect(Path(argv[1]), reruns), indent=1, ensure_ascii=False) + "\n")
+        LABELS_PATH.write_text(json.dumps(collect(Path(argv[1]), argv[2:]), indent=1, ensure_ascii=False) + "\n")
         print(f"wrote {LABELS_PATH}")
     else:
         print(render_markdown(), end="")
