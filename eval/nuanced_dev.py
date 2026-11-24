@@ -368,6 +368,8 @@ _add("different_cause", "livestream-drops",
      rationale="The stats point at the venue's uplink, and a faster PC addresses encoding load, which the same "
                "stats show is not the limit.")
 
+# Known overlap: resembles one of the criteria examples for E5c's evidence_for_cause in meaning, though not in
+# wording, so the overlap check misses it. Jev's evidence score here may be inflated (docs/v3_spike.md, E8).
 _add("different_cause", "shoe-returns",
      "We sell shoes online and 22% of orders come back. I went through the reasons customers pick on the returns "
      "form for the last quarter: 58% say 'too small', 6% say 'damaged in transit', the rest is scattered. To get "

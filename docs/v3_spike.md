@@ -1425,6 +1425,12 @@ Every category has at least five single cases. Seven conversations spread cause,
 - **Tests.** A test now enforces rule (b) for asserted causes. Another checks that an owner-checked set has no open labels.
 - **Provenance.** The authoring session was switched to a different model partway through, and the commit's co-author line names that model. The blind second labelling should use a model other than both of them, and other than the one that wrote the Jev questions.
 
+**Known overlap (found 2026-11-24, after the review).** shoe-returns resembles one of the criteria examples for E5c's `evidence_for_cause` in meaning, though not in wording, so the word-and-phrase check doesn't catch it.
+- **The case stays.** Its labels are right either way.
+- **In E7,** Jev's evidence score on this case may be high partly because it mirrors the example. Read its dev result with that in mind.
+- **How it was found.** The reviewing session read part of the E5c criteria while answering a question about Jev. It changed no case text after that.
+- **A replacement,** if wanted, should come from someone who hasn't read the criteria examples.
+
 Next: the blind second labelling, then E7.
 
 # E9: the late-flaw held-out set, G44 (spec fixed 2026-11-21; set owner-checked 2026-11-22)
