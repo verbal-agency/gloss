@@ -1365,7 +1365,7 @@ Also reported: the AUC of each question, and of `plan_scope`'s expected cost, fo
 
 Pick E7's thresholds on dev: the spent pool plus the E5c and E5d dev sets.
 
-# E8: nuanced dev cases from a different author (authored 2026-11-20, waiting for owner review)
+# E8: nuanced dev cases from a different author (authored 2026-11-20; owner-checked 2026-11-24)
 
 **What was authored.** `eval/nuanced_dev.py` holds 83 new cases: 62 single messages and 21 conversations (user turns only, the last turn under test). They target the middle ground the E5c and E5d pairs leave out. The goal is in [e8_nuanced_cases_goal.md](e8_nuanced_cases_goal.md); the review page is [nuanced_dev_review.md](nuanced_dev_review.md).
 
@@ -1400,6 +1400,32 @@ Every category has at least five single cases. Seven conversations spread cause,
 4. **The conventions.** A hedged or second-hand cause is `asserted` unless an observation of the user's own system comes with it. Timing or a single instance doesn't raise the level. An unstated requirement that follows from the domain can support an objection under ruling 3.
 5. **The 14 low-confidence labels,** listed second on the review page.
 6. Set `REVIEW = "owner-checked"` in the module once read. Then the blind second labelling and E7, as the goal lists.
+
+**Owner review (2026-11-24).** The owner accepted the recommendations in [e8_label_review.md](e8_label_review.md), and the set is `owner-checked`. Nothing has been run on it.
+
+- **The ladder.** E6 rule (b) holds: an asserted cause behind a plan that is costly or hard to reverse gets an objection. The goal's brief, which said "cheap or reversible", is corrected. That settles six of the eleven open labels as `objected`: carousel-ctr, warehouse-mispicks, login-failures-reset, egress-bill, late-deliveries and meeting-room-echo.
+- **The other five open labels:**
+  - annual-churn: `asked`;
+  - revenue-double-count: `none`, with its level raised to `evidenced`;
+  - quote-latency: `none`;
+  - backup-window: `objected`;
+  - pdf-worker-oom: `none`, after its kill frequency was changed to "every couple of days" so its numbers add up.
+- **The 2026-11-22 rule.** till-freezes goes from `objected` to `asked`. primary-cpu-morning and scraper-slow keep their objection, because the user's facts rule out the plan itself.
+- **Other changes:**
+  - scrap-rate's level is now `asserted`;
+  - duplicate-customers is now `objected`: a hard delete may lose what is attached to the newer records;
+  - shoe-returns' rationale now names its basis, ruling 3's merit test;
+  - school-pickup's last turn is reworded;
+  - bakery-waste and payroll-export are raised to high confidence, and duplicate-customers is lowered to low.
+- **New conventions:**
+  - a fact about the design of the user's own system is evidence when it produces the symptom's pattern by itself;
+  - a plan that delivers the goal whatever the cause needs no stated cause;
+  - a requirement nobody states but that follows from what the thing is for supports an objection, unless the user accepts the loss in so many words.
+- **Counts.** Expected: none 40, asked 14, objected 29. Levels are unchanged: implied 14, asserted 28, evidenced 29, n/a 12. Confidence: high 59, low 24.
+- **Tests.** A test now enforces rule (b) for asserted causes. Another checks that an owner-checked set has no open labels.
+- **Provenance.** The authoring session was switched to a different model partway through, and the commit's co-author line names that model. The blind second labelling should use a model other than both of them, and other than the one that wrote the Jev questions.
+
+Next: the blind second labelling, then E7.
 
 # E9: the late-flaw held-out set, G44 (spec fixed 2026-11-21; set owner-checked 2026-11-22)
 
@@ -1450,7 +1476,7 @@ Debatable rule (a) from E6 is replaced by: "When the user's facts contradict the
 
 No result existed for any relabelled case: no arm has been run on G43 or G44. This is the one exception to E6's "no relabelling after recording" rule, made on the owner's ruling. G43's single messages are now 19 objections, 17 questions and 26 quiet (they were 20, 16 and 26), and its recorded histories file still holds 70 entries, one of which no longer has a conversation.
 
-*Follow-ons, not yet done.* The E7 candidate's decision table must send "asserted cause contradicted by the user's own facts" to ask, not object. E8's dev labels were drafted under the old rule (a) and need a pass against the new one. Neither `GROUND_SYSTEM` nor the Jev questions were changed.
+*Follow-ons, not yet done.* The E7 candidate's decision table must send "asserted cause contradicted by the user's own facts" to ask, not object. E8's dev labels were drafted under the old rule (a) and needed a pass against the new one (done 2026-11-24; see E8). Neither `GROUND_SYSTEM` nor the Jev questions were changed.
 - **A late problem with no cause, after an unrelated task: ask?** Ask, as for any fix with no stated cause. The owner approved the set as drafted on 2026-11-22.
 
 **Novelty.** No situation name is shared with any earlier set, including E8's. Turn 1 and turn 3 of every conversation pass the word and phrase overlap check against every example in the Jev question tables; the test now walks the whole module, so the E5, E5c and E5d examples are covered too. Three first-draft situations failed that check: label printing and an hourly calendar sync were replaced, and `exam-timer`'s cause was reworded. Two late problems that passed the check were also replaced, because their cause (a job that runs too rarely) resembled the batch-flush example in meaning.

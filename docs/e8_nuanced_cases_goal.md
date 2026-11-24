@@ -69,7 +69,7 @@ The ladder in brief:
 | Level | Action |
 |---|---|
 | `implied` | ask |
-| `asserted` | quiet if cheap or reversible; object if costly and hard to reverse; ask if the user's own facts contradict the cause, unless those facts rule out the plan itself (owner, 2026-11-22) |
+| `asserted` | quiet if cheap or mid-sized and reversible; object if costly or hard to reverse (E6 rule (b); corrected 2026-11-24 from "cheap or reversible"); ask if the user's own facts contradict the cause, unless those facts rule out the plan itself (owner, 2026-11-22) |
 | `evidenced` | quiet, unless the plan misses the cause or breaks a stated requirement |
 | `n/a` | checked against the stated goal only |
 

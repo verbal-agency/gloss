@@ -73,14 +73,21 @@ def test_labels_follow_the_parts_of_the_ladder_that_are_not_open():
         if c["expected"] == "objected":
             assert c["frame"]["defeater"] in ("rebutting", "undermining"), c["id"]
         if c["expected"] == "asked":
-            assert c["frame"]["defeater"] == "undercutting" and c["level"] == "implied", c["id"]
+            # an implied cause, or an asserted one the user's own facts contradict (owner, 2026-11-22)
+            assert c["frame"]["defeater"] == "undercutting" and c["level"] in ("implied", "asserted"), c["id"]
         if c["expected"] == "none":
             assert c["frame"]["defeater"] == "none", c["id"]
+        if c["level"] == "asserted" and c["frame"]["defeater"] in ("none", "undermining"):
+            # E6 rule (b): an unsupported cause is objected to when the plan is costly or hard to reverse
+            costly = c["cost"] == "costly" or not c["reversible"]
+            assert c["expected"] == ("objected" if costly else "none"), c["id"]
 
 
 def test_owner_labels_state_both_readings_and_are_marked_low():
     owner = [c for c in nd.cases() if c["expected"] == nd.OWNER]
-    assert owner
+    if nd.REVIEW == "owner-checked":
+        assert not owner, "an owner-checked set has no open labels"
+        assert not [c["id"] for c in nd.cases() if "Reading one" in c["rationale"]]
     for c in owner:
         assert "Reading one" in c["rationale"] and "Reading two" in c["rationale"], c["id"]
         assert c["confidence"] == "low", c["id"]
