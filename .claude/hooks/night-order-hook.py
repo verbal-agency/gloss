@@ -11,8 +11,12 @@ the project's context and in its own words.
 When you send a prompt, it tells the server only that the session has moved on (no text), so the
 card for the turn before is put away while the next one runs. That send doesn't wait for an answer.
 
+A send that fails is tried once more when there's time. One that still fails, and a run cut off before
+it finished, are noted in a small file in the temp folder and reported with the next send that goes
+out, a prompt's note included, so the server can list the turn as one that never arrived.
+
 It never gets in the way: it prints nothing (Claude Code reads a Stop hook's stdout as
-decisions), gives up after a few seconds, and always exits 0. Standard library only.
+decisions), gives up within Claude Code's time limit, and always exits 0. Standard library only.
 
 CALLMEIF_URL    the server's address, such as https://night-order.example.com. Unset: do nothing.
 CALLMEIF_TOKEN  optional bearer token. In a cloud session leave it unset and store the token as
@@ -30,9 +34,15 @@ import subprocess
 import sys
 import tempfile
 import time
+import urllib.error
 import urllib.request
+import uuid
 
 SEND_SECONDS = 8
+HOOK_SECONDS = 17  # the whole run, inside the 20 s Claude Code gives a Stop hook
+RETRY_AFTER = 5  # seconds before the one retry, when there's time for it
+KEEP_FAILURES = 20  # failed sends remembered until one is reported
+STALE_RUN = 60  # seconds: a run noted as under way for longer than this was cut off
 TAIL_BYTES = 20_000_000  # how far back to look for the turn's start
 BODY_BYTES = 4_000_000  # results are cut shorter until the body fits
 RESULT_CHARS = (100_000, 20_000, 4_000)
@@ -234,36 +244,133 @@ def the_project(payload, url):
     return project, (stamp, digest)
 
 
-def post(url, body):
-    """Send the body. Returns the server's answer as a dict, or None when it didn't take it."""
+def post(url, body, seconds=SEND_SECONDS):
+    """Send the body once. Returns (the server's answer as a dict, None), or (None, why it didn't get through)."""
     token = os.environ.get("CALLMEIF_TOKEN", "")
+    seconds = max(1.0, float(seconds))
     curl = shutil.which("curl")
-    if curl:  # curl follows the machine's proxy and certificate settings, which a cloud session relies on
-        command = [curl, "-s", "-w", "\n%{http_code}", "--max-time", str(SEND_SECONDS), "-H", "Content-Type: application/json",
-                   "--data-binary", "@-", url]
-        if token:
-            command[1:1] = ["-H", f"Authorization: Bearer {token}"]
-        done = subprocess.run(command, input=body, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, timeout=SEND_SECONDS + 2)
-        text, _, status = done.stdout.decode("utf-8", errors="replace").rpartition("\n")
-    else:
-        headers = {"Content-Type": "application/json"}
-        if token:
-            headers["Authorization"] = f"Bearer {token}"
-        with urllib.request.urlopen(urllib.request.Request(url, data=body, headers=headers), timeout=SEND_SECONDS) as answer:
-            text, status = answer.read().decode("utf-8", errors="replace"), str(answer.status)
+    try:
+        if curl:  # curl follows the machine's proxy and certificate settings, which a cloud session relies on
+            command = [curl, "-sS", "-w", "\n%{http_code}", "--max-time", f"{seconds:.1f}", "-H", "Content-Type: application/json",
+                       "--data-binary", "@-", url]
+            if token:
+                command[1:1] = ["-H", f"Authorization: Bearer {token}"]
+            done = subprocess.run(command, input=body, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=seconds + 2)
+            text, _, status = done.stdout.decode("utf-8", errors="replace").rpartition("\n")
+            if done.returncode != 0:
+                said = done.stderr.decode("utf-8", errors="replace").strip().splitlines()
+                return None, f"curl exit {done.returncode}" + (f": {said[-1][:200]}" if said else "")
+        else:
+            headers = {"Content-Type": "application/json"}
+            if token:
+                headers["Authorization"] = f"Bearer {token}"
+            try:
+                with urllib.request.urlopen(urllib.request.Request(url, data=body, headers=headers), timeout=seconds) as answer:
+                    text, status = answer.read().decode("utf-8", errors="replace"), str(answer.status)
+            except urllib.error.HTTPError as exc:
+                text, status = exc.read().decode("utf-8", errors="replace"), str(exc.code)
+    except subprocess.TimeoutExpired:
+        return None, f"no answer within {seconds:.0f} s"
+    except Exception as exc:  # noqa: BLE001 - every way of not getting through is worth reporting
+        return None, f"{type(exc).__name__}: {exc}"[:240]
     if not status.startswith("2"):
-        return None
+        return None, f"HTTP {status}" + (f": {text.strip()[:120]}" if text.strip() else "")
     try:
         answer = json.loads(text)
     except ValueError:
-        return {}
-    return answer if isinstance(answer, dict) else {}
+        return {}, None
+    return (answer if isinstance(answer, dict) else {}), None
+
+
+def send(url, payload, deadline):
+    """Post the payload, and once more after a pause if that fails and there's time before `deadline` (a
+    time.monotonic() value). Returns (answer, why it failed, tries). A send that got through on the second try
+    says so, with why the first failed, so the server can note it."""
+    answer, reason = post(url, json.dumps(payload).encode("utf-8"), min(SEND_SECONDS, deadline - time.monotonic()))
+    if answer is not None:
+        return answer, None, 1
+    left = deadline - time.monotonic()
+    wait = min(RETRY_AFTER, max(0.0, left - 4))
+    if left - wait < 3:  # no time for a real second try
+        return None, reason, 1
+    time.sleep(wait)
+    again, second = post(url, json.dumps({**payload, "hook_retried": reason}).encode("utf-8"),
+                         min(SEND_SECONDS, deadline - time.monotonic()))
+    if again is not None:
+        return again, None, 2
+    return None, f"{reason}; tried again {wait:.0f} s later: {second}", 2
+
+
+# What this machine remembers between runs, per server: sends that failed and haven't been reported yet,
+# and runs under way. A turn's Stop and a helper agent's can run at once, so every change is made under a lock.
+
+def state_path(url):
+    return os.path.join(tempfile.gettempdir(), "night-order-" + hashlib.sha256(url.encode()).hexdigest()[:16] + ".state.json")
+
+
+def change_state(url, change):
+    """Apply change(state) to the remembered state, under a lock, and return what it returns (None if the file
+    can't be used: then nothing is remembered, and nothing else changes)."""
+    try:
+        import fcntl
+    except ImportError:  # not on this system: no lock, which only matters when two runs overlap
+        fcntl = None
+    try:
+        with open(state_path(url), "a+", encoding="utf-8") as fh:
+            if fcntl:
+                fcntl.flock(fh, fcntl.LOCK_EX)
+            fh.seek(0)
+            try:
+                state = json.loads(fh.read() or "{}")
+            except ValueError:
+                state = {}
+            if not isinstance(state, dict):
+                state = {}
+            result = change(state)
+            fh.seek(0)
+            fh.truncate()
+            fh.write(json.dumps(state))
+            return result
+    except Exception:  # noqa: BLE001
+        return None
+
+
+def iso(seconds=None):
+    return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(seconds))
+
+
+def failure(what, reason, at=None, tries=0):
+    """One send that didn't get through, as reported to the server."""
+    return {"id": uuid.uuid4().hex, "at": at or iso(),
+            "event": what.get("hook_event_name") or what.get("event"), "session_id": str(what.get("session_id") or "")[:200],
+            "agent_id": str(what.get("agent_id") or "")[:200] or None, "cwd": str(what.get("cwd") or "")[:500] or None,
+            "reason": str(reason)[:500], "tries": tries}
+
+
+def unreported(state, now=None):
+    """The failures still to report, after turning runs that never finished into failures of their own."""
+    now = time.time() if now is None else now
+    pending = [f for f in state.get("pending") or [] if isinstance(f, dict)]
+    running = state.get("running") if isinstance(state.get("running"), dict) else {}
+    for run_id, run in list(running.items()):
+        started = float(run.get("started", now)) if isinstance(run, dict) else 0.0
+        if now - started > STALE_RUN:
+            pending.append(failure(run if isinstance(run, dict) else {}, "the hook stopped before it finished: "
+                                   "cut off at Claude Code's time limit, or the machine stopped", at=iso(started)))
+            del running[run_id]
+    state["running"] = running
+    state["pending"] = pending[-KEEP_FAILURES:]
+    return list(state["pending"])
 
 
 def note_prompt(url, payload):
-    """Tell the server the session got a prompt: its id and nothing of what was said. Started and left,
-    because a UserPromptSubmit hook holds the prompt back until it returns."""
+    """Tell the server the session got a prompt: its id and nothing of what was said, plus any failed sends
+    still to report. Started and left, because a UserPromptSubmit hook holds the prompt back until it returns,
+    so the failures stay noted until a turn's send gets through (the server counts each once)."""
     note = {"hook_event_name": "UserPromptSubmit", "session_id": payload.get("session_id")}
+    report = change_state(url, unreported)
+    if report:
+        note["hook_report"] = report
     curl = shutil.which("curl")
     if not curl:
         return
@@ -276,6 +383,7 @@ def note_prompt(url, payload):
 
 
 def main():
+    deadline = time.monotonic() + HOOK_SECONDS
     url = os.environ.get("CALLMEIF_URL", "").strip().rstrip("/")
     if not url:
         return
@@ -285,24 +393,51 @@ def main():
     if payload.get("hook_event_name") == "UserPromptSubmit":
         note_prompt(url, payload)
         return
+    run_id = uuid.uuid4().hex
+    run = {"started": time.time(), "hook_event_name": payload.get("hook_event_name"), "session_id": payload.get("session_id"),
+           "agent_id": payload.get("agent_id"), "cwd": payload.get("cwd")}
+
+    def begin(state):
+        report = unreported(state)
+        state["running"][run_id] = run
+        return report
+
+    report = change_state(url, begin) or []
+    answer, reason, tries, stamp = None, "the hook failed before sending", 0, None
     try:
-        turn = the_turn(payload)
-        if turn:
-            payload["turn"] = turn
-    except Exception:  # the payload alone still makes a card, without its tool calls
-        pass
-    if os.environ.get("CLAUDE_CODE_REMOTE") == "true":
-        payload["remote"] = True
-    if os.environ.get("CLAUDE_CODE_REMOTE_SESSION_ID"):
-        payload["remote_session_id"] = os.environ["CLAUDE_CODE_REMOTE_SESSION_ID"]
-    stamp = None
-    try:
-        project, stamp = the_project(payload, url)
-        if project:
-            payload["project"] = project
-    except Exception:
-        pass
-    answer = post(url + "/v1/connectors/claude-code", json.dumps(payload).encode("utf-8"))
+        try:
+            turn = the_turn(payload)
+            if turn:
+                payload["turn"] = turn
+        except Exception:  # the payload alone still makes a card, without its tool calls
+            pass
+        if os.environ.get("CLAUDE_CODE_REMOTE") == "true":
+            payload["remote"] = True
+        if os.environ.get("CLAUDE_CODE_REMOTE_SESSION_ID"):
+            payload["remote_session_id"] = os.environ["CLAUDE_CODE_REMOTE_SESSION_ID"]
+        try:
+            project, stamp = the_project(payload, url)
+            if project:
+                payload["project"] = project
+        except Exception:
+            pass
+        if report:
+            payload["hook_report"] = report
+        answer, reason, tries = send(url + "/v1/connectors/claude-code", payload, deadline)
+    except Exception as exc:  # noqa: BLE001 - noted below, and reported with the next send
+        reason = f"the hook failed before sending: {type(exc).__name__}: {exc}"
+    finally:
+        def end(state):
+            state.setdefault("running", {}).pop(run_id, None)
+            pending = [f for f in state.get("pending") or [] if isinstance(f, dict)]
+            if answer is not None:
+                delivered = {f.get("id") for f in report}
+                pending = [f for f in pending if f.get("id") not in delivered]
+            else:
+                pending.append(failure(run, reason, at=iso(run["started"]), tries=tries))
+            state["pending"] = pending[-KEEP_FAILURES:]
+
+        change_state(url, end)
     if stamp and answer is not None:
         # Remember what the server has, so the files go again only when they change, or when it lost them.
         path, digest = stamp
