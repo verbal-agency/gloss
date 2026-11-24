@@ -157,7 +157,7 @@ A dev case whose label depends on spotting that inconsistency tests arithmetic, 
 ## 5. High-confidence labels that deserve a second look
 
 - **duplicate-customers (line 629), `none`.** The import was on 3 May. In the six months since, orders, logins and support tickets may have attached to the newer record of a pair, and a hard delete would lose or orphan them; merging is the safer plan. Lower the confidence to low. The label should follow whatever bar is set for backup-window.
-- **shoe-returns (line 362), `objected`.** The label holds, but the plan doesn't act on "something else". Transit damage is an evidenced cause too, just a small one: 6% of returns, so sturdier boxes can take at most about 1.3 points off a 22% return rate. The rationale should say that.
+- **shoe-returns (line 362), `objected`.** The label holds, but the rationale doesn't say why it is an objection. Unlike the other objections in its category, this plan does act on an evidenced cause: transit damage is measured too, just small. Read literally, the evidenced row ("quiet, unless the plan misses the cause") would give `none`. The objection rests on ruling 3's merit test instead. Sturdier boxes can take at most about 1.3 points off a 22% return rate, so the plan can't deliver most of the goal. That differs from quote-latency, where the plan delivers the goal at a high price. The rationale should say so.
 - **school-pickup (line 1073).** Turn 3 starts "For the teacher's side" but describes parents marking themselves as arriving, which may trip up a blind labeller. "For the arrivals list" would be clearer.
 
 Every other high-confidence label reads correctly against the ladder.
