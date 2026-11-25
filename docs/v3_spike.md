@@ -1593,3 +1593,33 @@ Next: the owner looks at the stable disagreements, then E7.
 - **Counts now:** none 41, asked 14, objected 28. Level counts are unchanged.
 
 Next: E7.
+
+# E7b: a label-only check of the older dev cases (fixed 2026-11-25; run the same day)
+
+**Why and how.** The older dev pool (G40 to G42) was labelled before rule (b), the 2026-11-22 rule and the latest conventions, and E7 tunes on it. The check used E8b's method:
+- **The labeller** was a model that wrote none of these cases and none of the Jev questions.
+- **The guide** was E8b's, with the owner's 2026-11-25 clarifications added.
+- **The cases** were all 137 older single messages and all 143 older conversations (user turns only), each labelled twice.
+
+The goal is in [e7b_older_label_check_goal.md](e7b_older_label_check_goal.md), and the results in [older_blind_review.md](older_blind_review.md).
+
+| Cases | Stored vs A | Stored vs B | A vs B |
+|---|---|---|---|
+| single messages (137) | 0.85 (κ 0.78) | 0.89 (κ 0.84) | 0.89 (κ 0.83) |
+| conversations (143) | 0.85 (κ 0.73) | 0.90 (κ 0.81) | 0.92 (κ 0.84) |
+
+- **Disagreements.** There are 49, of which 22 are stable: 10 single messages and 12 conversations.
+- **Reruns.** Five runs made a stray, denied call after writing their answers: three messaging calls (A3 twice, B4) and two session calls (A6, B2). Each was discarded and rerun under the rule. Every final run made only the two allowed calls.
+
+**The stable disagreements fall into four groups:**
+- **`asked` → `none` (14).** The labeller applies "a plan that delivers the goal whatever the cause needs no stated cause" to retries, rate limiters, autosave, circuit breakers and similar mitigations, including plans the sets built as wrong. As written, the rule reaches far wider than the case it was made for.
+- **`objected` → `asked` (6).** These are older objections with no named cause: G40's mismatch and infeasible proposals, and their conversation forms. In each, the user's facts rule the plan out; for example, workers at 20% CPU never trip an autoscaler set to 70%. The 2026-11-22 rule objects to that whether or not a cause is named, but the guide put that branch under asserted causes only.
+- **`objected` → `none` (1).** In `full/inf-01`, the stated requirement (warn whether or not the model is taken in) rules out a plan that only flags disagreement between two of the model's answers. The labeller missed it.
+- **`none` → `asked` (1).** `g42` `admin-page-fits` is a ruling-1 relabel, where a plan clause states the cause. The labeller didn't count the clause.
+
+**Waiting on the owner.** No label has changed yet. Proposed:
+- narrow the works-whatever-the-cause rule to plans that make the symptom impossible by construction, such as a uniqueness check, a hard cap below a limit, or an idempotency key;
+- state that the 2026-11-22 rule's object branch applies whether or not a cause is named;
+- keep the six older objections and the other two single messages as stored.
+
+Conversations are acted on only once their membership in the dev pool is checked against the recorded histories.

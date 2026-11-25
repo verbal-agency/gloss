@@ -100,7 +100,7 @@ The configuration with the most cells within max(0.07, one case) of the LLM wins
 **Before the dev run.** The candidate reads whole conversations, so E8's 21 conversations and the four conversation pairs get assistant replies recorded once, from the unaided model, as G43 and G44 did. A conversation is used only if its earlier turns were answered with no question and no objection.
 
 **Before selection:**
-1. **Check the spent pool against the current rules.** Its labels predate rule (b) and the 2026-11-22 rule. After the dev run, a code check lists:
+1. **Check the spent pool against the current rules.** Its labels predate rule (b) and the 2026-11-22 rule. The owner chose a label-only check, [E7b](e7b_older_label_check_goal.md), run on 2026-11-25; the owner's rulings on its stable disagreements are applied before selection. After the dev run, a code check also lists:
    - every quiet case the candidate reads as an asserted cause behind a costly plan;
    - every case with facts against its cause.
 
