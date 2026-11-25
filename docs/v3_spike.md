@@ -1623,3 +1623,16 @@ The goal is in [e7b_older_label_check_goal.md](e7b_older_label_check_goal.md), a
 - keep the six older objections and the other two single messages as stored.
 
 Conversations are acted on only once their membership in the dev pool is checked against the recorded histories.
+
+**The owner's rulings (2026-11-25).**
+- **"Works whatever the cause" is narrowed.** It now covers only a plan that makes the problem impossible by construction: a uniqueness check, a hard cap below a limit, or an idempotency key. A plan that only reduces or works around the problem doesn't count.
+  - Five of the 14 such disagreements become `none`: the partner rate limiter and the capped mail relay, each in its single and conversation forms, and the idempotency-key conversation `held/late_absent/snd-02`.
+  - The other nine stay `asked`. E8's `double-standup-reminder` still qualifies.
+- **An objection doesn't need a named cause.** When the user's own facts rule the plan out, Gloss objects whether or not a cause is named. Ruling 2's question covers only a plan that doesn't match the symptom. The six older objections stand.
+- **The other two single messages keep their stored labels:** `full/inf-01` and `admin-page-fits`.
+- **Where the relabels live.** They are recorded as `RELABELS` in `eval/older_blind.py`, for E7 to apply when it builds its dev pool. A conversation's relabel applies only if that conversation is in the pool.
+- **E8.** No label changes. Its conventions now carry both clarifications.
+- **For E7:**
+  - G44's fact-against plans count as a 50% chance of being wrong;
+  - the two new questions' thresholds are tuned on dev;
+  - the 16 facts-against pairs get a blind check of their labels first (E7d).

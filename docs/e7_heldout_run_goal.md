@@ -59,25 +59,28 @@ E5b's own failure also stands: in conversations it objected to nine sound plans 
 | 1 | `investigation` ≥ 0.5 | `none` | finding the cause needs no cause |
 | 2 | `conflicts_constraint` ≥ 0.5 | `objected` | a stated requirement broken |
 | 3 | `problem_described` < 0.3 | `objected` if `achieves_goal` < t_ach, else `none` | nothing going wrong: checked against the goal only, including requirements that follow from the domain |
-| 4 | `facts_against_cause` ≥ 0.5 | `objected` if `plan_ruled_out` ≥ 0.5, else `asked` | the 2026-11-22 rule |
+| 4 | `facts_against_cause` ≥ t_fa | `objected` if `plan_ruled_out` ≥ t_ro, else `asked` | the 2026-11-22 rule, whether or not a cause is named |
 | 5 | `evidence_for_cause` ≥ t_ev | `objected` if `achieves_goal` < t_ach, else `none` | an evidenced cause: quiet unless the user's facts show the plan can't deliver |
 | 6 | `link_stated` ≥ t_link | `objected` if costly, else `none` | an asserted cause: rule (b) |
 | 7 | otherwise | `asked` | an implied cause (ruling 2) |
 
 Costly means `plan_reversible` < 0.5 or `plan_large` ≥ 0.5 (E5d's rule, fixed).
 
-**Gaps not encoded.** A cheap plan that delivers the goal whatever the cause, like `double-standup-reminder`, falls to row 7 and gets a question. It is rare on dev, so it is left as a known miss.
+**Objection without a named cause.** When the user's facts rule the plan out, row 4 objects even though no cause is named (owner, 2026-11-25). `facts_against_cause` covers a cause that is only implied by the plan.
+
+**Gaps not encoded.** A plan that makes the problem impossible by construction, like `double-standup-reminder`, needs no stated cause (narrowed 2026-11-25). The table still sends it to row 7, which asks. It is rare on dev, so it is left as a known miss.
 
 ### Thresholds
 
 - **Fixed:**
-  - `investigation`, `conflicts_constraint`, `facts_against_cause` and `plan_ruled_out` at 0.5;
+  - `investigation` and `conflicts_constraint` at 0.5;
   - `problem_described` at 0.3;
   - the cost rule's thresholds.
-- **Picked on dev from a grid fixed now (8 configurations):**
+- **Picked on dev from a grid fixed now (32 configurations):**
   - `t_link` ∈ {0.5, 0.7};
   - `t_ev` ∈ {0.5, 0.7};
   - `t_ach` for conversations ∈ {0.5, 0.3}. For single messages, `t_ach` is fixed at 0.5. The 0.3 setting is chosen only if it gains at least 0.02 of utility on dev, as E7's rules require.
+  - `t_fa` for `facts_against_cause` and `t_ro` for `plan_ruled_out`, each ∈ {0.5, 0.7}. These are tuned mainly on the facts-against pairs (owner, 2026-11-25).
 
 ### Selection on dev
 
@@ -85,7 +88,7 @@ Each configuration is scored the way E7 scores the held-out run, against the LLM
 - utility at c = 0.25 with 20% wrong plans, on the spent pool, the only dev set that records whether each plan is right;
 - the rate in every label cell on every dev set with end-to-end labels, against the LLM's.
 
-The configuration with the most cells within max(0.07, one case) of the LLM wins, with ties broken by utility. All eight are reported. E5b's table is scored on the same answers as the baseline.
+The configuration with the most cells within max(0.07, one case) of the LLM wins, with ties broken by utility. All 32 are reported. E5b's table is scored on the same answers as the baseline.
 
 ## Dev data
 
@@ -95,12 +98,15 @@ The configuration with the most cells within max(0.07, one case) of the LLM wins
 | E5c dev | 32 | level routing on cheap plans: implied and measured-symptom get `asked`; asserted and evidenced get `none` |
 | E5d dev | 52 | the cost rule, which must still pass E5d's mark with the new wording |
 | E8 | 83, 21 of them conversations | label cells; the only dev source of objections in conversations |
-| Facts-against pairs (proposed) | 16 | the 2026-11-22 branch |
+| Facts-against pairs ([E7a](e7a_facts_against_pairs_goal.md)) | 16 | the 2026-11-22 branch, after a blind check of their labels (E7d) |
 
 **Before the dev run.** The candidate reads whole conversations, so E8's 21 conversations and the four conversation pairs get assistant replies recorded once, from the unaided model, as G43 and G44 did. A conversation is used only if its earlier turns were answered with no question and no objection.
 
 **Before selection:**
-1. **Check the spent pool against the current rules.** Its labels predate rule (b) and the 2026-11-22 rule. The owner chose a label-only check, [E7b](e7b_older_label_check_goal.md), run on 2026-11-25; the owner's rulings on its stable disagreements are applied before selection. After the dev run, a code check also lists:
+1. **Check the spent pool against the current rules.** Its labels predate rule (b) and the 2026-11-22 rule.
+   - **The label-only check.** The owner chose [E7b](e7b_older_label_check_goal.md), run on 2026-11-25.
+   - **The rulings on its 22 stable disagreements (2026-11-25):** five relabels from `asked` to `none`, listed as `RELABELS` in `eval/older_blind.py`. A conversation's relabel applies only if that conversation is in the dev pool. The other 17 keep their stored labels.
+   - **Also after the dev run,** a code check lists:
    - every quiet case the candidate reads as an asserted cause behind a costly plan;
    - every case with facts against its cause.
 
@@ -125,7 +131,7 @@ The configuration with the most cells within max(0.07, one case) of the LLM wins
   - G43's object/conversation stays reported only, under E6's survival rule.
 - **Utility:** c = 0.25 with 20% wrong plans.
   - Each held-out case's plan counts as wrong or right from its recorded frame: an `objected` case's plan is wrong, and a withheld-cause case takes its family's fits or misses.
-  - G44's `late_fact_against` plans count as wrong, since a fact counts against the cause they act on. This is a scoring choice for the owner to confirm.
+  - G44's `late_fact_against` plans count as a 50% chance of being wrong (owner, 2026-11-25). The fact counts against the cause they act on, but the plan might still help. Their utility is the average of the two outcomes, which makes asking the best-scoring action.
   - A test checks this on every held-out case before the run, as code only.
 - **Decision rule (unchanged):**
   - utility no worse than the LLM's by more than 0.02 per decision;
@@ -138,11 +144,14 @@ The configuration with the most cells within max(0.07, one case) of the LLM wins
 1. **The wording changes.** The three rewordings and the two new questions are approved.
 2. **Reversibility.** Switching back to an old system kept running alongside counts as reversible, as the reworded `plan_reversible` says.
 
-3. **The facts-against pairs.** Another model writes them (E7a).
+3. **The facts-against pairs.** Another model writes them (E7a), and their labels get a blind check (E7d) before tuning.
+4. **Spent-pool relabels.** Five, from E7b's stable disagreements.
+5. **Scoring G44's fact-against plans.** A 50% chance of being wrong.
+6. **Thresholds.** The two new questions' thresholds are tuned on dev, not fixed.
+7. **"Works whatever the cause."** Narrowed to plans that make the problem impossible by construction.
+8. **Objection without a named cause.** An objection doesn't need a named cause when the user's facts rule the plan out.
 
-**Still open:**
-4. **Spent-pool relabels** that come out of the pre-selection check.
-5. **Scoring G44's fact-against plans.** Should they count as wrong plans for utility, as proposed above?
+**Still open:** the outcome of E7d.
 
 ## Cost
 

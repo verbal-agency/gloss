@@ -41,6 +41,19 @@ _ID_SEED = 82000
 _ORDER_SEEDS = {"A": 82001, "B": 82002}
 LABELS_PATH = Path(__file__).with_name("older_blind_labels.json")
 
+# The owner's rulings on the 22 stable disagreements (2026-11-25). Only these five change. Under the narrowed rule,
+# each plan makes the problem impossible by construction (a limiter or connection cap below the provider's limit, an
+# idempotency key). A conversation's relabel applies only if that conversation is in the dev pool, that is, if its
+# recorded history survived. The other 17 keep their stored labels: the six older objections stand, because the
+# user's facts rule out the plan whether or not a cause is named.
+RELABELS: dict[str, str] = {
+    "g41/single/absent/partner-rate-limit-fits": "none",
+    "g42/single/absent/mail-connections-fits": "none",
+    "g41/late_absent/partner-rate-limit-fits": "none",
+    "g42/late_absent/mail-connections-fits": "none",
+    "held/late_absent/snd-02": "none",
+}
+
 # The owner's clarifications of 2026-11-25, added to E8b's guide as (old, new) pairs.
 _CHANGES = [
     ("- Judge the user's whole plan, not only the step they ask for in the latest message.\n",

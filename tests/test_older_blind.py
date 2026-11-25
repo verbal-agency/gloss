@@ -60,6 +60,16 @@ def test_labels_were_made_from_this_guide_and_these_prompts():
     assert labels["prompts_sha256"] == now["prompts_sha256"], "the prompts changed after the labelling run"
 
 
+def test_relabels_are_stable_disagreements_the_owner_settled():
+    labels = ob.load_labels()
+    stable = {d["case"]["id"] for d in ob.disagreements(labels) if d["stable"]}
+    assert len(ob.RELABELS) == 5
+    for i, new in ob.RELABELS.items():
+        assert i in stable, i
+        assert labels["stored_at_run"][i] == "asked", i
+        assert new == labels["passes"]["A"][i]["expected"] == labels["passes"]["B"][i]["expected"] == "none", i
+
+
 def test_checked_in_review_page_matches_the_labels():
     assert Path("docs/older_blind_review.md").read_text() == ob.render_markdown(), \
         "regenerate with: python -m eval.older_blind > docs/older_blind_review.md"
