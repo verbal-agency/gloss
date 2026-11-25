@@ -97,6 +97,8 @@ The configuration with the most cells within max(0.07, one case) of the LLM wins
 | E8 | 83, 21 of them conversations | label cells; the only dev source of objections in conversations |
 | Facts-against pairs (proposed) | 16 | the 2026-11-22 branch |
 
+**Before the dev run.** The candidate reads whole conversations, so E8's 21 conversations and the four conversation pairs get assistant replies recorded once, from the unaided model, as G43 and G44 did. A conversation is used only if its earlier turns were answered with no question and no objection.
+
 **Before selection:**
 1. **Check the spent pool against the current rules.** Its labels predate rule (b) and the 2026-11-22 rule. After the dev run, a code check lists:
    - every quiet case the candidate reads as an asserted cause behind a costly plan;
@@ -107,7 +109,7 @@ The configuration with the most cells within max(0.07, one case) of the LLM wins
    - in E8, `till-freezes` (`asked`) and `primary-cpu-morning` and `scraper-slow` (`objected`), plus the different-cause objections;
    - G44's eight `late_fact_against` conversations, which are held out.
 
-   Proposed: 8 situations, each written twice. In one version a fact counts against the stated cause but the plan might still work (`asked`); in the other a fact rules the plan out (`objected`). The set is written by a model other than the one that wrote the questions, under E8's independence rules, and reviewed by the owner.
+   The owner chose to have 8 situations each written twice. In one version a fact counts against the stated cause but the plan might still work (`asked`); in the other a fact rules the plan out (`objected`). The set is written by a model other than the one that wrote the questions ([E7a](e7a_facts_against_pairs_goal.md)), and reviewed by the owner.
 
 ## The held-out run
 
@@ -136,8 +138,9 @@ The configuration with the most cells within max(0.07, one case) of the LLM wins
 1. **The wording changes.** The three rewordings and the two new questions are approved.
 2. **Reversibility.** Switching back to an old system kept running alongside counts as reversible, as the reworded `plan_reversible` says.
 
+3. **The facts-against pairs.** Another model writes them (E7a).
+
 **Still open:**
-3. **The facts-against pairs.** Write them in a separate session, or accept that the 2026-11-22 branch is tuned on very little data. Either way, G44 tests it.
 4. **Spent-pool relabels** that come out of the pre-selection check.
 5. **Scoring G44's fact-against plans.** Should they count as wrong plans for utility, as proposed above?
 
