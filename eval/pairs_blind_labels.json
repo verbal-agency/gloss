@@ -1,0 +1,455 @@
+{
+ "labeller": "a model that wrote none of the pairs, none of the Jev questions and none of their examples",
+ "guide_sha256": "d1b003b675e3e560a9788b86f6ea1e98bce1f3fc74b7b3b3935631257afec126",
+ "prompts_sha256": {
+  "A": [
+   "1c0671906e705eed8a88282b27a5ec3d8f75816d7ca169abd8b4ad845bb41e02",
+   "15976432a79be5d474b3ca9cdf5e0baf863afefbe9fb407a842c02dc0f1d982a"
+  ],
+  "B": [
+   "da52b784fa5f8adb34dea6512de31df80da4094750b588983973e800f064f572",
+   "3f70a61ac5758377036749cd5891ca6ed946d038bca8da51b8e2ebb20994d839"
+  ]
+ },
+ "reruns": [],
+ "passes": {
+  "A": {
+   "fadev/conversation/algebra-club/asked": {
+    "level": "asserted",
+    "cost": "cheap",
+    "reversible": true,
+    "expected": "asked",
+    "defeater": "undercutting",
+    "confidence": "high",
+    "rationale": "The user's homework-site counts show failing students already did more practice than passing ones, which counts against the stated cause the practice club acts on."
+   },
+   "fadev/conversation/algebra-club/objected": {
+    "level": "asserted",
+    "cost": "cheap",
+    "reversible": true,
+    "expected": "objected",
+    "defeater": "rebutting",
+    "confidence": "high",
+    "rationale": "The user's own register check shows nearly all the failing pupils leave on the 3:20 bus, before the 3:30 club starts, so the plan cannot reach the students it is meant to help."
+   },
+   "fadev/conversation/lower-field-drains/asked": {
+    "level": "asserted",
+    "cost": "costly",
+    "reversible": false,
+    "expected": "asked",
+    "defeater": "undercutting",
+    "confidence": "low",
+    "rationale": "The thinnest barley is on a rise that never holds water, which counts against waterlogging from silted drains as the cause the whole-field re-drain would act on, so the cause should be checked before committing about £18,000."
+   },
+   "fadev/conversation/lower-field-drains/objected": {
+    "level": "asserted",
+    "cost": "costly",
+    "reversible": false,
+    "expected": "objected",
+    "defeater": "rebutting",
+    "confidence": "high",
+    "rationale": "The surveyor's finding that the only outlet sits a foot above the field's low corner means the new drains cannot empty, so the re-drain cannot deliver dry ground."
+   },
+   "fadev/conversation/sycamore-shade/asked": {
+    "level": "asserted",
+    "cost": "mid",
+    "reversible": false,
+    "expected": "asked",
+    "defeater": "undercutting",
+    "confidence": "high",
+    "rationale": "Midday output is as far under estimate when the panels are unshaded as in the morning, which counts against shade as the cause the crown reduction acts on."
+   },
+   "fadev/conversation/sycamore-shade/objected": {
+    "level": "evidenced",
+    "cost": "cheap",
+    "reversible": false,
+    "expected": "objected",
+    "defeater": "rebutting",
+    "confidence": "high",
+    "rationale": "The user's ladder observation shows the shadow comes from the trunk and lower limbs, below the height a crown reduction would reach, so the quoted work cannot stop the shading."
+   },
+   "fadev/conversation/third-line-cook/asked": {
+    "level": "evidenced",
+    "cost": "costly",
+    "reversible": false,
+    "expected": "objected",
+    "defeater": "rebutting",
+    "confidence": "high",
+    "rationale": "The user's stopwatch shows tickets waiting on the rail while both cooks were idle, so a third cook would not reduce the delay, and a full-time hire at about £29k is a costly commitment."
+   },
+   "fadev/conversation/third-line-cook/objected": {
+    "level": "asserted",
+    "cost": "costly",
+    "reversible": false,
+    "expected": "objected",
+    "defeater": "rebutting",
+    "confidence": "high",
+    "rationale": "The user observed every burner and the fryer in use with no spare bench, so a third cook has nowhere to work and the hire cannot cut ticket times."
+   },
+   "fadev/single/bedroom-mould/asked": {
+    "level": "asserted",
+    "cost": "cheap",
+    "reversible": false,
+    "expected": "asked",
+    "defeater": "undercutting",
+    "confidence": "low",
+    "rationale": "The condensation cause is stated, but the user's two-week reading of at most 50% room humidity counts against it, so the link from that cause to the dehumidifier is not established."
+   },
+   "fadev/single/bedroom-mould/objected": {
+    "level": "asserted",
+    "cost": "cheap",
+    "reversible": true,
+    "expected": "objected",
+    "defeater": "rebutting",
+    "confidence": "high",
+    "rationale": "The user's own manual says the dehumidifier stops removing water below about 15°C, and the room sits at 8 to 9°C, so the purchase cannot dry the room in winter."
+   },
+   "fadev/single/free-shipping-dip/asked": {
+    "level": "asserted",
+    "cost": "mid",
+    "reversible": true,
+    "expected": "asked",
+    "defeater": "undercutting",
+    "confidence": "low",
+    "rationale": "The conversion slide began around 4 October, before the delivery charge rose on the 20th, which counts against delivery as the cause that free delivery would fix, so that link should be checked before the banner is written."
+   },
+   "fadev/single/free-shipping-dip/objected": {
+    "level": "evidenced",
+    "cost": "cheap",
+    "reversible": true,
+    "expected": "objected",
+    "defeater": "rebutting",
+    "confidence": "high",
+    "rationale": "The user's own figures show each order loses about £0.70 once delivery is free, so the plan works against the profit goal on every order."
+   },
+   "fadev/single/wedding-film-export/asked": {
+    "level": "asserted",
+    "cost": "mid",
+    "reversible": false,
+    "expected": "asked",
+    "defeater": "undercutting",
+    "confidence": "low",
+    "rationale": "The same PC exported the same-length films in about forty minutes until October, which counts against the stated cause that the PC lacks the hardware, so the user should check what changed before buying a card."
+   },
+   "fadev/single/wedding-film-export/objected": {
+    "level": "asserted",
+    "cost": "mid",
+    "reversible": false,
+    "expected": "objected",
+    "defeater": "rebutting",
+    "confidence": "high",
+    "rationale": "The user's own help-page fact says the required delivery format is encoded by the CPU alone, so a graphics card cannot cut the export time whatever the cause is."
+   },
+   "fadev/single/yellow-tomatoes/asked": {
+    "level": "asserted",
+    "cost": "cheap",
+    "reversible": false,
+    "expected": "asked",
+    "defeater": "undercutting",
+    "confidence": "low",
+    "rationale": "Yellowing on the newest top leaves with dark older leaves counts against the stated nitrogen shortage, so the link from that cause to forking in nitrogen is not established."
+   },
+   "fadev/single/yellow-tomatoes/objected": {
+    "level": "asserted",
+    "cost": "cheap",
+    "reversible": false,
+    "expected": "objected",
+    "defeater": "rebutting",
+    "confidence": "high",
+    "rationale": "The user's own box label says the slow-release granules will not feed for eight to ten weeks, which is too late for trusses to ripen before a frost about four weeks away."
+   }
+  },
+  "B": {
+   "fadev/conversation/algebra-club/asked": {
+    "level": "asserted",
+    "cost": "cheap",
+    "reversible": true,
+    "expected": "asked",
+    "defeater": "undercutting",
+    "confidence": "high",
+    "rationale": "The homework data shows the students who failed did more practice than those who passed, which counts against too little practice as the cause the club acts on, so the teacher should be asked before planning weeks two to four; the club is cheap and can be stopped."
+   },
+   "fadev/conversation/algebra-club/objected": {
+    "level": "asserted",
+    "cost": "cheap",
+    "reversible": true,
+    "expected": "objected",
+    "defeater": "rebutting",
+    "confidence": "high",
+    "rationale": "Most of the students who failed take the 3:20 bus home before the 3:30 club starts with no later bus, so the plan cannot reach the students it is meant to help."
+   },
+   "fadev/conversation/lower-field-drains/asked": {
+    "level": "asserted",
+    "cost": "mid",
+    "reversible": false,
+    "expected": "objected",
+    "defeater": "undermining",
+    "confidence": "low",
+    "rationale": "The waterlogging-from-silted-drains cause is stated without any test, and the costly, buried, irreversible re-drain is not justified by it, especially since the thinnest barley sits on ground that never holds water."
+   },
+   "fadev/conversation/lower-field-drains/objected": {
+    "level": "asserted",
+    "cost": "mid",
+    "reversible": false,
+    "expected": "objected",
+    "defeater": "rebutting",
+    "confidence": "high",
+    "rationale": "The surveyor's level shows the only outfall ditch sits a foot above the low corner and cannot be deepened, so gravity drainage cannot work whatever the cause, and the roughly 18,000 pound contract is not reversible."
+   },
+   "fadev/conversation/sycamore-shade/asked": {
+    "level": "asserted",
+    "cost": "cheap",
+    "reversible": false,
+    "expected": "asked",
+    "defeater": "undercutting",
+    "confidence": "low",
+    "rationale": "The user's inverter data shows the same midday shortfall with no shade on the panels, which counts against the shade cause the crown reduction acts on, so the right move is a question, not an objection, though the cut itself cannot be undone."
+   },
+   "fadev/conversation/sycamore-shade/objected": {
+    "level": "evidenced",
+    "cost": "cheap",
+    "reversible": false,
+    "expected": "objected",
+    "defeater": "rebutting",
+    "confidence": "high",
+    "rationale": "The user's ladder observation shows the shadow comes from the trunk and lower limbs, below the height a crown reduction would cut, so the quoted work cannot deliver more light on the panels."
+   },
+   "fadev/conversation/third-line-cook/asked": {
+    "level": "asserted",
+    "cost": "mid",
+    "reversible": false,
+    "expected": "asked",
+    "defeater": "undercutting",
+    "confidence": "low",
+    "rationale": "The stated cause is too few cooks, but the user's stopwatch shows tickets waiting while both cooks were idle, which knocks out capacity as the cause without establishing the real one, so the right move is a question."
+   },
+   "fadev/conversation/third-line-cook/objected": {
+    "level": "evidenced",
+    "cost": "costly",
+    "reversible": false,
+    "expected": "objected",
+    "defeater": "rebutting",
+    "confidence": "high",
+    "rationale": "The user's own service observation shows all burners and the fryer in use with no spare flame or bench, so a third cook on this line cannot be fitted in, and the roughly 29,000 pound a year hire is a costly commitment that cannot deliver the goal."
+   },
+   "fadev/single/bedroom-mould/asked": {
+    "level": "asserted",
+    "cost": "cheap",
+    "reversible": true,
+    "expected": "asked",
+    "defeater": "undercutting",
+    "confidence": "high",
+    "rationale": "Condensation is stated as the cause, but the user's own two-week meter reading never above 50% counts against it, so the dehumidifier plan needs a question first; the purchase is cheap and returnable."
+   },
+   "fadev/single/bedroom-mould/objected": {
+    "level": "asserted",
+    "cost": "cheap",
+    "reversible": true,
+    "expected": "objected",
+    "defeater": "rebutting",
+    "confidence": "high",
+    "rationale": "The user's own fact that the dehumidifier stops below 15°C while the room sits at 8 or 9°C shows the plan cannot run in that room, whatever the mould cause."
+   },
+   "fadev/single/free-shipping-dip/asked": {
+    "level": "asserted",
+    "cost": "cheap",
+    "reversible": false,
+    "expected": "asked",
+    "defeater": "undercutting",
+    "confidence": "low",
+    "rationale": "The daily figures show the conversion slide began about 4 October, before the 20 October delivery price rise, which counts against delivery as the cause, so the user should be asked before a published free-delivery banner goes out."
+   },
+   "fadev/single/free-shipping-dip/objected": {
+    "level": "evidenced",
+    "cost": "cheap",
+    "reversible": true,
+    "expected": "objected",
+    "defeater": "rebutting",
+    "confidence": "high",
+    "rationale": "The user's own numbers show free delivery at a £3.40 margin against a £4.10 courier cost loses about £0.70 per order, so the plan cannot deliver the profit goal whatever the conversion cause."
+   },
+   "fadev/single/wedding-film-export/asked": {
+    "level": "asserted",
+    "cost": "mid",
+    "reversible": false,
+    "expected": "asked",
+    "defeater": "undercutting",
+    "confidence": "high",
+    "rationale": "The stated cause is that the PC lacks power, but the same PC on the same settings exported in about forty minutes until October, so that cause is contradicted and the real change is unknown; asking is right before a £780 purchase."
+   },
+   "fadev/single/wedding-film-export/objected": {
+    "level": "asserted",
+    "cost": "mid",
+    "reversible": false,
+    "expected": "objected",
+    "defeater": "rebutting",
+    "confidence": "high",
+    "rationale": "The editor's help page says the required delivery format is encoded by the processor alone, so a graphics card cannot shorten the export, and the 780 pound purchase does not deliver the goal."
+   },
+   "fadev/single/yellow-tomatoes/asked": {
+    "level": "asserted",
+    "cost": "cheap",
+    "reversible": false,
+    "expected": "asked",
+    "defeater": "undercutting",
+    "confidence": "low",
+    "rationale": "Nitrogen deficiency usually yellows older lower leaves, but the user sees yellowing only in the newest top leaves with old leaves dark green, which counts against the stated cause and leaves the real one unknown."
+   },
+   "fadev/single/yellow-tomatoes/objected": {
+    "level": "asserted",
+    "cost": "cheap",
+    "reversible": false,
+    "expected": "objected",
+    "defeater": "rebutting",
+    "confidence": "high",
+    "rationale": "The granules are stated to start feeding only after eight to ten weeks, far beyond the roughly four weeks before frost, so the plan cannot ripen the trusses by the user's own facts whatever the cause, and forked-in granules cannot be recovered."
+   }
+  }
+ },
+ "set_at_run": {
+  "fadev/conversation/algebra-club/asked": {
+   "level": "asserted",
+   "cost": "cheap",
+   "reversible": true,
+   "expected": "asked",
+   "defeater": "undercutting",
+   "confidence": "high",
+   "rationale": "The pupils who failed have practised more than those who passed, which counts against too little practice as the cause, though guided sessions might still help them."
+  },
+  "fadev/conversation/algebra-club/objected": {
+   "level": "asserted",
+   "cost": "cheap",
+   "reversible": true,
+   "expected": "objected",
+   "defeater": "rebutting",
+   "confidence": "high",
+   "rationale": "Nearly all the pupils the club is for leave on a 3:20 bus with no later one, so they cannot attend a 3:30 club, whatever the reason they failed."
+  },
+  "fadev/conversation/lower-field-drains/asked": {
+   "level": "evidenced",
+   "cost": "costly",
+   "reversible": false,
+   "expected": "asked",
+   "defeater": "undercutting",
+   "confidence": "high",
+   "rationale": "The poorest crop is on ground that never holds water, which waterlogging cannot explain; the cause of the low yield is unknown and new drains might still help the wet end."
+  },
+  "fadev/conversation/lower-field-drains/objected": {
+   "level": "evidenced",
+   "cost": "costly",
+   "reversible": false,
+   "expected": "objected",
+   "defeater": "rebutting",
+   "confidence": "high",
+   "rationale": "The only outfall is higher than the field's low corner and cannot be lowered, so the new pipes would have nowhere to empty and could not dry the field."
+  },
+  "fadev/conversation/sycamore-shade/asked": {
+   "level": "asserted",
+   "cost": "mid",
+   "reversible": false,
+   "expected": "asked",
+   "defeater": "undercutting",
+   "confidence": "high",
+   "rationale": "Output is just as low at midday when no shadow reaches the panels, which shade cannot explain; the cause of the shortfall is unknown and less shade might still add something."
+  },
+  "fadev/conversation/sycamore-shade/objected": {
+   "level": "asserted",
+   "cost": "mid",
+   "reversible": false,
+   "expected": "objected",
+   "defeater": "rebutting",
+   "confidence": "high",
+   "rationale": "The shadow on the panels comes from the trunk and lower limbs, which a crown reduction leaves in place, so the cut cannot remove it."
+  },
+  "fadev/conversation/third-line-cook/asked": {
+   "level": "asserted",
+   "cost": "mid",
+   "reversible": false,
+   "expected": "asked",
+   "defeater": "undercutting",
+   "confidence": "high",
+   "rationale": "Tickets waited while both cooks were free, which a shortage of cooks does not explain; where the delay comes from is unknown and another pair of hands might still help."
+  },
+  "fadev/conversation/third-line-cook/objected": {
+   "level": "asserted",
+   "cost": "mid",
+   "reversible": false,
+   "expected": "objected",
+   "defeater": "rebutting",
+   "confidence": "low",
+   "rationale": "Every burner and the fryer are already in use all service and there is no room on the line, so a third cook would have nothing to cook on and could not speed up the mains."
+  },
+  "fadev/single/bedroom-mould/asked": {
+   "level": "asserted",
+   "cost": "cheap",
+   "reversible": true,
+   "expected": "asked",
+   "defeater": "undercutting",
+   "confidence": "high",
+   "rationale": "Air that stays at or under 50% humidity does not fit condensation as the cause, but the meter covers two weeks in one spot and drier air might still help, so the cause is worth a question."
+  },
+  "fadev/single/bedroom-mould/objected": {
+   "level": "asserted",
+   "cost": "cheap",
+   "reversible": true,
+   "expected": "objected",
+   "defeater": "rebutting",
+   "confidence": "high",
+   "rationale": "By the user's own figures the machine does not extract at the temperature the room is at when the mould grows, so it cannot dry the room whatever is feeding the mould."
+  },
+  "fadev/single/free-shipping-dip/asked": {
+   "level": "evidenced",
+   "cost": "mid",
+   "reversible": true,
+   "expected": "asked",
+   "defeater": "undercutting",
+   "confidence": "high",
+   "rationale": "The fall began two weeks before the charge went up, so the charge cannot be what started it, though free delivery might still win orders back."
+  },
+  "fadev/single/free-shipping-dip/objected": {
+   "level": "evidenced",
+   "cost": "mid",
+   "reversible": true,
+   "expected": "objected",
+   "defeater": "rebutting",
+   "confidence": "high",
+   "rationale": "With £3.40 left per order and £4.10 to pay the courier, every free-delivery order loses money, so no rise in orders can bring the profit back."
+  },
+  "fadev/single/wedding-film-export/asked": {
+   "level": "evidenced",
+   "cost": "mid",
+   "reversible": true,
+   "expected": "asked",
+   "defeater": "undercutting",
+   "confidence": "high",
+   "rationale": "The same PC exported the same kind of film in forty minutes until October, so lack of power does not explain the slowdown; what changed is unknown and a faster card might still shorten the export."
+  },
+  "fadev/single/wedding-film-export/objected": {
+   "level": "evidenced",
+   "cost": "mid",
+   "reversible": true,
+   "expected": "objected",
+   "defeater": "rebutting",
+   "confidence": "high",
+   "rationale": "The format the user must deliver is encoded without the graphics card, so a new card cannot shorten that export whatever slowed it down."
+  },
+  "fadev/single/yellow-tomatoes/asked": {
+   "level": "asserted",
+   "cost": "cheap",
+   "reversible": true,
+   "expected": "asked",
+   "defeater": "undercutting",
+   "confidence": "low",
+   "rationale": "A nitrogen shortage shows in the oldest leaves first, and here only the newest are yellow, so the stated cause does not fit; the user does not draw that conclusion and a feed might still do some good."
+  },
+  "fadev/single/yellow-tomatoes/objected": {
+   "level": "asserted",
+   "cost": "cheap",
+   "reversible": true,
+   "expected": "objected",
+   "defeater": "rebutting",
+   "confidence": "high",
+   "rationale": "Granules that start feeding after eight to ten weeks cannot help plants that have four weeks left, whatever they are short of."
+  }
+ }
+}

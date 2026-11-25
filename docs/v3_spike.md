@@ -1636,3 +1636,35 @@ Conversations are acted on only once their membership in the dev pool is checked
   - G44's fact-against plans count as a 50% chance of being wrong;
   - the two new questions' thresholds are tuned on dev;
   - the 16 facts-against pairs get a blind check of their labels first (E7d).
+
+# E7d: a blind check of the facts-against pairs (fixed 2026-11-25; run the same day)
+
+**Why and how.** E7 tunes the thresholds of its two new questions mainly on the 16 facts-against pairs, whose labels had one author and no review. The check used E8b's method:
+- **The labeller** was a model that wrote none of the pairs, none of the Jev questions and none of their examples.
+- **The guide** was E7b's, with the owner's rulings of 2026-11-25: the narrowed rule for plans that make the problem impossible by construction, and the user's own facts judged at any level.
+- **Twins apart.** The two versions of a situation were never in the same batch, so each was judged without its twin.
+
+The goal is in [e7d_pairs_blind_check_goal.md](e7d_pairs_blind_check_goal.md), and the results in [pairs_blind_review.md](pairs_blind_review.md).
+
+| Field | Set vs A | Set vs B | A vs B |
+|---|---|---|---|
+| `expected` | 0.94 (κ **0.88**) | 0.94 (κ 0.88) | 0.88 (κ 0.75) |
+
+- **The reading.** Kappa on `expected` is 0.88, so the labels are reliable enough to tune `t_fa` and `t_ro` on, once the owner has ruled on the two disagreements.
+- **No reruns.** All four runs made only the two allowed calls.
+- **The pairs hold.** Each pass separated seven of the eight pairs the set's way. Both passes objected to all eight `rules_out` versions, each time because the user's fact shows the plan can't deliver.
+- **Two disagreements, neither stable:**
+  - **lower-field-drains, `against` version** (set `asked`). Pass B objected because the cause is untested and the re-drain costly. That is the cost rule, which comes after the facts rule; its own rationale notes the thinnest barley is on ground that never holds water. Pass A asked.
+  - **third-line-cook, `against` version** (set `asked`). Pass A objected, reading "tickets wait even when both cooks are free" as ruling the hire out. Pass B asked. This is the closest call in the set: the fact shows the wait isn't only a shortage of cooks, but not that a third cook can't help in the busy stretches.
+- **Cost and reversibility agree less** (κ 0.62 and 0.43, pass A). Both passes call two plans hard to reverse that the set calls reversible:
+  - wedding-film-export's £780 graphics card, which the guide's definition counts as irreversible, being a purchase;
+  - yellow-tomatoes' fertiliser, forked into the soil.
+
+  E7 scores only `expected` on the pairs, so these labels don't affect it.
+
+**What it shows about E7's table.** In all eight `objected` pairs, the user's fact rules out the plan without counting against the cause. As drafted, row 4 consults `plan_ruled_out` only after `facts_against_cause` fires. These cases would fall through to the level rows, where the three cheap plans on an asserted cause (bedroom-mould, yellow-tomatoes, algebra-club) get no objection. The owner's ruling that an objection doesn't need a named cause needs `plan_ruled_out` to stand on its own.
+
+**Waiting on the owner.** No label has changed. Proposed:
+- both disagreements keep the set's `asked`;
+- wedding-film-export's reversibility becomes `false`, to match the written definition;
+- row 4 of E7's table fires when either new question does, and objects when `plan_ruled_out` reaches `t_ro`.
