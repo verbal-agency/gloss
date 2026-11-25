@@ -1,8 +1,8 @@
 # E7: the held-out run on G43 and G44
 
-**Status:** draft, 2026-11-25, for the owner's review. Nothing in it has run.
-- Once approved, it is fixed before any Jev or LLM call.
-- Every change to a question's wording below is a proposal until the owner approves it.
+**Status:** draft, 2026-11-25. Nothing in it has run.
+- The owner approved the question changes on 2026-11-25: three rewordings and two new questions.
+- The decisions still open are listed at the end. Once they are settled, the spec is fixed before any Jev or LLM call.
 
 ## Why
 
@@ -35,14 +35,14 @@ E5b's own failure also stands: in conversations it objected to nine sound plans 
 - `conflicts_constraint`;
 - `achieves_goal`, with E5b's overall-plan note in conversations.
 
-**Reworded (proposed; needs the owner's approval):**
+**Reworded (approved by the owner, 2026-11-25):**
 - **`evidence_for_cause`** asks about *the cause the plan acts on*, not "the cause". This follows the ruling of 2026-11-25: when the user names two causes, judge the one the plan acts on. As worded now, a message with one measured cause and a plan acting on a second, believed one reads as evidenced.
 - **`plan_large`** adds "counting the time of everyone involved" (2026-11-25: cost counts everyone's time).
 - **`plan_reversible`** aligns with the set's definition. The plan is reversible if the team can switch back without losing data or being held to a commitment: by reverting a change, turning off a flag, returning to an old system kept running alongside, or cancelling a rental. It is not reversible if it deletes or migrates data; buys, signs or prepays; publishes or sends something that can't be taken back; or changes something customers already rely on.
 
   As worded now, any rebuilt or replaced system, new vendor or change to people counts as irreversible. That would make rule (b) object to a site rebuilt while the old one keeps running.
 
-**New (proposed; needs the owner's approval).** These two carry the 2026-11-22 rule:
+**New (approved by the owner, 2026-11-25).** These two carry the 2026-11-22 rule:
 - **`facts_against_cause`:** "Does something the user reports show that the cause their plan acts on, stated or only implied by the plan, is not what is happening? Not merely that another cause is also at work."
 - **`plan_ruled_out`:** "Do the user's own facts show that the plan cannot deliver what they need, whatever the real cause turns out to be?"
 
@@ -141,8 +141,11 @@ The runs happen where those are, or they are brought into a cloud environment fi
 
 ## Decisions for the owner
 
-1. **The wording changes.** Approve the three rewordings and the two new questions, or name the ones to drop.
-2. **Reversibility.** Does switching back to an old system kept running alongside count as reversible? This decides `plan_reversible`'s wording.
+**Settled on 2026-11-25:**
+1. **The wording changes.** The three rewordings and the two new questions are approved.
+2. **Reversibility.** Switching back to an old system kept running alongside counts as reversible, as the reworded `plan_reversible` says.
+
+**Still open:**
 3. **The facts-against pairs.** Write them in a separate session, or accept that the 2026-11-22 branch is tuned on very little data. Either way, G44 tests it.
 4. **Spent-pool relabels** that come out of the pre-selection check.
 5. **Scoring G44's fact-against plans.** Should they count as wrong plans for utility, as proposed above?
