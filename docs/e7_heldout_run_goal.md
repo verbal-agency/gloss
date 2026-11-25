@@ -130,15 +130,6 @@ The configuration with the most cells within max(0.07, one case) of the LLM wins
   - no gated cell more than max(0.07, one case) below the LLM's.
 - **Nothing changes after the result.**
 
-## What this session can't run
-
-E7 needs three things this container doesn't have:
-- the TypeSafe SDK and an API key;
-- a key for the LLM classifier arm;
-- `results/`, which git ignores: the frozen G43 and G44 histories, and the spent pool's cached answers.
-
-The runs happen where those are, or they are brought into a cloud environment first.
-
 ## Decisions for the owner
 
 **Settled on 2026-11-25:**
