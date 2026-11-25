@@ -1388,7 +1388,7 @@ Pick E7's thresholds on dev: the spent pool plus the E5c and E5d dev sets.
 
 Every category has at least five single cases. Seven conversations spread cause, evidence and plan across turns.
 
-**Tests.** `tests/test_nuanced_dev.py` checks counts, fields, values, unique ids, new situations, and the word and phrase overlap check against the criteria examples, the G43 cases and every earlier set. All 15 pass. The full suite has 12 failures in this session's container, the same 12 as before this work: the Jev SDK (`typesafe_sdk`) isn't installed, `results/` isn't recorded there, and three API tests hit an `httpx` version mismatch.
+**Tests.** `tests/test_nuanced_dev.py` checks counts, fields, values, unique ids, new situations, and the word and phrase overlap check against the criteria examples, the G43 cases and every earlier set. All 15 pass.
 
 **Left for the owner.**
 1. **Which ladder holds.** The goal's brief says an asserted cause is quiet "if cheap or reversible" and objected "if costly and hard to reverse". E5c says quiet "if cheap and reversible" and objected "if costly". They disagree on costly-but-reversible and cheap-but-irreversible plans. Three cases are labelled `owner` for this reason alone (`carousel-ctr`, `warehouse-mispicks`, `login-failures-reset`).
