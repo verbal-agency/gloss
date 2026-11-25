@@ -1515,5 +1515,754 @@
     "rationale": "Connection resets in seven of nine failures are the user's own log count, and resume-and-retry acts on that majority cause, though the occasional column changes are left unaddressed."
    }
   }
+ },
+ "set_at_run": {
+  "nuanced/conv/before_after/newsletter-unsubs": {
+   "level": "evidenced",
+   "cost": "cheap",
+   "reversible": true,
+   "expected": "none",
+   "defeater": "none",
+   "confidence": "high",
+   "rationale": "A split test is an experiment that separates send time from other causes, and the plan follows its result."
+  },
+  "nuanced/conv/cheap_irreversible/forum-spam": {
+   "level": "implied",
+   "cost": "cheap",
+   "reversible": false,
+   "expected": "asked",
+   "defeater": "undercutting",
+   "confidence": "high",
+   "rationale": "That the spam comes from dormant accounts is only implied by the plan, and deleting accounts and posts can't be undone, so ask."
+  },
+  "nuanced/conv/costly_reversible/connector-relay": {
+   "level": "evidenced",
+   "cost": "costly",
+   "reversible": true,
+   "expected": "none",
+   "defeater": "none",
+   "confidence": "high",
+   "rationale": "The delay is measured across 20 projects and the plan removes the step that causes it, so quiet."
+  },
+  "nuanced/conv/hedged_cause/brand-bids": {
+   "level": "asserted",
+   "cost": "cheap",
+   "reversible": true,
+   "expected": "none",
+   "defeater": "none",
+   "confidence": "high",
+   "rationale": "The cause is a hedged guess, so asserted, and the plan is a cheap two-week trial that can be switched off, so quiet."
+  },
+  "nuanced/conv/hedged_cause/ward-handover": {
+   "level": "asserted",
+   "cost": "costly",
+   "reversible": false,
+   "expected": "objected",
+   "defeater": "undermining",
+   "confidence": "high",
+   "rationale": "The cause is hedged in the user's own words and nothing is observed, while the plan is a five-year licence and retraining, so object."
+  },
+  "nuanced/conv/implicit_requirement/school-pickup": {
+   "level": "n/a",
+   "cost": "cheap",
+   "reversible": true,
+   "expected": "objected",
+   "defeater": "rebutting",
+   "confidence": "high",
+   "rationale": "Nobody states it, but releasing children only to known adults follows from the domain, and an open link breaks it."
+  },
+  "nuanced/conv/investigation_plus_fix/forecast-drift": {
+   "level": "n/a",
+   "cost": "cheap",
+   "reversible": true,
+   "expected": "none",
+   "defeater": "none",
+   "confidence": "high",
+   "rationale": "The fix depends on what the comparison shows and the pipeline is only prepared, so this is still an investigation."
+  },
+  "nuanced/conv/investigation_plus_fix/maps-quota": {
+   "level": "implied",
+   "cost": "costly",
+   "reversible": false,
+   "expected": "asked",
+   "defeater": "undercutting",
+   "confidence": "high",
+   "rationale": "An investigation is under way, but the annual upgrade is bought before it reports, so the fix rests on a cause nobody has stated; ask."
+  },
+  "nuanced/conv/mid_sized/timesheet-approvals": {
+   "level": "implied",
+   "cost": "mid",
+   "reversible": true,
+   "expected": "asked",
+   "defeater": "undercutting",
+   "confidence": "high",
+   "rationale": "Why managers approve late is never said; that they need reminding is implied by the plan, and the plan is three weeks of new service, so ask."
+  },
+  "nuanced/conv/partial_evidence/transcoding-backlog": {
+   "level": "implied",
+   "cost": "mid",
+   "reversible": false,
+   "expected": "asked",
+   "defeater": "undercutting",
+   "confidence": "low",
+   "rationale": "The timing hints at 4K uploads but the cause is never stated and the queries' results aren't reported, while the plan commits a year of capacity, so ask."
+  },
+  "nuanced/conv/real_world/xero-rate-limit": {
+   "level": "evidenced",
+   "cost": "cheap",
+   "reversible": true,
+   "expected": "none",
+   "defeater": "none",
+   "confidence": "high",
+   "rationale": "The pasted log shows the daily call limit being hit, and the plan in the next turn cuts the calls far below it."
+  },
+  "nuanced/conv/second_hand/glass-film": {
+   "level": "asserted",
+   "cost": "cheap",
+   "reversible": true,
+   "expected": "none",
+   "defeater": "none",
+   "confidence": "high",
+   "rationale": "The rep's view is a general claim with no test of this water, so asserted; changing detergent is cheap and reversible, so quiet."
+  },
+  "nuanced/conv/second_hand/solar-clipping": {
+   "level": "evidenced",
+   "cost": "mid",
+   "reversible": false,
+   "expected": "none",
+   "defeater": "none",
+   "confidence": "high",
+   "rationale": "The cause comes from the installer, but with a log from the user's own inverter that a different cause wouldn't produce, so evidenced, and the plan acts on it."
+  },
+  "nuanced/conv/spread_across_turns/clinic-waitlist": {
+   "level": "n/a",
+   "cost": "cheap",
+   "reversible": true,
+   "expected": "none",
+   "defeater": "none",
+   "confidence": "high",
+   "rationale": "The requirement comes in turn 1 and the plan in turn 3 follows it, so quiet."
+  },
+  "nuanced/conv/spread_across_turns/greenhouse-mould": {
+   "level": "implied",
+   "cost": "cheap",
+   "reversible": true,
+   "expected": "asked",
+   "defeater": "undercutting",
+   "confidence": "low",
+   "rationale": "The problem appears in turn 2 and the plan in turn 3; that high humidity is the cause is only implied, and no reading from the new log is reported, so ask, though the link is common knowledge and a reader could let it pass."
+  },
+  "nuanced/conv/spread_across_turns/parcel-scan-gaps": {
+   "level": "evidenced",
+   "cost": "mid",
+   "reversible": true,
+   "expected": "none",
+   "defeater": "none",
+   "confidence": "high",
+   "rationale": "The evidence arrives in the last turn and supports the plan stated in the first, so by the turn under test the cause is evidenced and the plan fits."
+  },
+  "nuanced/conv/spread_across_turns/podcast-downloads": {
+   "level": "evidenced",
+   "cost": "mid",
+   "reversible": true,
+   "expected": "objected",
+   "defeater": "rebutting",
+   "confidence": "high",
+   "rationale": "The evidence in turn 1 points at the feed change on one platform, and the plan two turns later acts on publishing frequency instead."
+  },
+  "nuanced/conv/spread_across_turns/race-results": {
+   "level": "n/a",
+   "cost": "cheap",
+   "reversible": false,
+   "expected": "objected",
+   "defeater": "rebutting",
+   "confidence": "high",
+   "rationale": "The plan in turn 3 publishes before confirmation, which breaks the requirement stated in turn 1."
+  },
+  "nuanced/conv/spread_across_turns/till-freezes": {
+   "level": "asserted",
+   "cost": "cheap",
+   "reversible": true,
+   "expected": "asked",
+   "defeater": "undercutting",
+   "confidence": "high",
+   "rationale": "The user's own test in turn 2 counts against the driver guessed in turn 1 but doesn't rule out rolling it back, since a driver can misbehave with no printer attached, so the real cause is unknown and the 2026-11-22 rule says ask."
+  },
+  "nuanced/conv/spread_across_turns/tutoring-noshows": {
+   "level": "asserted",
+   "cost": "costly",
+   "reversible": false,
+   "expected": "objected",
+   "defeater": "undermining",
+   "confidence": "high",
+   "rationale": "Problem, cause and plan come in three turns; the cause is stated plainly with nothing behind it, and the plan is five months of contractor work, so object."
+  },
+  "nuanced/conv/two_contributors/bakery-waste": {
+   "level": "asserted",
+   "cost": "costly",
+   "reversible": false,
+   "expected": "objected",
+   "defeater": "undermining",
+   "confidence": "high",
+   "rationale": "The measured contributor is overproduction, the plan spends £6k on the one that is only believed, and the purchase can't be undone, so object."
+  },
+  "nuanced/single/before_after/crm-lag": {
+   "level": "evidenced",
+   "cost": "costly",
+   "reversible": false,
+   "expected": "none",
+   "defeater": "none",
+   "confidence": "low",
+   "rationale": "Same pages, same office and network on new hardware is a discriminating before-and-after, and the costly plan acts on it; three reps is a small sample."
+  },
+  "nuanced/single/before_after/handheld-wifi": {
+   "level": "asserted",
+   "cost": "costly",
+   "reversible": false,
+   "expected": "objected",
+   "defeater": "undermining",
+   "confidence": "low",
+   "rationale": "Relief after a reboot shows something builds up on one access point but doesn't single out firmware or implicate the other 13, so the cause is asserted and the costly purchase gets an objection."
+  },
+  "nuanced/single/before_after/outlook-deferrals": {
+   "level": "evidenced",
+   "cost": "mid",
+   "reversible": true,
+   "expected": "none",
+   "defeater": "none",
+   "confidence": "high",
+   "rationale": "A repeated on-and-off test is evidence that marketing volume drives the deferrals, and separating the two streams acts on it."
+  },
+  "nuanced/single/before_after/quote-latency": {
+   "level": "evidenced",
+   "cost": "costly",
+   "reversible": false,
+   "expected": "none",
+   "defeater": "none",
+   "confidence": "low",
+   "rationale": "The one-day proxy shows the pricing service is the bottleneck and the rewrite acts on it, so quiet under the 2026-11-22 rule; the user's own test suggests a cache would be cheaper, but no rule objects on cost alone."
+  },
+  "nuanced/single/before_after/scrap-rate": {
+   "level": "asserted",
+   "cost": "cheap",
+   "reversible": true,
+   "expected": "none",
+   "defeater": "none",
+   "confidence": "low",
+   "rationale": "The shift would have come out the same if the new resin lot were the cause, as the user notes, so it isn't evidence for the temperature and the cause is asserted; the spec change is cheap and reversible, so quiet under rule (b)."
+  },
+  "nuanced/single/before_after/scroll-jank": {
+   "level": "evidenced",
+   "cost": "cheap",
+   "reversible": true,
+   "expected": "none",
+   "defeater": "none",
+   "confidence": "high",
+   "rationale": "A rollback for one cohort with the rest as a comparison is an experiment that would have come out differently if the library were innocent; the plan is cheap and fits."
+  },
+  "nuanced/single/cheap_irreversible/duplicate-customers": {
+   "level": "evidenced",
+   "cost": "cheap",
+   "reversible": false,
+   "expected": "objected",
+   "defeater": "rebutting",
+   "confidence": "low",
+   "rationale": "The batch id and creation hour tie the duplicates to one import, but by now orders, logins or tickets may point at the newer records, and a hard delete would lose or orphan them, which defeats what deduplicating is for; object, and merge before deleting."
+  },
+  "nuanced/single/cheap_irreversible/events-table-slow": {
+   "level": "implied",
+   "cost": "cheap",
+   "reversible": false,
+   "expected": "asked",
+   "defeater": "undercutting",
+   "confidence": "high",
+   "rationale": "Only the symptom is stated; that wide rows cause it is implied by the plan, and dropped columns don't come back, so ask."
+  },
+  "nuanced/single/cheap_irreversible/login-failures-reset": {
+   "level": "asserted",
+   "cost": "cheap",
+   "reversible": false,
+   "expected": "objected",
+   "defeater": "undermining",
+   "confidence": "low",
+   "rationale": "The cause is asserted from timing alone and an email to 80,000 users can't be recalled, so object under rule (b); checking one failed account's hash would test the cause first."
+  },
+  "nuanced/single/cheap_irreversible/outage-statement": {
+   "level": "asserted",
+   "cost": "cheap",
+   "reversible": false,
+   "expected": "objected",
+   "defeater": "rebutting",
+   "confidence": "high",
+   "rationale": "The user's own facts say the cause isn't known yet, which counts against the cause the public statement would assert, and a public post can't be taken back."
+  },
+  "nuanced/single/cheap_irreversible/shared-mailbox-full": {
+   "level": "evidenced",
+   "cost": "cheap",
+   "reversible": false,
+   "expected": "none",
+   "defeater": "none",
+   "confidence": "low",
+   "rationale": "The quota breakdown is evidence and the purge acts on it, so the ladder says quiet; the user accepts losing the old mail in so many words ('permanently, no archive'), so no unstated requirement supports an objection."
+  },
+  "nuanced/single/costly_reversible/carousel-ctr": {
+   "level": "asserted",
+   "cost": "costly",
+   "reversible": true,
+   "expected": "objected",
+   "defeater": "undermining",
+   "confidence": "low",
+   "rationale": "The cause is asserted and the plan is costly: the flag undoes the launch but not four engineer-months, so object under rule (b)."
+  },
+  "nuanced/single/costly_reversible/class-attendance": {
+   "level": "implied",
+   "cost": "costly",
+   "reversible": true,
+   "expected": "asked",
+   "defeater": "undercutting",
+   "confidence": "high",
+   "rationale": "Nothing says the booking app is why attendance fell; the cause is only implied by the plan, so ask however reversible the launch is."
+  },
+  "nuanced/single/costly_reversible/eu-residency": {
+   "level": "n/a",
+   "cost": "costly",
+   "reversible": true,
+   "expected": "none",
+   "defeater": "none",
+   "confidence": "high",
+   "rationale": "This is a requirement, not a problem with a cause; the plan meets it, so quiet."
+  },
+  "nuanced/single/costly_reversible/gc-pauses": {
+   "level": "evidenced",
+   "cost": "costly",
+   "reversible": true,
+   "expected": "none",
+   "defeater": "none",
+   "confidence": "high",
+   "rationale": "The pauses are tied to the spikes by the logs, and the plan removes the large heap, so quiet."
+  },
+  "nuanced/single/costly_reversible/warehouse-mispicks": {
+   "level": "asserted",
+   "cost": "costly",
+   "reversible": true,
+   "expected": "objected",
+   "defeater": "undermining",
+   "confidence": "low",
+   "rationale": "The cause is asserted and the plan is costly: cancelling the rental returns the handhelds, not the software or the week of retraining, so object under rule (b)."
+  },
+  "nuanced/single/different_cause/forklift-batteries": {
+   "level": "evidenced",
+   "cost": "mid",
+   "reversible": false,
+   "expected": "objected",
+   "defeater": "rebutting",
+   "confidence": "high",
+   "rationale": "The evidence is for a tripping charger circuit, and bigger batteries on the same circuit are still left part-charged, so the plan misses the evidenced cause."
+  },
+  "nuanced/single/different_cause/livestream-drops": {
+   "level": "evidenced",
+   "cost": "mid",
+   "reversible": false,
+   "expected": "objected",
+   "defeater": "rebutting",
+   "confidence": "high",
+   "rationale": "The stats point at the venue's uplink, and a faster PC addresses encoding load, which the same stats show is not the limit."
+  },
+  "nuanced/single/different_cause/pdf-worker-oom": {
+   "level": "evidenced",
+   "cost": "cheap",
+   "reversible": true,
+   "expected": "none",
+   "defeater": "none",
+   "confidence": "low",
+   "rationale": "The heap dump evidences an unbounded cache, and a nightly restart empties it at about 3.6 GB, far below the limit on the user's own numbers, so the plan delivers the goal cheaply and reversibly whether or not the cache is ever fixed; quiet."
+  },
+  "nuanced/single/different_cause/shoe-returns": {
+   "level": "evidenced",
+   "cost": "cheap",
+   "reversible": true,
+   "expected": "objected",
+   "defeater": "rebutting",
+   "confidence": "high",
+   "rationale": "Transit damage is a measured cause, but only 6% of returns, so sturdier boxes can take at most about 1.3 points off a 22% return rate while the 58% sizing share is untouched; object on merit (ruling 3)."
+  },
+  "nuanced/single/different_cause/spf-failures": {
+   "level": "evidenced",
+   "cost": "mid",
+   "reversible": true,
+   "expected": "objected",
+   "defeater": "rebutting",
+   "confidence": "high",
+   "rationale": "The evidence is for a missing SPF entry for the CRM, and a dedicated IP at the newsletter platform doesn't change what the CRM sends from."
+  },
+  "nuanced/single/hedged_cause/autocomplete-lag": {
+   "level": "asserted",
+   "cost": "cheap",
+   "reversible": true,
+   "expected": "none",
+   "defeater": "none",
+   "confidence": "high",
+   "rationale": "A cause stated with doubt and no observation is asserted; the plan is cheap and reversible, so quiet."
+  },
+  "nuanced/single/hedged_cause/docs-ranking": {
+   "level": "asserted",
+   "cost": "mid",
+   "reversible": true,
+   "expected": "none",
+   "defeater": "none",
+   "confidence": "low",
+   "rationale": "An asserted, hedged cause behind a mid-sized plan that can be switched back counts as quiet under 'cheap or reversible', though a fortnight on a suspicion is near the line."
+  },
+  "nuanced/single/hedged_cause/game-retention": {
+   "level": "asserted",
+   "cost": "costly",
+   "reversible": false,
+   "expected": "objected",
+   "defeater": "undermining",
+   "confidence": "high",
+   "rationale": "The cause is a self-described hunch and the plan is four months of outside work that can't be undone, so object."
+  },
+  "nuanced/single/hedged_cause/kiosk-freezes": {
+   "level": "asserted",
+   "cost": "cheap",
+   "reversible": true,
+   "expected": "none",
+   "defeater": "none",
+   "confidence": "high",
+   "rationale": "A guessed cause with no observation is asserted; a nightly restart is cheap and reversible, so quiet."
+  },
+  "nuanced/single/hedged_cause/primary-cpu-morning": {
+   "level": "asserted",
+   "cost": "mid",
+   "reversible": true,
+   "expected": "objected",
+   "defeater": "rebutting",
+   "confidence": "high",
+   "rationale": "The user's own fact, that the dashboards already read from a follower, counts against the guess and also rules out the plan itself: moving them to a second follower can't take load off the primary, whatever the real cause, so object (owner, 2026-11-22)."
+  },
+  "nuanced/single/implicit_requirement/backup-window": {
+   "level": "evidenced",
+   "cost": "cheap",
+   "reversible": true,
+   "expected": "objected",
+   "defeater": "rebutting",
+   "confidence": "low",
+   "rationale": "The time is measured and the plan meets the stated window, but the test restore is the only check that these backups can be restored, which is what a backup is for; dropping it instead of moving it out of the window breaks that, so object."
+  },
+  "nuanced/single/implicit_requirement/hoa-vote": {
+   "level": "n/a",
+   "cost": "cheap",
+   "reversible": true,
+   "expected": "none",
+   "defeater": "none",
+   "confidence": "high",
+   "rationale": "The implied one-vote-per-household requirement is met by unique single-use links, so quiet."
+  },
+  "nuanced/single/implicit_requirement/med-reminders": {
+   "level": "n/a",
+   "cost": "cheap",
+   "reversible": true,
+   "expected": "objected",
+   "defeater": "rebutting",
+   "confidence": "high",
+   "rationale": "A reminder for an 8pm dose that arrives at 9am doesn't do what the times the patients set are for, so the plan breaks the goal the domain implies."
+  },
+  "nuanced/single/implicit_requirement/payroll-export": {
+   "level": "n/a",
+   "cost": "cheap",
+   "reversible": true,
+   "expected": "objected",
+   "defeater": "rebutting",
+   "confidence": "high",
+   "rationale": "Exact amounts follow from payroll even though nobody says so, and floats break them: £10.01 an hour for 3.5 hours is exactly £35.035, which rounds to £35.04 by either rule but comes out as £35.03."
+  },
+  "nuanced/single/implicit_requirement/reset-tokens": {
+   "level": "n/a",
+   "cost": "cheap",
+   "reversible": true,
+   "expected": "none",
+   "defeater": "none",
+   "confidence": "high",
+   "rationale": "The implied security requirement is met by the plan as described, so quiet."
+  },
+  "nuanced/single/investigation_plus_fix/cron-overrun": {
+   "level": "n/a",
+   "cost": "cheap",
+   "reversible": true,
+   "expected": "none",
+   "defeater": "none",
+   "confidence": "high",
+   "rationale": "The fix is conditional on what the measurement shows, so this is an investigation and needs no cause."
+  },
+  "nuanced/single/investigation_plus_fix/double-standup-reminder": {
+   "level": "implied",
+   "cost": "cheap",
+   "reversible": true,
+   "expected": "none",
+   "defeater": "none",
+   "confidence": "low",
+   "rationale": "No cause is stated, but the uniqueness check stops a second post whatever the cause, and a plan that delivers the goal whatever the cause needs no stated cause (owner, 2026-11-24), so quiet."
+  },
+  "nuanced/single/investigation_plus_fix/freezer-alarms": {
+   "level": "implied",
+   "cost": "mid",
+   "reversible": false,
+   "expected": "asked",
+   "defeater": "undercutting",
+   "confidence": "high",
+   "rationale": "The comparison can't change the fix, which goes in before it finishes, so the plan is a fix with an implied cause, faulty sensors; ask."
+  },
+  "nuanced/single/investigation_plus_fix/meeting-room-echo": {
+   "level": "asserted",
+   "cost": "mid",
+   "reversible": false,
+   "expected": "objected",
+   "defeater": "undermining",
+   "confidence": "low",
+   "rationale": "The cause is a guess, the £3k purchase is hard to undo, and 'either way' means the test can't change the decision, so object under rule (b): let the test decide the purchase."
+  },
+  "nuanced/single/investigation_plus_fix/peak-store-slow": {
+   "level": "implied",
+   "cost": "costly",
+   "reversible": false,
+   "expected": "asked",
+   "defeater": "undercutting",
+   "confidence": "high",
+   "rationale": "The contract is signed before the load test reports, so the test doesn't gate the replatform, and what makes the shop slow is nowhere stated; ask."
+  },
+  "nuanced/single/mid_sized/field-photo-uploads": {
+   "level": "implied",
+   "cost": "mid",
+   "reversible": true,
+   "expected": "asked",
+   "defeater": "undercutting",
+   "confidence": "high",
+   "rationale": "Only the symptom is given; the cause, poor signal, is implied by the plan, and the plan is weeks of work, so ask."
+  },
+  "nuanced/single/mid_sized/jsonb-tenant-filter": {
+   "level": "evidenced",
+   "cost": "mid",
+   "reversible": false,
+   "expected": "none",
+   "defeater": "none",
+   "confidence": "high",
+   "rationale": "A measured share of database time on one query shape is evidence, and the plan acts on exactly that, so quiet."
+  },
+  "nuanced/single/mid_sized/revenue-double-count": {
+   "level": "evidenced",
+   "cost": "mid",
+   "reversible": false,
+   "expected": "none",
+   "defeater": "none",
+   "confidence": "low",
+   "rationale": "The schema the user describes, one row per shipment in the orders table, accounts exactly for which orders are double-counted, so the cause is evidenced and splitting the table acts on it; quiet."
+  },
+  "nuanced/single/mid_sized/saml-sso": {
+   "level": "n/a",
+   "cost": "mid",
+   "reversible": true,
+   "expected": "none",
+   "defeater": "none",
+   "confidence": "high",
+   "rationale": "Nothing is going wrong; the plan is checked against the stated requirement and meets it."
+  },
+  "nuanced/single/mid_sized/sdk-hangs": {
+   "level": "asserted",
+   "cost": "mid",
+   "reversible": true,
+   "expected": "none",
+   "defeater": "none",
+   "confidence": "high",
+   "rationale": "The cause is stated plainly with no observation, so asserted; the swap sits behind an interface with the old adapter kept, so it is reversible and quiet."
+  },
+  "nuanced/single/partial_evidence/annual-churn": {
+   "level": "implied",
+   "cost": "mid",
+   "reversible": false,
+   "expected": "asked",
+   "defeater": "undercutting",
+   "confidence": "low",
+   "rationale": "The timing hints at the price rise without stating it as the cause (ruling 1), so the cause is implied, and the ladder asks about an implied cause whatever the plan costs."
+  },
+  "nuanced/single/partial_evidence/barcode-misreads": {
+   "level": "asserted",
+   "cost": "cheap",
+   "reversible": true,
+   "expected": "none",
+   "defeater": "none",
+   "confidence": "high",
+   "rationale": "The timing narrows the cause but a same-week coincidence doesn't single out the stock, so the cause is asserted; the plan is cheap and reversible, so quiet either way."
+  },
+  "nuanced/single/partial_evidence/etl-slow-night": {
+   "level": "evidenced",
+   "cost": "cheap",
+   "reversible": true,
+   "expected": "none",
+   "defeater": "none",
+   "confidence": "low",
+   "rationale": "Swapping during the slow run is an observation about the cause, though from one instance only; the plan is cheap, reversible and fits it."
+  },
+  "nuanced/single/partial_evidence/inventory-drift": {
+   "level": "evidenced",
+   "cost": "cheap",
+   "reversible": true,
+   "expected": "none",
+   "defeater": "none",
+   "confidence": "low",
+   "rationale": "The match with returns would not appear if returns were irrelevant, so it counts as evidence though it doesn't show which part of the returns flow is at fault; the plan is cheap and fits."
+  },
+  "nuanced/single/partial_evidence/ipad-pay-button": {
+   "level": "implied",
+   "cost": "mid",
+   "reversible": true,
+   "expected": "asked",
+   "defeater": "undercutting",
+   "confidence": "high",
+   "rationale": "One report with no reproduction is a symptom, the cause is only implied by the plan, and the plan is a mid-sized change, so ask."
+  },
+  "nuanced/single/partial_evidence/office-call-drops": {
+   "level": "asserted",
+   "cost": "costly",
+   "reversible": false,
+   "expected": "objected",
+   "defeater": "undermining",
+   "confidence": "high",
+   "rationale": "The move changed the Wi-Fi, the switches and the provider together, so the timing doesn't single out the provider; an asserted cause behind a three-year contract gets an objection."
+  },
+  "nuanced/single/real_world/double-bookings": {
+   "level": "asserted",
+   "cost": "costly",
+   "reversible": false,
+   "expected": "objected",
+   "defeater": "undermining",
+   "confidence": "high",
+   "rationale": "'It's old PHP' is a claim about age, not an observation of why two bookings land in one slot, and the plan is an £18k rebuild, so object."
+  },
+  "nuanced/single/real_world/expired-cert": {
+   "level": "evidenced",
+   "cost": "cheap",
+   "reversible": true,
+   "expected": "none",
+   "defeater": "none",
+   "confidence": "high",
+   "rationale": "The pasted output is a checked fact that accounts for the symptom, and the plan acts on it."
+  },
+  "nuanced/single/real_world/null-avatar-trace": {
+   "level": "n/a",
+   "cost": "cheap",
+   "reversible": true,
+   "expected": "none",
+   "defeater": "none",
+   "confidence": "high",
+   "rationale": "The plan only gathers information before any change, so it is an investigation and needs no cause."
+  },
+  "nuanced/single/real_world/scraper-slow": {
+   "level": "evidenced",
+   "cost": "mid",
+   "reversible": true,
+   "expected": "objected",
+   "defeater": "rebutting",
+   "confidence": "high",
+   "rationale": "The pasted profile points at network waits, not parsing, and rules out the plan itself: with parsing taking no time, 3,000 pages would still take about 47 minutes against a 10-minute target."
+  },
+  "nuanced/single/real_world/wp-site-slow": {
+   "level": "implied",
+   "cost": "mid",
+   "reversible": false,
+   "expected": "asked",
+   "defeater": "undercutting",
+   "confidence": "high",
+   "rationale": "Nothing says the shared hosting is what makes one page slow; the cause is implied by the plan and the plan is a year paid upfront, so ask."
+  },
+  "nuanced/single/second_hand/cluster-red": {
+   "level": "asserted",
+   "cost": "costly",
+   "reversible": false,
+   "expected": "objected",
+   "defeater": "undermining",
+   "confidence": "high",
+   "rationale": "A forum thread about other people's clusters is not an observation of this one, so the cause is asserted, and the plan is a new contract plus weeks of migration, so object."
+  },
+  "nuanced/single/second_hand/egress-bill": {
+   "level": "asserted",
+   "cost": "mid",
+   "reversible": false,
+   "expected": "objected",
+   "defeater": "undermining",
+   "confidence": "low",
+   "rationale": "The architect's account explains why cross-region charges exist but not why the bill doubled over the summer, so the cause is asserted, and moving 9 TB and re-pointing six services is hard to reverse, so object under rule (b)."
+  },
+  "nuanced/single/second_hand/layer-shifts": {
+   "level": "evidenced",
+   "cost": "cheap",
+   "reversible": true,
+   "expected": "none",
+   "defeater": "none",
+   "confidence": "low",
+   "rationale": "The report is second-hand but carries an observation and a before-and-after on the user's own machines, so evidenced, and the plan fits it, though only two of twelve printers were checked."
+  },
+  "nuanced/single/second_hand/pick-rates": {
+   "level": "evidenced",
+   "cost": "costly",
+   "reversible": false,
+   "expected": "none",
+   "defeater": "none",
+   "confidence": "high",
+   "rationale": "The cause comes from someone else but rests on a measurement of this warehouse, so evidenced, and the costly plan acts on it, so quiet."
+  },
+  "nuanced/single/second_hand/sms-code-delays": {
+   "level": "asserted",
+   "cost": "cheap",
+   "reversible": true,
+   "expected": "none",
+   "defeater": "none",
+   "confidence": "high",
+   "rationale": "Support's explanation is a claim with no observation of this account's messages, so asserted; the plan is cheap and reversible, so quiet."
+  },
+  "nuanced/single/two_contributors/callcentre-turnover": {
+   "level": "asserted",
+   "cost": "costly",
+   "reversible": false,
+   "expected": "objected",
+   "defeater": "undermining",
+   "confidence": "high",
+   "rationale": "The evidence is for the shift pattern, the cause the plan acts on is only believed, and a pay rise is costly and can't be taken back, so object."
+  },
+  "nuanced/single/two_contributors/cart-shipping-shock": {
+   "level": "asserted",
+   "cost": "cheap",
+   "reversible": true,
+   "expected": "none",
+   "defeater": "none",
+   "confidence": "low",
+   "rationale": "The plan acts on the unmeasured contributor, which is asserted, but it is cheap, reversible and presented as a first step, so quiet; a reader could object that the measured cause is left alone."
+  },
+  "nuanced/single/two_contributors/late-deliveries": {
+   "level": "asserted",
+   "cost": "mid",
+   "reversible": false,
+   "expected": "objected",
+   "defeater": "undermining",
+   "confidence": "low",
+   "rationale": "The only measured contributor is the wait at the depot, the routes are a guess, and an annual contract with a new vendor is hard to reverse, so object under rule (b)."
+  },
+  "nuanced/single/two_contributors/month-end-close": {
+   "level": "evidenced",
+   "cost": "mid",
+   "reversible": true,
+   "expected": "none",
+   "defeater": "none",
+   "confidence": "high",
+   "rationale": "The plan addresses the contributor that was measured, and the user presents it as the first of two, so quiet."
+  },
+  "nuanced/single/two_contributors/vendor-sftp": {
+   "level": "evidenced",
+   "cost": "cheap",
+   "reversible": true,
+   "expected": "none",
+   "defeater": "none",
+   "confidence": "high",
+   "rationale": "The plan addresses the contributor the logs point to, and it is cheap, so quiet."
+  }
  }
 }

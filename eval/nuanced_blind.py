@@ -234,7 +234,7 @@ def collect(answer_dir: Path, reruns: list[str] | None = None) -> dict:
                 passes[p][back[r["id"]]] = _check(r)
     return {"labeller": "a model other than the set's authors, its reviewer and the author of the Jev questions",
             **fingerprints(), "reruns": list(reruns or []),
-            "passes": {p: dict(sorted(passes[p].items())) for p in PASSES}}
+            "passes": {p: dict(sorted(passes[p].items())) for p in PASSES}, "set_at_run": snapshot()}
 
 
 def load_labels() -> dict:
@@ -247,6 +247,19 @@ def set_labels() -> dict[str, dict]:
     return {c["id"]: {"level": c["level"], "cost": c["cost"], "reversible": c["reversible"],
                       "expected": c["expected"], "defeater": c["frame"]["defeater"], "confidence": c["confidence"]}
             for c in nd.cases()}
+
+
+def snapshot() -> dict[str, dict]:
+    """The set's labels and rationales as they stand. Stored with the blind labels when they are collected, so the
+    result stays tied to the labels it was measured against."""
+    labels = set_labels()
+    return {c["id"]: {**labels[c["id"]], "rationale": c["rationale"]}
+            for c in sorted(nd.cases(), key=lambda c: c["id"])}
+
+
+def run_set(labels: dict) -> dict[str, dict]:
+    """The set's labels as they were at the run."""
+    return labels["set_at_run"]
 
 
 def kappa(pairs: list[tuple]) -> float:
@@ -275,8 +288,8 @@ def reading(k: float) -> str:
 
 
 def disagreements(labels: dict) -> list[dict]:
-    """Cases where pass A or pass B differs from the set on `expected`; stable ones first."""
-    gold, a, b = set_labels(), labels["passes"]["A"], labels["passes"]["B"]
+    """Cases where pass A or pass B differs on `expected` from the set as it was at the run; stable ones first."""
+    gold, a, b = run_set(labels), labels["passes"]["A"], labels["passes"]["B"]
     out = []
     for c in nd.cases():
         i = c["id"]
@@ -309,7 +322,7 @@ def _labels_line(who: str, lab: dict) -> str:
 
 def render_markdown() -> str:
     labels = load_labels()
-    gold, a, b = set_labels(), labels["passes"]["A"], labels["passes"]["B"]
+    gold, a, b = run_set(labels), labels["passes"]["A"], labels["passes"]["B"]
     k_exp = agreement(gold, a, "expected")[1]
     lines = [
         "# E8b: blind second labelling of the E8 set", "",
@@ -318,6 +331,8 @@ def render_markdown() -> str:
         f"The labeller was {labels['labeller']}. It saw only the guide in `eval/nuanced_blind.py` and the case "
         "texts, under neutral ids and in a shuffled order. Pass A is primary and pass B is a replicate. The goal and "
         "its reading rule are in [e8b_blind_labelling_goal.md](e8b_blind_labelling_goal.md).", "",
+        "Everything below compares the passes with the set as it was at the run. Labels changed since are listed at "
+        "the end.", "",
         f"Reruns: {', '.join(labels['reruns']) if labels['reruns'] else 'none'}.", "",
         "## Agreement", "",
         "| Field | Set vs A | κ | Set vs B | κ | A vs B | κ |", "|---|---|---|---|---|---|---|"]
@@ -352,9 +367,22 @@ def render_markdown() -> str:
             for n, turn in enumerate(c["user_turns"], 1):
                 judged = " (under test)" if n == len(c["user_turns"]) else ""
                 lines += [f"**User, turn {n}{judged}:**", ""] + _quote(turn) + [""]
-        lines += [_labels_line("Set", gold[i]), f"  - {c['rationale']}",
+        lines += [_labels_line("Set at the run", gold[i]), f"  - {gold[i]['rationale']}",
                   _labels_line("Pass A", a[i]), f"  - {a[i]['rationale']}",
                   _labels_line("Pass B", b[i]), f"  - {b[i]['rationale']}", ""]
+    now = set_labels()
+    changed = [i for i in sorted(gold) if any(now[i][f] != gold[i][f] for f in COMPARED)]
+    lines += ["## Since the run", ""]
+    if not changed:
+        lines += ["No label has changed since the run.", ""]
+    else:
+        lines += ["These labels have changed since the run:", ""]
+        for i in changed:
+            diffs = ", ".join(f"`{f}` {gold[i][f]} → {now[i][f]}" for f in COMPARED if now[i][f] != gold[i][f])
+            lines.append(f"- {i}: {diffs}")
+        (ra, ka), (rb, kb) = agreement(now, a, "expected"), agreement(now, b, "expected")
+        lines += ["", f"Against the set as it stands now, agreement on `expected` is {_fmt(ra)} (κ {_fmt(ka)}) for "
+                  f"pass A and {_fmt(rb)} (κ {_fmt(kb)}) for pass B.", ""]
     return "\n".join(lines).rstrip("\n") + "\n"
 
 

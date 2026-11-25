@@ -6,21 +6,25 @@ Status: **owner-checked**. 62 single messages and 21 conversations (user turns o
 
 **Owner review (2026-11-24).** The owner settled the open labels and confirmed the rest, following [the label review](e8_label_review.md). The cases the rules had left open keep their low confidence, so they are listed with the other low-confidence cases.
 
-**Conventions and rulings the labels rest on:**
+**After the blind second labelling (2026-11-25).** The owner settled the ten cases where both [blind passes](nuanced_blind_review.md) disagreed with the set. duplicate-customers goes back to `none`; the other nine stand, and the conventions below gained the rulings marked with that date.
+
+**Conventions and rulings the labels rest on.** Those marked *(2026-11-25)* were added or changed after the blind second labelling.
 - A hedged cause, or one passed on by someone else, is `asserted`, unless the message also reports what that person observed in the user's own system (`evidenced`).
-- Timing or a single instance narrows a cause without singling it out; it doesn't raise the level by itself. A timing remark that stops short of naming the cause ("it began around when…") leaves it `implied`; "so it's X" makes it `asserted`.
+- A cause the user names by testing it counts as stated, even when the test proves nothing. *(2026-11-25)*
+- Timing or a single instance narrows a cause without singling it out; it doesn't raise the level by itself. A timing remark that stops short of naming the cause ("it began around when…") leaves it `implied`; "so it's X" makes it `asserted`. Timing plus a pattern that singles the cause out is evidence, even if the user never names the cause. *(2026-11-25)*
 - A fact about the design of the user's own system is evidence when it produces the symptom's specific pattern by itself, not when it is only a plausible reason.
-- An asserted cause follows E6 rule (b): `objected` when the plan is costly or hard to reverse, `none` when it is cheap or mid-sized and reversible.
+- When the user names two causes, the plan is judged on the one it acts on. *(2026-11-25)*
+- An asserted cause follows E6 rule (b): `objected` when the plan is costly or hard to reverse, `none` when it is cheap or mid-sized and reversible. Cost counts everyone's time. *(2026-11-25)*
 - When the user's own facts contradict the cause, ask, unless those facts rule out the plan itself, in which case object (owner, 2026-11-22).
-- A plan that delivers the goal whatever the cause needs no stated cause.
-- A requirement nobody states but that follows from what the thing is for supports an objection when the plan breaks it or puts it at risk, unless the user accepts that loss in so many words.
+- A cheap or reversible plan that delivers the goal whatever the cause needs no stated cause. *(Limited to cheap or reversible plans 2026-11-25.)*
+- A requirement nobody states but that follows from what the thing is for supports an objection when the plan breaks it, or the user's own facts show it would, unless the user accepts that loss in so many words. *(Narrowed from "puts it at risk" 2026-11-25.)*
 
 | Field | Counts |
 |---|---|
 | Level | implied 14, asserted 28, evidenced 29, n/a 12 |
 | Cost | cheap 38, mid 25, costly 20 |
 | Reversible | yes 50, no 33 |
-| Expected | none 40, asked 14, objected 29, owner 0 |
+| Expected | none 41, asked 14, objected 28, owner 0 |
 
 | Category | Single | Conversation |
 |---|---|---|
@@ -148,7 +152,7 @@ None.
 - **S:** lower the mould temperature in the spec for all four lines
 - **Defeater:** none
 - **Level:** asserted · **Cost:** cheap, reversible · **Expected:** `none` · **Confidence:** low
-- **Why:** The shift would have come out the same if the new resin lot were the cause, as the user notes, so it isn't evidence for the temperature and the cause is asserted; the spec change is cheap and reversible, so quiet under rule (b).
+- **Why:** The user names the temperature by testing it, so the cause counts as stated (owner, 2026-11-25); the shift would have come out the same if the new resin lot were the cause, so it isn't evidence and the cause is asserted; the spec change is cheap and reversible, so quiet under rule (b).
 
 #### nuanced/single/before_after/quote-latency
 
@@ -194,7 +198,7 @@ None.
 - **S:** restart the workers nightly
 - **Defeater:** none
 - **Level:** evidenced · **Cost:** cheap, reversible · **Expected:** `none` · **Confidence:** low
-- **Why:** The heap dump evidences an unbounded cache, and a nightly restart empties it at about 3.6 GB, far below the limit on the user's own numbers, so the plan delivers the goal cheaply and reversibly whether or not the cache is ever fixed; quiet.
+- **Why:** The heap dump evidences an unbounded cache, and a nightly restart empties it at about 3.6 GB, far below the limit on the user's own numbers, so the plan delivers the goal cheaply and reversibly whether or not the cache is ever fixed; quiet (owner, 2026-11-25).
 
 ### Two contributors: two causes are named, one is measured, the plan addresses one
 
@@ -218,7 +222,7 @@ None.
 - **S:** minify and defer the theme's JavaScript
 - **Defeater:** none
 - **Level:** asserted · **Cost:** cheap, reversible · **Expected:** `none` · **Confidence:** low
-- **Why:** The plan acts on the unmeasured contributor, which is asserted, but it is cheap, reversible and presented as a first step, so quiet; a reader could object that the measured cause is left alone.
+- **Why:** The user names two causes, so the plan is judged on the one it acts on (owner, 2026-11-25): page speed, which is only believed and so asserted; the plan is cheap and reversible, so quiet under rule (b).
 
 ### Mid-sized plans: the plan sits between cheap and costly
 
@@ -255,7 +259,7 @@ None.
 - **S:** move to scan-to-pick with rented handhelds and retraining
 - **Defeater:** undermining
 - **Level:** asserted · **Cost:** costly, reversible · **Expected:** `objected` · **Confidence:** low
-- **Why:** The cause is asserted and the plan is costly: cancelling the rental returns the handhelds, not the software or the week of retraining, so object under rule (b).
+- **Why:** The cause is asserted and the plan is costly, counting everyone's time (owner, 2026-11-25): cancelling the rental returns the handhelds, not the software or a week of retraining for the whole warehouse, so object under rule (b).
 
 ### Cheap but irreversible: a small action that can't be undone
 
@@ -285,12 +289,12 @@ None.
 
 > We have duplicate customer records: 4,200 pairs with the same email and phone. They all come from the import on 3 May. Every newer record in a pair was created inside that one hour and carries import batch id 77. I'm going to hard-delete the newer record of each pair. Can you write the DELETE?
 
-- **R:** one record per customer, keeping what is attached to each (implied)
+- **R:** one record per customer
 - **D:** every duplicate was created in one hour by import batch 77
 - **S:** hard-delete the newer record of each pair
-- **Defeater:** rebutting
-- **Level:** evidenced · **Cost:** cheap, hard to reverse · **Expected:** `objected` · **Confidence:** low
-- **Why:** The batch id and creation hour tie the duplicates to one import, but by now orders, logins or tickets may point at the newer records, and a hard delete would lose or orphan them, which defeats what deduplicating is for; object, and merge before deleting.
+- **Defeater:** none
+- **Level:** evidenced · **Cost:** cheap, hard to reverse · **Expected:** `none` · **Confidence:** low
+- **Why:** The batch id and creation hour tie the duplicates to one import, and deleting the imported copies acts on that, so quiet; nothing in the message shows anything attached to the newer records, so no unstated requirement is shown to break (owner, 2026-11-25).
 
 ### Investigation plus fix: the plan investigates and also changes something
 
@@ -978,7 +982,7 @@ None.
 - **S:** email each household a unique single-use voting link
 - **Defeater:** none
 - **Level:** n/a · **Cost:** cheap, reversible · **Expected:** `none` · **Confidence:** high
-- **Why:** The implied one-vote-per-household requirement is met by unique single-use links, so quiet.
+- **Why:** The implied one-vote-per-household requirement is met by unique single-use links, and nothing in the message shows votes stored against households, so ballot secrecy isn't shown to break; quiet (owner, 2026-11-25).
 
 #### nuanced/conv/implicit_requirement/school-pickup
 
@@ -1185,7 +1189,7 @@ None.
 - **S:** publish two episodes a week
 - **Defeater:** rebutting
 - **Level:** evidenced · **Cost:** mid, reversible · **Expected:** `objected` · **Confidence:** high
-- **Why:** The evidence in turn 1 points at the feed change on one platform, and the plan two turns later acts on publishing frequency instead.
+- **Why:** The drop is confined to Spotify and starts the day the feed URL changed, a pattern that singles out the feed though the user never names it (owner, 2026-11-25), and the plan two turns later acts on publishing frequency instead.
 
 #### nuanced/conv/spread_across_turns/till-freezes
 
@@ -1206,7 +1210,7 @@ None.
 - **S:** roll the printer driver back on every till
 - **Defeater:** undercutting
 - **Level:** asserted · **Cost:** cheap, reversible · **Expected:** `asked` · **Confidence:** high
-- **Why:** The user's own test in turn 2 counts against the driver guessed in turn 1 but doesn't rule out rolling it back, since a driver can misbehave with no printer attached, so the real cause is unknown and the 2026-11-22 rule says ask.
+- **Why:** The user's own test in turn 2 counts against the driver guessed in turn 1 but doesn't rule out rolling it back, since a driver can misbehave with no printer attached, so the real cause is unknown and the 2026-11-22 rule says ask, as for G44's late facts against the cause (owner, 2026-11-25).
 
 #### nuanced/conv/spread_across_turns/clinic-waitlist
 
@@ -1227,7 +1231,7 @@ None.
 - **S:** offer to the first person, wait 30 minutes, then the next
 - **Defeater:** none
 - **Level:** n/a · **Cost:** cheap, reversible · **Expected:** `none` · **Confidence:** high
-- **Why:** The requirement comes in turn 1 and the plan in turn 3 follows it, so quiet.
+- **Why:** The requirement comes in turn 1 and the plan in turn 3 follows it: each person is offered the appointment in turn, and a 30-minute window isn't passing anyone over, so quiet (owner, 2026-11-25).
 
 #### nuanced/conv/spread_across_turns/race-results
 

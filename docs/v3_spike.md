@@ -1570,3 +1570,26 @@ Every kind clears the four-survivor floor, so all eight are scored in E7. With G
 - Two passes measure the labeller's own consistency, not its accuracy.
 
 Next: the owner looks at the stable disagreements, then E7.
+
+**The owner's review of the disputes (2026-11-25).** The owner settled the ten stable disagreements before any Jev run on the set.
+- **One relabel.** duplicate-customers goes back to `none`, its author's label. The review's objection rested on records being attached to the duplicates, which the message never says, and both blind passes had `none`.
+- **Nine labels stand.** Each rationale now names the ruling that settles it:
+  - cart-shipping-shock: `none`;
+  - podcast-downloads: `objected`;
+  - pdf-worker-oom: `none`;
+  - till-freezes: `asked`, as for G44's late facts against the cause;
+  - hoa-vote and clinic-waitlist: `none`;
+  - warehouse-mispicks: `objected`;
+  - scrap-rate: `none`;
+  - freezer-alarms: `asked`.
+- **Clarifications to the conventions:**
+  - when the user names two causes, the plan is judged on the one it acts on;
+  - timing plus a pattern that singles a cause out is evidence, even if the user never names the cause;
+  - an unstated requirement supports an objection only when the plan breaks it, or the user's own facts show it would (it was "breaks it or puts it at risk");
+  - cost counts everyone's time;
+  - a cause the user names by testing it counts as stated;
+  - a plan that works whatever the cause needs no stated cause only if it is cheap or reversible.
+- **The E8b result stands as run.** The labels file now keeps the set as it was at the run, and the results page measures against that copy; the relabel is listed at the end of the page. Against the set as it stands now, κ on `expected` is 0.73 for pass A and 0.79 for pass B.
+- **Counts now:** none 41, asked 14, objected 28. Level counts are unchanged.
+
+Next: E7.

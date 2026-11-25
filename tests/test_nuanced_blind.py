@@ -65,6 +65,18 @@ def test_labels_were_made_from_this_guide_and_these_prompts():
         "the prompts changed after the labelling run (a case text, the order or the guide)"
 
 
+def test_the_result_is_tied_to_the_set_as_it_was_at_the_run():
+    """Relabelling the set later must not change the recorded E8b result."""
+    at_run = nb.run_set(nb.load_labels())
+    assert set(at_run) == {c["id"] for c in nd.cases()}
+    for i, row in at_run.items():
+        for k, allowed in nb.VALUES.items():
+            assert row[k] in allowed, (i, k)
+        assert row["rationale"].strip(), i
+    # the primary figure fixed before the run: kappa on `expected`, set at the run against pass A
+    assert round(nb.agreement(at_run, nb.load_labels()["passes"]["A"], "expected")[1], 2) == 0.71
+
+
 def test_kappa():
     assert nb.kappa([("a", "a"), ("b", "b")]) == 1.0
     assert nb.kappa([("a", "b"), ("b", "a")]) == -1.0
