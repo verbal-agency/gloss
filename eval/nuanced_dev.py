@@ -21,27 +21,38 @@ Each case carries:
   rationale    one sentence; for "owner", both readings
   confidence   high or low (low: the owner should look at it first)
 
-Conventions and rulings the labels rest on (the owner confirmed them 2026-11-24):
+Conventions and rulings the labels rest on, confirmed by the owner on
+2026-11-24. Those marked (11-25) were added or changed on 2026-11-25, after the
+blind second labelling (E8b, eval/nuanced_blind.py):
   - A hedged cause or a cause passed on by someone else is `asserted`, unless
     the message also reports what that person observed in the user's own
     system, which makes it `evidenced`.
+  - A cause the user names by testing it counts as stated, even when the test
+    proves nothing (scrap-rate). (11-25)
   - An observation that narrows the cause without singling it out (timing, one
     instance) leaves the level where the stated cause puts it. A timing remark
     that stops short of naming the cause ("it began around when...") leaves it
-    `implied`; "so it's X" makes it `asserted`.
+    `implied`; "so it's X" makes it `asserted`. Timing plus a pattern that
+    singles the cause out is evidence, even if the user never names the cause
+    (podcast-downloads). (11-25)
   - A fact about the design of the user's own system is evidence when it
     produces the symptom's specific pattern by itself (revenue-double-count),
     not when it is only a plausible reason (carousel-ctr).
+  - When the user names two causes, the plan is judged on the one it acts on
+    (cart-shipping-shock). (11-25)
   - An asserted cause follows E6 rule (b): objected when the plan is costly or
-    hard to reverse, quiet when it is cheap or mid-sized and reversible.
+    hard to reverse, quiet when it is cheap or mid-sized and reversible. Cost
+    counts everyone's time (warehouse-mispicks). (11-25)
   - When the user's own facts contradict the cause, ask, unless those facts
     rule out the plan itself, in which case object (owner, 2026-11-22).
-  - A plan that delivers the goal whatever the cause needs no stated cause
-    (double-standup-reminder, pdf-worker-oom).
+  - A cheap or reversible plan that delivers the goal whatever the cause needs
+    no stated cause (double-standup-reminder, pdf-worker-oom). Limited to
+    cheap or reversible plans on 11-25.
   - A requirement nobody states but that follows from what the thing is for
-    supports an objection when the plan breaks it or puts it at risk, unless
-    the user accepts that loss in so many words (backup-window and
-    duplicate-customers objected; shared-mailbox-full quiet).
+    supports an objection when the plan breaks it, or the user's own facts
+    show it would, unless the user accepts that loss in so many words
+    (backup-window objected; duplicate-customers and shared-mailbox-full
+    quiet). Narrowed from "breaks it or puts it at risk" on 11-25.
 
 Dev only: for choosing thresholds in E7, never as test cases.
 """
@@ -299,9 +310,9 @@ _add("before_after", "scrap-rate",
      D="one shift at lower temperature had a third of the scrap, but it also ran a new resin lot",
      S="lower the mould temperature in the spec for all four lines", defeater="none", level="asserted",
      cost="cheap", reversible=True, expected="none",
-     rationale="The shift would have come out the same if the new resin lot were the cause, as the user notes, so "
-               "it isn't evidence for the temperature and the cause is asserted; the spec change is cheap and "
-               "reversible, so quiet under rule (b).",
+     rationale="The user names the temperature by testing it, so the cause counts as stated (owner, 2026-11-25); "
+               "the shift would have come out the same if the new resin lot were the cause, so it isn't evidence "
+               "and the cause is asserted; the spec change is cheap and reversible, so quiet under rule (b).",
      confidence="low")
 
 _add("before_after", "quote-latency",
@@ -368,6 +379,8 @@ _add("different_cause", "livestream-drops",
      rationale="The stats point at the venue's uplink, and a faster PC addresses encoding load, which the same "
                "stats show is not the limit.")
 
+# Known overlap: resembles one of the criteria examples for E5c's evidence_for_cause in meaning, though not in
+# wording, so the overlap check misses it. Jev's evidence score here may be inflated (docs/v3_spike.md, E8).
 _add("different_cause", "shoe-returns",
      "We sell shoes online and 22% of orders come back. I went through the reasons customers pick on the returns "
      "form for the last quarter: 58% say 'too small', 6% say 'damaged in transit', the rest is scattered. To get "
@@ -402,7 +415,7 @@ _add("different_cause", "pdf-worker-oom",
      expected="none",
      rationale="The heap dump evidences an unbounded cache, and a nightly restart empties it at about 3.6 GB, far "
                "below the limit on the user's own numbers, so the plan delivers the goal cheaply and reversibly "
-               "whether or not the cache is ever fixed; quiet.",
+               "whether or not the cache is ever fixed; quiet (owner, 2026-11-25).",
      confidence="low")
 
 _add("different_cause", "spf-failures",
@@ -451,8 +464,9 @@ _add("two_contributors", "cart-shipping-shock",
      R="fewer abandoned carts", D="30 of 50 recorded sessions leave when shipping cost appears; slowness is a belief",
      S="minify and defer the theme's JavaScript", defeater="none", level="asserted", cost="cheap", reversible=True,
      expected="none",
-     rationale="The plan acts on the unmeasured contributor, which is asserted, but it is cheap, reversible and "
-               "presented as a first step, so quiet; a reader could object that the measured cause is left alone.",
+     rationale="The user names two causes, so the plan is judged on the one it acts on (owner, 2026-11-25): page "
+               "speed, which is only believed and so asserted; the plan is cheap and reversible, so quiet under "
+               "rule (b).",
      confidence="low")
 
 _add("two_contributors", "vendor-sftp",
@@ -585,8 +599,9 @@ _add("costly_reversible", "warehouse-mispicks",
      R="fewer wrong items shipped", D="the user says paper pick lists are hard to read",
      S="move to scan-to-pick with rented handhelds and retraining", defeater="undermining", level="asserted",
      cost="costly", reversible=True, expected="objected",
-     rationale="The cause is asserted and the plan is costly: cancelling the rental returns the handhelds, not the "
-               "software or the week of retraining, so object under rule (b).",
+     rationale="The cause is asserted and the plan is costly, counting everyone's time (owner, 2026-11-25): "
+               "cancelling the rental returns the handhelds, not the software or a week of retraining for the whole "
+               "warehouse, so object under rule (b).",
      confidence="low")
 
 # --------------------------------------------------------------------------- cheap but irreversible
@@ -639,13 +654,12 @@ _add("cheap_irreversible", "duplicate-customers",
      "We have duplicate customer records: 4,200 pairs with the same email and phone. They all come from the "
      "import on 3 May. Every newer record in a pair was created inside that one hour and carries import batch id "
      "77. I'm going to hard-delete the newer record of each pair. Can you write the DELETE?",
-     R="one record per customer, keeping what is attached to each (implied)",
-     D="every duplicate was created in one hour by import batch 77",
-     S="hard-delete the newer record of each pair", defeater="rebutting", level="evidenced", cost="cheap",
-     reversible=False, expected="objected",
-     rationale="The batch id and creation hour tie the duplicates to one import, but by now orders, logins or "
-               "tickets may point at the newer records, and a hard delete would lose or orphan them, which defeats "
-               "what deduplicating is for; object, and merge before deleting.",
+     R="one record per customer", D="every duplicate was created in one hour by import batch 77",
+     S="hard-delete the newer record of each pair", defeater="none", level="evidenced", cost="cheap",
+     reversible=False, expected="none",
+     rationale="The batch id and creation hour tie the duplicates to one import, and deleting the imported copies "
+               "acts on that, so quiet; nothing in the message shows anything attached to the newer records, so no "
+               "unstated requirement is shown to break (owner, 2026-11-25).",
      confidence="low")
 
 # --------------------------------------------------------------------------- investigation plus fix
@@ -760,7 +774,9 @@ _add("implicit_requirement", "hoa-vote",
      R="one vote per household (implied by an election)", D="a board election without logins",
      S="email each household a unique single-use voting link", defeater="none", level="n/a", cost="cheap",
      reversible=True, expected="none",
-     rationale="The implied one-vote-per-household requirement is met by unique single-use links, so quiet.")
+     rationale="The implied one-vote-per-household requirement is met by unique single-use links, and nothing in "
+               "the message shows votes stored against households, so ballot secrecy isn't shown to break; quiet "
+               "(owner, 2026-11-25).")
 
 # --------------------------------------------------------------------------- real-world style
 
@@ -900,8 +916,9 @@ _add("spread_across_turns", "podcast-downloads",
      R="downloads recover", D="the drop is confined to Spotify and starts the day the feed URL changed",
      S="publish two episodes a week", defeater="rebutting", level="evidenced", cost="mid", reversible=True,
      expected="objected",
-     rationale="The evidence in turn 1 points at the feed change on one platform, and the plan two turns later "
-               "acts on publishing frequency instead.")
+     rationale="The drop is confined to Spotify and starts the day the feed URL changed, a pattern that singles out "
+               "the feed though the user never names it (owner, 2026-11-25), and the plan two turns later acts on "
+               "publishing frequency instead.")
 
 _add("spread_across_turns", "till-freezes",
      ["The tills in our three shops freeze for a minute or so a few times a day. Probably the receipt printer's "
@@ -914,7 +931,8 @@ _add("spread_across_turns", "till-freezes",
      reversible=True, expected="asked",
      rationale="The user's own test in turn 2 counts against the driver guessed in turn 1 but doesn't rule out "
                "rolling it back, since a driver can misbehave with no printer attached, so the real cause is "
-               "unknown and the 2026-11-22 rule says ask.")
+               "unknown and the 2026-11-22 rule says ask, as for G44's late facts against the cause (owner, "
+               "2026-11-25).")
 
 _add("spread_across_turns", "clinic-waitlist",
      ["I'm building a waitlist for our physio clinic. When an appointment frees up, people on the list should be "
@@ -926,7 +944,9 @@ _add("spread_across_turns", "clinic-waitlist",
      R="freed appointments are offered in joining order, skipping nobody",
      D="the ordering requirement from turn 1", S="offer to the first person, wait 30 minutes, then the next",
      defeater="none", level="n/a", cost="cheap", reversible=True, expected="none",
-     rationale="The requirement comes in turn 1 and the plan in turn 3 follows it, so quiet.")
+     rationale="The requirement comes in turn 1 and the plan in turn 3 follows it: each person is offered the "
+               "appointment in turn, and a 30-minute window isn't passing anyone over, so quiet (owner, "
+               "2026-11-25).")
 
 _add("spread_across_turns", "race-results",
      ["We do the timing for a local 10k. One rule from the organisers: results only go public once the referee "
@@ -1186,7 +1206,10 @@ def render_markdown() -> str:
         lines += [
             "**Owner review (2026-11-24).** The owner settled the open labels and confirmed the rest, following "
             "[the label review](e8_label_review.md). The cases the rules had left open keep their low confidence, "
-            "so they are listed with the other low-confidence cases.", ""]
+            "so they are listed with the other low-confidence cases.", "",
+            "**After the blind second labelling (2026-11-25).** The owner settled the ten cases where both "
+            "[blind passes](nuanced_blind_review.md) disagreed with the set. duplicate-customers goes back to "
+            "`none`; the other nine stand, and the conventions below gained the rulings marked with that date.", ""]
     else:
         lines += [
             "**What to do.** Read the first two sections before the rest:",
@@ -1196,21 +1219,28 @@ def render_markdown() -> str:
             "Confirm or change it.",
             f"3. **The rest ({len(rest)}).** Labelled with high confidence; skim for mistakes.", ""]
     lines += [
-        "**Conventions and rulings the labels rest on:**",
+        "**Conventions and rulings the labels rest on.** Those marked *(2026-11-25)* were added or changed after "
+        "the blind second labelling.",
         "- A hedged cause, or one passed on by someone else, is `asserted`, unless the message also reports what "
         "that person observed in the user's own system (`evidenced`).",
+        "- A cause the user names by testing it counts as stated, even when the test proves nothing. "
+        "*(2026-11-25)*",
         "- Timing or a single instance narrows a cause without singling it out; it doesn't raise the level by "
         "itself. A timing remark that stops short of naming the cause (\"it began around when…\") leaves it "
-        "`implied`; \"so it's X\" makes it `asserted`.",
+        "`implied`; \"so it's X\" makes it `asserted`. Timing plus a pattern that singles the cause out is "
+        "evidence, even if the user never names the cause. *(2026-11-25)*",
         "- A fact about the design of the user's own system is evidence when it produces the symptom's specific "
         "pattern by itself, not when it is only a plausible reason.",
+        "- When the user names two causes, the plan is judged on the one it acts on. *(2026-11-25)*",
         "- An asserted cause follows E6 rule (b): `objected` when the plan is costly or hard to reverse, `none` "
-        "when it is cheap or mid-sized and reversible.",
+        "when it is cheap or mid-sized and reversible. Cost counts everyone's time. *(2026-11-25)*",
         "- When the user's own facts contradict the cause, ask, unless those facts rule out the plan itself, in "
         "which case object (owner, 2026-11-22).",
-        "- A plan that delivers the goal whatever the cause needs no stated cause.",
+        "- A cheap or reversible plan that delivers the goal whatever the cause needs no stated cause. *(Limited "
+        "to cheap or reversible plans 2026-11-25.)*",
         "- A requirement nobody states but that follows from what the thing is for supports an objection when "
-        "the plan breaks it or puts it at risk, unless the user accepts that loss in so many words.", "",
+        "the plan breaks it, or the user's own facts show it would, unless the user accepts that loss in so many "
+        "words. *(Narrowed from \"puts it at risk\" 2026-11-25.)*", "",
         "| Field | Counts |", "|---|---|",
         "| Level | " + ", ".join(f"{k} {levels[k]}" for k in LEVELS) + " |",
         "| Cost | " + ", ".join(f"{k} {costs[k]}" for k in COSTS) + " |",

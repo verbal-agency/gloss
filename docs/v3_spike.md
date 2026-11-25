@@ -1425,6 +1425,12 @@ Every category has at least five single cases. Seven conversations spread cause,
 - **Tests.** A test now enforces rule (b) for asserted causes. Another checks that an owner-checked set has no open labels.
 - **Provenance.** The authoring session was switched to a different model partway through, and the commit's co-author line names that model. The blind second labelling should use a model other than both of them, and other than the one that wrote the Jev questions.
 
+**Known overlap (found 2026-11-24, after the review).** shoe-returns resembles one of the criteria examples for E5c's `evidence_for_cause` in meaning, though not in wording, so the word-and-phrase check doesn't catch it.
+- **The case stays.** Its labels are right either way.
+- **In E7,** Jev's evidence score on this case may be high partly because it mirrors the example. Read its dev result with that in mind.
+- **How it was found.** The reviewing session read part of the E5c criteria while answering a question about Jev. It changed no case text after that.
+- **A replacement,** if wanted, should come from someone who hasn't read the criteria examples.
+
 Next: the blind second labelling, then E7.
 
 # E9: the late-flaw held-out set, G44 (spec fixed 2026-11-21; set owner-checked 2026-11-22)
@@ -1502,3 +1508,88 @@ No result existed for any relabelled case: no arm has been run on G43 or G44. Th
 | `late_problem_absent` | 10 of 10 | asked |
 
 Every kind clears the four-survivor floor, so all eight are scored in E7. With G43's survivors, conversations now give 14 objections (all G44), 23 questions (18 G44, 5 G43) and 65 quiet (32 G44, 33 G43). The set is frozen from here: no case is changed, dropped or relabelled.
+
+# E8b: a blind second labelling of the E8 set (spec fixed 2026-11-24, before the run)
+
+**Why.** E7 will pick Jev's thresholds on the E8 set. Its labels had one author, one review that read them before judging, and the owner's rulings. E8b checks whether an independent reader, given only the written standard, reaches the same labels. The goal is in [e8b_blind_labelling_goal.md](e8b_blind_labelling_goal.md).
+
+**How.**
+- **The labeller** is a model other than the set's authors, its reviewer and the author of the Jev questions. It saw only a guide restating the written standard (`eval/nuanced_blind.py`) and the case texts, under neutral ids, in a shuffled order.
+- **Two passes,** A (primary) and B (a replicate), each split into three batches. Each agent could read its prompt and write its answer, nothing else, and every transcript was checked.
+- **The reading rule,** fixed before the run, uses kappa on `expected`, set against pass A:
+  - 0.6 or more: reliable enough for E7's dev, and the owner looks at the stable disagreements;
+  - 0.4 to 0.6: the owner reviews every disagreement first;
+  - below 0.4: E7 doesn't use the set until the labels are reconciled.
+
+## E8b result (run 2026-11-24): reliable enough for E7's dev
+
+| Field | Set vs A | κ | Set vs B | κ | A vs B | κ |
+|---|---|---|---|---|---|---|
+| `expected` | 0.82 | **0.71** | 0.86 | 0.77 | 0.92 | 0.86 |
+| `level` | 0.93 | 0.90 | 0.92 | 0.88 | 0.99 | 0.98 |
+| `cost` | 0.84 | 0.75 | 0.88 | 0.81 | 0.89 | 0.82 |
+| `reversible` | 0.95 | 0.90 | 0.93 | 0.85 | 0.98 | 0.95 |
+| `defeater` | 0.80 | 0.70 | 0.83 | 0.76 | 0.92 | 0.88 |
+
+- **The reading.** Kappa on `expected` is 0.71, so the labels are reliable enough for E7's dev. The owner looks at the 10 stable disagreements, listed with their texts in [nuanced_blind_review.md](nuanced_blind_review.md).
+- **One rerun.** A1's first run made a third tool call: a messaging call, made after its answer was written and denied by the permission check. Under the rule, the batch was discarded and rerun. All six final runs made only the two allowed calls.
+- **The labeller agrees with itself.** Pass A against pass B: κ 0.86 on `expected` and 0.98 on `level`.
+- **Agreement follows the set's confidence.** On `expected`, the labeller agrees on 0.86 of the high-confidence cases and 0.71 of the low-confidence ones.
+- **Agreement is lowest where the 2026-11-24 review set the label:**
+
+  | Labels | Pass A | Pass B |
+  |---|---|---|
+  | The 13 the review set or changed | 54% | 62% |
+  | The other 70 | 87% | 90% |
+
+  Eleven of the thirteen were cases the author had left open, so part of the gap is how hard those cases are. In the two where the review changed the author's label, till-freezes and duplicate-customers, both passes side with the author.
+
+**The ten stable disagreements, by what they turn on:**
+- **Where the written rules are open:**
+  - **cart-shipping-shock** (set `none`, labeller `objected`): one contributor is evidenced and the cheap plan acts on the other, merely asserted one. The goal flagged before the run that the rules don't say which row applies.
+  - **podcast-downloads** (set `objected`, labeller `asked`): a pattern points at a cause the user never names. The labeller read the cause as implied, so ruling 2 gives a question.
+  - **pdf-worker-oom** (set `none`, labeller `objected`): does a plan that keeps a known cause in check count as working whatever the cause, or as acting on something else?
+  - **till-freezes** (set `asked`, labeller `objected`): does unplugging the printers rule out the plan itself, the exception in the 2026-11-22 rule? The author also had `objected`.
+- **The unstated-requirement bar.** "Puts it at risk" led the labeller to object to:
+  - **hoa-vote**: forwardable links, and ballot secrecy;
+  - **clinic-waitlist**: "nobody passed over", read strictly.
+
+  It did not object to duplicate-customers, where the review had. So the bar may be too wide, or hard to apply evenly.
+- **Cost and level:**
+  - **warehouse-mispicks** (set `objected`, labeller `none`): it judged the trial cheap to mid, so rule (b) is quiet.
+  - **scrap-rate** (set `none`, labeller `asked`): it read the confounded cause as implied, not asserted.
+  - **freezer-alarms** (set `asked`, labeller `objected`): it labelled the faulty sensors an asserted cause behind a purchase, though its own rationale calls that cause implied.
+
+**The seven unstable disagreements** (one pass only) include rule 3 applied to costly plans in pass A (maps-quota, meeting-room-echo). The rule that a plan working whatever the cause needs no cause doesn't weigh cost.
+
+**No label changes here.** The owner decides. Any relabel is recorded with its date, before any Jev run on the set.
+
+**Limits.**
+- The labeller is a smaller model than the set's authors and reviewer.
+- The guide was written by the reviewing session.
+- Two passes measure the labeller's own consistency, not its accuracy.
+
+Next: the owner looks at the stable disagreements, then E7.
+
+**The owner's review of the disputes (2026-11-25).** The owner settled the ten stable disagreements before any Jev run on the set.
+- **One relabel.** duplicate-customers goes back to `none`, its author's label. The review's objection rested on records being attached to the duplicates, which the message never says, and both blind passes had `none`.
+- **Nine labels stand.** Each rationale now names the ruling that settles it:
+  - cart-shipping-shock: `none`;
+  - podcast-downloads: `objected`;
+  - pdf-worker-oom: `none`;
+  - till-freezes: `asked`, as for G44's late facts against the cause;
+  - hoa-vote and clinic-waitlist: `none`;
+  - warehouse-mispicks: `objected`;
+  - scrap-rate: `none`;
+  - freezer-alarms: `asked`.
+- **Clarifications to the conventions:**
+  - when the user names two causes, the plan is judged on the one it acts on;
+  - timing plus a pattern that singles a cause out is evidence, even if the user never names the cause;
+  - an unstated requirement supports an objection only when the plan breaks it, or the user's own facts show it would (it was "breaks it or puts it at risk");
+  - cost counts everyone's time;
+  - a cause the user names by testing it counts as stated;
+  - a plan that works whatever the cause needs no stated cause only if it is cheap or reversible.
+- **The E8b result stands as run.** The labels file now keeps the set as it was at the run, and the results page measures against that copy; the relabel is listed at the end of the page. Against the set as it stands now, κ on `expected` is 0.73 for pass A and 0.79 for pass B.
+- **Counts now:** none 41, asked 14, objected 28. Level counts are unchanged.
+
+Next: E7.
