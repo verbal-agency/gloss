@@ -11,6 +11,11 @@ the project's context and in its own words.
 When you send a prompt, it tells the server only that the session has moved on (no text), so the
 card for the turn before is put away while the next one runs. That send doesn't wait for an answer.
 
+It also notes where the repo stood, and when the turn ends sends what the turn changed: each file, its
+lines added and removed, and the functions, classes or sections the changes sit in, from git. Names and
+counts only, never the code. Git only reads the repo: the snapshots it compares are written through a
+copy of the index into a folder in the temp folder, so the repo's index, objects and refs stay as they were.
+
 A send that fails is tried once more when there's time. One that still fails, and a run cut off before
 it finished, are noted in a small file in the temp folder and reported with the next send that goes
 out, a prompt's note included, so the server can list the turn as one that never arrived.
@@ -29,6 +34,7 @@ import glob
 import hashlib
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -244,6 +250,295 @@ def the_project(payload, url):
     return project, (stamp, digest)
 
 
+# --- What the turn changed in the code ----------------------------------------------------------------
+# When the prompt comes, the working tree is written as a git tree; when the turn ends, again; git compares
+# the two and names the function or class each change sits in. Both trees go through a copy of the index
+# into a folder of the hook's own, objects included, so the repo's index, objects and refs are only read.
+# Changes made before the prompt aren't counted, and neither is how they were made: an edit, a script, a
+# formatter. What's sent is names and counts: paths under the repo's top, function, class and section
+# names, and lines added and removed. Never the code.
+GIT_SECONDS = 3  # each git command; a repo too big to snapshot in this sends no code changes
+PROMPT_GIT_SECONDS = 2.5  # all of it when a prompt comes, which waits for the hook
+STOP_GIT_SECONDS = 4  # all of it when the turn ends, leaving time to send
+MAX_CHANGED = 60  # files listed
+MAX_NAMES = 12  # names per file, of each kind
+SNAPSHOT_DAYS = 2  # a snapshot left from a session that ended is cleared after this
+NO_FILTERS = ("-c", "filter.lfs.clean=", "-c", "filter.lfs.smudge=", "-c", "filter.lfs.process=", "-c", "filter.lfs.required=false")
+# Git's own function-context rules, picked by file name. JavaScript and TypeScript have none built in, so
+# they get one here; lines that open a block with a keyword aren't functions.
+DRIVERS = {"py": "python", "pyi": "python", "go": "golang", "rs": "rust", "java": "java", "kt": "kotlin", "kts": "kotlin",
+           "cs": "csharp", "c": "cpp", "h": "cpp", "cc": "cpp", "cpp": "cpp", "cxx": "cpp", "hpp": "cpp", "m": "objc",
+           "mm": "objc", "rb": "ruby", "php": "php", "pl": "perl", "pm": "perl", "sh": "bash", "bash": "bash", "ex": "elixir",
+           "exs": "elixir", "css": "css", "scss": "css", "html": "html", "md": "markdown", "markdown": "markdown",
+           "js": "nightorder-js", "jsx": "nightorder-js", "mjs": "nightorder-js", "cjs": "nightorder-js",
+           "ts": "nightorder-js", "tsx": "nightorder-js", "mts": "nightorder-js", "cts": "nightorder-js"}
+_ID = "[A-Za-z_$][A-Za-z0-9_$]*"
+JS_FUNCNAME = "\n".join([
+    "!^[[:blank:]]*(if|else|for|while|do|switch|catch|try|return|with|new|await|typeof)([[:blank:](]|$)",
+    "^[[:blank:]]*(((export|default|async|abstract)[[:blank:]]+)*(function[[:blank:]*]*" + _ID + "|class[[:blank:]]+" + _ID + ")"
+    "|(export[[:blank:]]+)?(const|let|var)[[:blank:]]+" + _ID + "[[:blank:]]*=[[:blank:]]*(async[[:blank:]]*)?(function|\\(|" + _ID + "[[:blank:]]*=>)"
+    "|((public|private|protected|static|async|get|set|readonly|override)[[:blank:]]+)*" + _ID + "[[:blank:]]*\\([^)]*\\)[[:blank:]]*(:[^{]*)?\\{).*$",
+])
+# A definition, read from a hunk's heading or from a line the turn added or removed: (pattern, kind).
+DEFINITIONS = [
+    (r"^\s*(?:async\s+)?def\s+(?:self\.)?([A-Za-z_]\w*[?!=]?)", "function"),  # Python, Ruby
+    (r"^\s*(?:(?:export|default|abstract|final|sealed|data|public|private|protected|internal|static|open)\s+)*"
+     r"(?:class|struct|enum|trait|interface|module|protocol|object|record)\s+([A-Za-z_$][\w$]*)", "class"),
+    (r"^\s*(?:(?:export|default|async|public|private|protected|static|final|abstract)\s+)*function\s*\*?\s*([A-Za-z_$][\w$]*)", "function"),
+    (r"^func\s+(?:\([^)]*\)\s*)?([A-Za-z_]\w*)", "function"),  # Go
+    (r"^\s*(?:pub(?:\([^)]*\))?\s+)?(?:const\s+)?(?:async\s+)?(?:unsafe\s+)?fn\s+([A-Za-z_]\w*)", "function"),  # Rust
+    (r"^\s*(?:(?:public|private|protected|internal|override|open|suspend|inline|operator)\s+)*fun\s+(?:<[^>]*>\s*)?(?:[\w.]+\.)?([A-Za-z_]\w*)", "function"),
+    (r"^\s*(?:export\s+)?(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*(?:async\s*)?(?:function\b|\([^)]*\)\s*(?::[^=]*)?=>|[A-Za-z_$][\w$]*\s*=>)", "function"),
+    (r"^\s*(?:(?:public|private|protected|static|async|get|set|readonly|override)\s+)*([A-Za-z_$][\w$]*)\s*(?:<[^>]*>)?\s*\([^)]*\)\s*(?::[^{=;]*)?\{\s*$", "function"),
+    (r"^\s*(?:(?:public|private|protected|internal|static|final|abstract|override|virtual|synchronized|async|unsafe|extern|inline|constexpr)\s+)+"
+     r"[\w<>\[\],.?*& ]+?\s+[*&]*([A-Za-z_]\w*)\s*\(", "function"),  # Java, C#, C++ with a modifier
+    (r"^\s*(?:function\s+)?([A-Za-z_][\w-]*)\s*\(\)\s*\{?\s*$", "function"),  # shell
+]
+C_LIKE = {"cpp", "csharp", "java", "objc", "kotlin", "php", "golang", "rust"}
+KEYWORDS = frozenset("if elif else for foreach while do switch case catch except try return with new await typeof sizeof match when".split())
+HUNK = r"^@@ -\d+(?:,(\d+))? \+\d+(?:,(\d+))? @@ ?(.*)$"
+
+
+_until = [None]  # when the git work under way must be done by
+
+
+def git(root, *args, env=None):
+    """A git command's output, or None if it failed or took too long. It never prompts, and takes no lock it can skip."""
+    limit = GIT_SECONDS if _until[0] is None else min(GIT_SECONDS, _until[0] - time.monotonic())
+    if limit <= 0:
+        return None
+    try:
+        done = subprocess.run(["git", "--no-optional-locks", "-C", root, *args], capture_output=True, encoding="utf-8",
+                              errors="replace", timeout=limit, env=env, stdin=subprocess.DEVNULL)
+    except (OSError, ValueError, subprocess.SubprocessError):
+        return None
+    return done.stdout if done.returncode == 0 else None
+
+
+def repo_paths(root):
+    """The repo's object folder and index file, absolute (a worktree has its own index and shares the objects)."""
+    out = git(root, "rev-parse", "--path-format=absolute", "--git-path", "objects", "--git-path", "index")
+    if out is None:
+        out = git(root, "rev-parse", "--git-path", "objects", "--git-path", "index")
+    lines = (out or "").splitlines()
+    if len(lines) != 2:
+        return None
+    return tuple(os.path.join(root, p) for p in lines)
+
+
+def snapshot_env(root, store):
+    paths = repo_paths(root)
+    if not paths:
+        return None
+    os.makedirs(os.path.join(store, "objects"), exist_ok=True)
+    return dict(os.environ, GIT_INDEX_FILE=os.path.join(store, "index"), GIT_OBJECT_DIRECTORY=os.path.join(store, "objects"),
+                GIT_ALTERNATE_OBJECT_DIRECTORIES=paths[0], GIT_TERMINAL_PROMPT="0"), paths[1]
+
+
+def snapshot(root, store):
+    """The working tree as a git tree: tracked files as they are now, and untracked ones git doesn't ignore,
+    written through a copy of the index into `store`. None if it can't be done in time."""
+    found = snapshot_env(root, store)
+    if not found:
+        return None
+    env, index = found
+    if os.path.isfile(index):
+        shutil.copyfile(index, env["GIT_INDEX_FILE"])  # its file stamps spare git re-reading unchanged files
+    elif os.path.exists(env["GIT_INDEX_FILE"]):
+        os.remove(env["GIT_INDEX_FILE"])
+    if git(root, *NO_FILTERS, "add", "-A", env=env) is None:
+        return None
+    tree = (git(root, "write-tree", env=env) or "").strip()
+    return tree or None
+
+
+def snapshot_store(session):
+    return os.path.join(tempfile.gettempdir(), "night-order-snapshots", hashlib.sha256(str(session).encode()).hexdigest()[:16])
+
+
+def start_snapshot(payload):
+    """When a prompt comes: where the repo stood, to compare the turn's end with. None outside a git repo."""
+    _until[0] = time.monotonic() + PROMPT_GIT_SECONDS
+    root = (git(payload.get("cwd") or os.getcwd(), "rev-parse", "--show-toplevel") or "").strip()
+    if not root:
+        return None
+    store = snapshot_store(payload.get("session_id"))
+    shutil.rmtree(store, ignore_errors=True)  # the session's last snapshot: its turn is over
+    tree = snapshot(root, store)
+    if not tree:
+        shutil.rmtree(store, ignore_errors=True)
+        return None
+    return {"root": root, "tree": tree, "store": store, "at": time.time()}
+
+
+def keep_snapshot(state, session, start):
+    """Note the session's snapshot, and clear those of sessions that have gone quiet."""
+    snapshots = state.get("snapshots") if isinstance(state.get("snapshots"), dict) else {}
+    for key, old in list(snapshots.items()):
+        if not isinstance(old, dict) or time.time() - float(old.get("at") or 0) > SNAPSHOT_DAYS * 86400:
+            if isinstance(old, dict) and old.get("store"):
+                shutil.rmtree(old["store"], ignore_errors=True)
+            del snapshots[key]
+    if start:
+        snapshots[str(session)] = start
+    else:
+        old = snapshots.pop(str(session), None)
+        if isinstance(old, dict) and old.get("store"):
+            shutil.rmtree(old["store"], ignore_errors=True)
+    state["snapshots"] = snapshots
+
+
+def _name(line, driver, heading=False):
+    """(name as shown, kind) for a line that defines something, or None."""
+    text = line.strip()
+    if driver == "markdown":
+        found = re.match(r"^#{1,6}\s+(.+?)\s*#*$", text)
+        return (found.group(1)[:80], "section") if found else None
+    for pattern, kind in DEFINITIONS:
+        found = re.match(pattern, line)
+        if found and found.group(1) not in KEYWORDS:
+            return (found.group(1) + ("()" if kind == "function" else ""), kind)
+    if heading and driver in C_LIKE:  # a function's heading in C and its kin: the name just before the first bracket
+        found = re.search(r"([A-Za-z_~]\w*)\s*\(", line)
+        if found and found.group(1) not in KEYWORDS:
+            return (found.group(1) + "()", "function")
+    return None
+
+
+def _add(names, name):
+    if name and name not in names:
+        names.append(name)
+
+
+def _path(text, prefix):
+    text = text.strip()
+    if text.startswith('"') and text.endswith('"'):
+        text = text[1:-1]
+    return text[len(prefix):] if text.startswith(prefix) else text
+
+
+def parse_diff(text):
+    """[{path, status, added, removed, changed, new, gone, kind}] from `git diff -U0` between two trees."""
+    files, current, hunk, left = [], None, None, [0, 0]
+
+    def close_hunk():
+        if current is None or hunk is None:
+            return
+        driver = DRIVERS.get(current["path"].rsplit(".", 1)[-1].lower()) if current.get("path") else None
+        heading = _name(hunk["heading"], driver, heading=True) if hunk["heading"] and driver else None
+        added = [_name(line, driver) for line in hunk["plus"]] if driver else []
+        removed = [_name(line, driver) for line in hunk["minus"]] if driver else []
+        added_names = [n[0] for n in added if n]
+        removed_names = [n[0] for n in removed if n]
+        for name in added_names:
+            (_add(current["changed"], name) if name in removed_names else _add(current["new"], name))
+        for name in removed_names:
+            if name not in added_names:
+                _add(current["gone"], name)
+        # Git names the definition before the hunk. A hunk that starts where a definition starts (adding,
+        # removing or replacing whole ones) didn't change that one: its changes are the definitions themselves.
+        asides = ("<!--",) if driver == "markdown" else ("@", "#", "//", "/*", "*")  # decorators and comments before one
+
+        def first(lines):
+            return next((line for line in lines if line.strip() and not line.strip().startswith(asides)), None)
+
+        starts = [line for line in (first(hunk["minus"]), first(hunk["plus"])) if line is not None]
+        at_boundary = bool(starts) and bool(driver) and all(_name(line, driver) is not None for line in starts)
+        if heading and not at_boundary and heading[0] not in current["new"]:
+            _add(current["changed"], heading[0])
+        kinds = {n[1] for n in [heading] + added + removed if n}
+        if kinds:
+            current["kind"] = "section" if kinds == {"section"} else "code"
+
+    for line in text.splitlines():
+        if hunk is not None and (left[0] > 0 or left[1] > 0):
+            if line.startswith("-") and left[0] > 0:
+                left[0] -= 1
+                current["removed"] += 1
+                hunk["minus"].append(line[1:])
+                continue
+            if line.startswith("+") and left[1] > 0:
+                left[1] -= 1
+                current["added"] += 1
+                hunk["plus"].append(line[1:])
+                continue
+            if line.startswith("\\"):
+                continue
+        if line.startswith("diff --git "):
+            close_hunk()
+            hunk = None
+            current = {"path": None, "status": "modified", "added": 0, "removed": 0, "changed": [], "new": [], "gone": [],
+                       "_header": line[len("diff --git "):]}
+            files.append(current)
+        elif current is None or line.startswith("\\"):
+            continue
+        elif line.startswith("@@"):
+            close_hunk()
+            found = re.match(HUNK, line)
+            if not found:
+                hunk = None
+                continue
+            left = [int(found.group(1) if found.group(1) is not None else 1), int(found.group(2) if found.group(2) is not None else 1)]
+            hunk = {"heading": found.group(3), "plus": [], "minus": []}
+        elif line.startswith("new file mode"):
+            current["status"] = "added"
+        elif line.startswith("deleted file mode"):
+            current["status"] = "deleted"
+        elif line.startswith("rename from "):
+            current["status"], current["from"] = "renamed", _path(line[len("rename from "):], "")
+        elif line.startswith("rename to "):
+            current["path"] = _path(line[len("rename to "):], "")
+        elif line.startswith("--- ") and line[4:].strip() != "/dev/null":
+            current.setdefault("old", _path(line[4:], "a/"))
+        elif line.startswith("+++ ") and line[4:].strip() != "/dev/null":
+            current["path"] = current["path"] or _path(line[4:], "b/")
+        elif line.startswith("Binary files "):
+            current["binary"] = True
+    close_hunk()
+    out = []
+    for f in files:
+        header = f.pop("_header")
+        if not f["path"]:  # a binary file: "a/<path> b/<path>"
+            f["path"] = f.get("old") or (header[2:2 + (len(header) - 5) // 2] if header.startswith("a/") else header)
+        f.pop("old", None)
+        f.setdefault("kind", None)
+        for key in ("changed", "new", "gone"):
+            if len(f[key]) > MAX_NAMES:
+                f[key + "_more"] = len(f[key]) - MAX_NAMES
+                f[key] = f[key][:MAX_NAMES]
+        out.append(f)
+    return out
+
+
+def turn_changes(start):
+    """What the turn changed in the repo, from the snapshot its prompt left: {root, files, more}. None without one."""
+    if not isinstance(start, dict):
+        return None
+    root, store, before = start.get("root"), start.get("store"), start.get("tree")
+    if not (root and store and before and os.path.isdir(store)):
+        return None
+    _until[0] = time.monotonic() + STOP_GIT_SECONDS
+    after = snapshot(root, store)
+    if not after:
+        return None
+    if after == before:
+        return {"root": root, "files": [], "more": 0}
+    attributes = os.path.join(store, "attributes")
+    with open(attributes, "w", encoding="utf-8") as fh:
+        fh.write("".join(f"*.{ext} diff={driver}\n" for ext, driver in DRIVERS.items()))
+    env, _ = snapshot_env(root, store) or (None, None)
+    if env is None:
+        return None
+    env.pop("GIT_INDEX_FILE", None)
+    out = git(root, "-c", "core.attributesFile=" + attributes, "-c", "diff.nightorder-js.xfuncname=" + JS_FUNCNAME,
+              "-c", "core.quotePath=false", "diff", "--no-color", "--no-ext-diff", "--no-textconv", "--src-prefix=a/",
+              "--dst-prefix=b/", "-U0", "--find-renames", before, after, env=env)
+    if out is None:
+        return None
+    files = parse_diff(out)
+    return {"root": root, "files": files[:MAX_CHANGED], "more": max(0, len(files) - MAX_CHANGED)}
+
+
 def post(url, body, seconds=SEND_SECONDS):
     """Send the body once. Returns (the server's answer as a dict, None), or (None, why it didn't get through)."""
     token = os.environ.get("CALLMEIF_TOKEN", "")
@@ -368,7 +663,16 @@ def note_prompt(url, payload):
     still to report. Started and left, because a UserPromptSubmit hook holds the prompt back until it returns,
     so the failures stay noted until a turn's send gets through (the server counts each once)."""
     note = {"hook_event_name": "UserPromptSubmit", "session_id": payload.get("session_id")}
-    report = change_state(url, unreported)
+    try:
+        start = start_snapshot(payload)
+    except Exception:  # noqa: BLE001 - the turn's card goes without its code changes
+        start = None
+
+    def noted(state):
+        keep_snapshot(state, payload.get("session_id"), start)
+        return unreported(state)
+
+    report = change_state(url, noted)
     if report:
         note["hook_report"] = report
     curl = shutil.which("curl")
@@ -400,9 +704,10 @@ def main():
     def begin(state):
         report = unreported(state)
         state["running"][run_id] = run
-        return report
+        snapshots = state.get("snapshots")
+        return report, (snapshots.get(str(payload.get("session_id"))) if isinstance(snapshots, dict) else None)
 
-    report = change_state(url, begin) or []
+    report, start = change_state(url, begin) or ([], None)
     answer, reason, tries, stamp = None, "the hook failed before sending", 0, None
     try:
         try:
@@ -421,6 +726,13 @@ def main():
                 payload["project"] = project
         except Exception:
             pass
+        if payload.get("hook_event_name") == "Stop" and deadline - time.monotonic() > STOP_GIT_SECONDS + SEND_SECONDS + 1:
+            try:
+                changes = turn_changes(start)
+                if changes is not None:
+                    payload["code_changes"] = changes
+            except Exception:  # noqa: BLE001 - the card goes without its code changes
+                pass
         if report:
             payload["hook_report"] = report
         answer, reason, tries = send(url + "/v1/connectors/claude-code", payload, deadline)
