@@ -87,7 +87,7 @@ def test_values_are_valid():
         assert c["cost"] in fa.COSTS, c["id"]
         assert c["reversible"] in (True, False), c["id"]
         assert c["confidence"] in ("high", "low"), c["id"]
-    assert fa.REVIEW == "drafted"
+    assert fa.REVIEW == "owner-checked"
 
 
 def test_ids_are_unique():

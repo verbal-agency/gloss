@@ -1,8 +1,8 @@
 # E7: the held-out run on G43 and G44
 
-**Status:** draft, 2026-11-25. Nothing in it has run.
+**Status:** fixed, 2026-11-26, before any Jev or LLM call. Nothing in it has run.
 - The owner approved the question changes on 2026-11-25: three rewordings and two new questions.
-- The decisions still open are listed at the end. Once they are settled, the spec is fixed before any Jev or LLM call.
+- The owner settled row 4 and E7d's labels on 2026-11-26 (see the end).
 
 ## Why
 
@@ -59,14 +59,14 @@ E5b's own failure also stands: in conversations it objected to nine sound plans 
 | 1 | `investigation` ≥ 0.5 | `none` | finding the cause needs no cause |
 | 2 | `conflicts_constraint` ≥ 0.5 | `objected` | a stated requirement broken |
 | 3 | `problem_described` < 0.3 | `objected` if `achieves_goal` < t_ach, else `none` | nothing going wrong: checked against the goal only, including requirements that follow from the domain |
-| 4 | `facts_against_cause` ≥ t_fa | `objected` if `plan_ruled_out` ≥ t_ro, else `asked` | the 2026-11-22 rule, whether or not a cause is named |
+| 4 | `facts_against_cause` ≥ t_fa or `plan_ruled_out` ≥ t_ro | `objected` if `plan_ruled_out` ≥ t_ro, else `asked` | the 2026-11-22 rule, whether or not a cause is named (fixed 2026-11-26) |
 | 5 | `evidence_for_cause` ≥ t_ev | `objected` if `achieves_goal` < t_ach, else `none` | an evidenced cause: quiet unless the user's facts show the plan can't deliver |
 | 6 | `link_stated` ≥ t_link | `objected` if costly, else `none` | an asserted cause: rule (b) |
 | 7 | otherwise | `asked` | an implied cause (ruling 2) |
 
 Costly means `plan_reversible` < 0.5 or `plan_large` ≥ 0.5 (E5d's rule, fixed).
 
-**Objection without a named cause.** When the user's facts rule the plan out, row 4 objects even though no cause is named (owner, 2026-11-25). `facts_against_cause` covers a cause that is only implied by the plan. As drafted, row 4 objects only when `facts_against_cause` also fires: see the open decision on row 4.
+**Objection without a named cause.** When the user's facts rule the plan out, row 4 objects even though no cause is named (owner, 2026-11-25). `facts_against_cause` covers a cause that is only implied by the plan, and `plan_ruled_out` fires row 4 on its own (owner, 2026-11-26).
 
 **Gaps not encoded.** A plan that makes the problem impossible by construction, like `double-standup-reminder`, needs no stated cause (narrowed 2026-11-25). The table still sends it to row 7, which asks. It is rare on dev, so it is left as a known miss.
 
@@ -151,15 +151,12 @@ The configuration with the most cells within max(0.07, one case) of the LLM wins
 7. **"Works whatever the cause."** Narrowed to plans that make the problem impossible by construction.
 8. **Objection without a named cause.** An objection doesn't need a named cause when the user's facts rule the plan out.
 
-**Still open:**
-- **E7d's outcome.** κ 0.88 on `expected`, with two disagreements, neither stable ([pairs_blind_review.md](pairs_blind_review.md)). Proposed:
-  - both keep the set's `asked`;
-  - wedding-film-export's reversibility becomes `false`, to match the written definition.
-- **Row 4 (proposed after E7d).** In all eight `objected` pairs, the user's fact rules out the plan without counting against the cause. Both blind passes objected to all eight for that reason. As drafted, row 4 consults `plan_ruled_out` only after `facts_against_cause` fires, so these cases fall through to the level rows. There, the three cheap plans on an asserted cause get no objection. Proposed row 4:
-  - condition: `plan_ruled_out` ≥ t_ro or `facts_against_cause` ≥ t_fa;
-  - action: `objected` if `plan_ruled_out` ≥ t_ro, else `asked`.
+**Settled on 2026-11-26:**
 
-  The grid is unchanged.
+9. **Row 4.** It fires when `facts_against_cause` ≥ t_fa or `plan_ruled_out` ≥ t_ro, and objects when `plan_ruled_out` ≥ t_ro, otherwise asks. In all eight `objected` pairs, the user's fact rules out the plan without counting against the cause (E7d). The grid is unchanged.
+10. **E7d's labels.** Both disagreements keep the set's `asked`, and the pairs are owner-checked.
+
+**Not ruled.** E7d's proposal that wedding-film-export's reversibility becomes `false`. E7 scores only `expected` on the pairs, so it does not affect E7.
 
 ## Cost
 

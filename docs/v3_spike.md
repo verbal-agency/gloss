@@ -1668,3 +1668,23 @@ The goal is in [e7d_pairs_blind_check_goal.md](e7d_pairs_blind_check_goal.md), a
 - both disagreements keep the set's `asked`;
 - wedding-film-export's reversibility becomes `false`, to match the written definition;
 - row 4 of E7's table fires when either new question does, and objects when `plan_ruled_out` reaches `t_ro`.
+
+**The owner's rulings (2026-11-26).** E7's spec is fixed ([e7_heldout_run_goal.md](e7_heldout_run_goal.md)).
+- **Row 4** fires when either new question does, and objects when `plan_ruled_out` reaches `t_ro`, otherwise asks, as proposed.
+- **The pairs' labels stand.** Both disagreements keep the set's `asked`, and the set is owner-checked.
+- **Not ruled:** wedding-film-export's reversibility. E7 scores only `expected` on the pairs.
+
+# E7: the held-out run (spec fixed 2026-11-26)
+
+**The candidate, as code (2026-11-26).** Nothing has run.
+- **One request.** `e7_battery` in `app/pipeline/jev_ground.py` asks all ten questions at once: E5b's five as they were, with its overall-plan note in conversations, then the three reworded and the two new ones.
+- **The table.** `e7_row` gives the spec's seven rows, as a function of the answers and a configuration. `tests/test_e7_table.py` checks every row, the order of the rows and the grid of 32.
+- **The dev run** is `eval/e7_dev.py`: recording the dev conversations, both arms, the check of the combined request, the post-dev lists and selection. Each step refuses to run before the one it depends on, and before the owner's choice it needs.
+- **The held-out run** is in `eval/g43_eval.py`. It refuses to run until the chosen configuration is committed.
+- **Each held-out case's chance of a wrong plan** is checked by `tests/test_e7_heldout_utility.py`, as code only. G44's eight late facts against the cause count as 0.5, so asking scores best on them.
+
+**Fixed in code before any run:**
+- a failed classification is a miss in its cell and counts as `none` in utility, since the app passes the message through;
+- a cell, or the utility margin, is met at exactly its tolerance; cell rates are compared from their counts, not their rounded values;
+- selection ties on cells and utility go to the configuration with the fewest thresholds away from 0.5, then grid order;
+- `t_ach` = 0.3 for conversations is chosen only if it gains 0.02 of utility over the best configuration without it, as G41's per-shape rule.

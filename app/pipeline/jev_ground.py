@@ -1040,3 +1040,119 @@ _E7_NOULS: dict[str, tuple[str, dict, dict]] = {
                       "old one off at the end of the month. Where should I start?"]},
     ),
 }
+
+
+# ── E7: the candidate (docs/e7_heldout_run_goal.md; row 4 fixed 2026-11-26) ──
+# Every E7 question in one Jev request: E5b's five as they were, with E5b's
+# overall-plan note on `achieves_goal` in conversations, then the three
+# reworded questions and the two new ones. Conversations are sent whole, with
+# the conversation note, as in E5b. The decision table reads the answers and
+# a configuration: the five thresholds picked on dev from a grid fixed in the
+# spec. Everything else is fixed.
+
+E7_KEPT = ("problem_described", "investigation", "link_stated", "conflicts_constraint", "achieves_goal")
+E7_CHANGED = ("evidence_for_cause", "plan_large", "plan_reversible", "facts_against_cause", "plan_ruled_out")
+E7_QUESTIONS = E7_KEPT + E7_CHANGED
+# If the combined request costs an E5c or E5d question more than 0.02 of AUC on
+# dev, that question goes back to a request of its own (the spec, "One request").
+E7_OWN_REQUESTS = {"e5c": ("evidence_for_cause",), "e5d": ("plan_reversible", "plan_large")}
+
+# Fixed thresholds.
+E7_INVESTIGATION_T = 0.5
+E7_CONFLICT_T = 0.5
+E7_PROBLEM_T = 0.3
+E7_ACH_SINGLE_T = 0.5      # t_ach for single messages; conversations take the configuration's
+
+
+def e7_questions(names: tuple[str, ...], conversation: bool) -> dict:
+    """The named E7 questions as one request's battery."""
+    unknown = [n for n in names if n not in E7_QUESTIONS]
+    if unknown:
+        raise ValueError(f"not E7 questions: {unknown}")
+    kept = e5b_battery(conversation)
+    note = _CONVERSATION_NOTE if conversation else ""
+    qs = {}
+    for name in names:
+        if name in E7_KEPT:
+            qs[name] = kept[name]
+        else:
+            q, yes, no = _E7_NOULS[name]
+            qs[name] = {"type": "noul", "instructions": q + note, "criteria": {"true": yes, "false": no}}
+    return qs
+
+
+def e7_battery(conversation: bool, apart: tuple[str, ...] = ()) -> dict:
+    """Every E7 question in one request, except any asked in a request of their own."""
+    return e7_questions(tuple(n for n in E7_QUESTIONS if n not in apart), conversation)
+
+
+@dataclass(frozen=True)
+class E7Config:
+    """The thresholds picked on dev. `t_ach_conv` is t_ach for conversations;
+    single messages always use E7_ACH_SINGLE_T."""
+    t_link: float = 0.5
+    t_ev: float = 0.5
+    t_ach_conv: float = 0.5
+    t_fa: float = 0.5
+    t_ro: float = 0.5
+
+    @property
+    def name(self) -> str:
+        return (f"link>={self.t_link} ev>={self.t_ev} ach_conv<{self.t_ach_conv} "
+                f"fa>={self.t_fa} ro>={self.t_ro}")
+
+    @property
+    def per_shape(self) -> bool:
+        """True when conversations use a different t_ach from single messages."""
+        return self.t_ach_conv != E7_ACH_SINGLE_T
+
+
+# The grid, fixed in the spec before any run: 2^5 = 32 configurations.
+E7_GRID = {"t_link": (0.5, 0.7), "t_ev": (0.5, 0.7), "t_ach_conv": (0.5, 0.3),
+           "t_fa": (0.5, 0.7), "t_ro": (0.5, 0.7)}
+
+
+def e7_configs() -> list[E7Config]:
+    import itertools
+
+    keys = tuple(E7_GRID)
+    return [E7Config(**dict(zip(keys, vals))) for vals in itertools.product(*(E7_GRID[k] for k in keys))]
+
+
+def e7_row(a: dict, cfg: E7Config, conversation: bool) -> tuple[int, str]:
+    """The E7 decision table, rows in order: (row number, action)."""
+    def p(q: str) -> float:
+        return a[q]["noul"]
+
+    t_ach = cfg.t_ach_conv if conversation else E7_ACH_SINGLE_T
+    if p("investigation") >= E7_INVESTIGATION_T:
+        return 1, "none"
+    if p("conflicts_constraint") >= E7_CONFLICT_T:
+        return 2, "objected"
+    if p("problem_described") < E7_PROBLEM_T:
+        return 3, "objected" if p("achieves_goal") < t_ach else "none"
+    if p("facts_against_cause") >= cfg.t_fa or p("plan_ruled_out") >= cfg.t_ro:
+        return 4, "objected" if p("plan_ruled_out") >= cfg.t_ro else "asked"
+    if p("evidence_for_cause") >= cfg.t_ev:
+        return 5, "objected" if p("achieves_goal") < t_ach else "none"
+    if p("link_stated") >= cfg.t_link:
+        return 6, "objected" if plan_costly(a) else "none"
+    return 7, "asked"
+
+
+def e7_action(a: dict, cfg: E7Config, conversation: bool) -> str:
+    return e7_row(a, cfg, conversation)[1]
+
+
+async def jev_release(model: str | None = None) -> dict:
+    """The model's entry in GET /v1/models: its name and release date. E7 records
+    it at every run and stops if it changes between the dev and held-out runs."""
+    from typesafe_sdk import AsyncTypeSafeClient
+
+    model = model or settings.jev_model
+    async with AsyncTypeSafeClient(api_key=settings.typesafe_api_key, timeout=60.0) as client:
+        resp = await client.models.list()
+    listed = {m.name: m.model_dump(mode="json") for m in resp.models}
+    if model not in listed:
+        raise SystemExit(f"Jev model {model!r} is not offered; the API lists {sorted(listed)}")
+    return listed[model]
