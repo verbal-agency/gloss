@@ -59,20 +59,20 @@ LLM_SETS = ("e5c", "e8", "pairs")                  # the spent pool's LLM answer
 SPENT_SIZE = (239, 102)                            # cases, conversations (the spec's dev table)
 
 # ── the owner's choices, each with its date ──────────────────────────────────
-# Which Jev model E7 runs on: the owner decides (the pin in app/config.py,
-# jev-1.14.0, is no longer offered). None refuses every Jev run.
-E7_JEV_MODEL: str | None = None
+# Which Jev model E7 runs on (owner, 2026-11-26). The pin in app/config.py,
+# jev-1.14.0, is no longer offered and is left as it is. None refuses every Jev run.
+E7_JEV_MODEL: str | None = "jev-latest"
 # How the earlier turns of E8's and the pairs' conversations are judged when
 # their histories are recorded. None refuses the recording.
 #   "own_words"  G44's sound-step judge, shown the user's own turns up to the
 #                reply; a reply fails if it asks about the cause or objects.
 #   "frame"      G44's judge input exactly (the case's R as the situation and
 #                its S as the plan), and each reply must also build what was asked.
-HISTORY_JUDGING: str | None = None
+HISTORY_JUDGING: str | None = "own_words"          # owner, 2026-11-26
 # The reference for the 0.02 AUC check. None refuses the check.
 #   "own"        the same questions, asked in requests of their own on the same model
 #   "recorded"   the AUCs E5c and E5d recorded on 2026-11-20 (jev-1.14.0, old wordings)
-AUC_REFERENCE: str | None = None
+AUC_REFERENCE: str | None = "own"                  # owner, 2026-11-26
 # Questions moved back to requests of their own by the AUC check (empty: one request).
 APART: tuple[str, ...] = ()
 # The owner's rulings after the post-dev check: case id -> new label, or EXCLUDE.
@@ -291,12 +291,19 @@ async def ask_jev(st: str, questions: dict, repeat: int, release: str) -> dict:
         lambda: jg.ask_jev_questions(st, questions))
 
 
-async def _release_checked(previous: Path | None = None) -> dict:
+def jev_files() -> tuple[Path, ...]:
+    """Every E7 dev file of Jev answers; all must come from one release."""
+    return (JEV_ROWS, JEV_APART_ROWS, JEV_APART_ALL_ROWS)
+
+
+async def _release_checked(*previous: Path) -> dict:
+    """The model's release now, after checking it against every earlier E7 run's."""
     release = await jg.jev_release(settings.jev_model)
-    if previous is not None and previous.exists():
-        before = json.loads(previous.read_text())["release"]
-        if before != release:
-            raise SystemExit(f"Jev release changed since {previous}: {before} -> {release}. Stop and ask the owner.")
+    for path in previous or jev_files():
+        if path.exists():
+            before = json.loads(path.read_text())["release"]
+            if before != release:
+                raise SystemExit(f"Jev release changed since {path}: {before} -> {release}. Stop and ask the owner.")
     return release
 
 
@@ -338,7 +345,7 @@ async def run_jev_apart(concurrency: int, scope: str) -> None:
                        the reference for the AUC check.
     scope "all":       the groups in APART on every dev set, when the check moved them."""
     model = _require_model()
-    release = await _release_checked(JEV_ROWS)
+    release = await _release_checked()
     if scope == "reference":
         sets = dev_sets(need_histories=False)
         cases = unique_cases({k: (sets[k] if k in ("e5c", "e5d") else []) for k in SETS})

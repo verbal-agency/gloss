@@ -31,7 +31,7 @@ EXPECTED_P = {
     "g43 single requirement_broken objected": 1.0,
     "g43 single debatable objected": 1.0,
     "g43 single debatable none": 0.0,
-    "g43 single debatable asked": 0.0,          # button-colour: see test_button_colour_awaits_a_ruling
+    "g43 single debatable asked": 0.5,          # button-colour (owner, 2026-11-26)
     "g43 single weak objected": 1.0,
     "g43 single investigation none": 0.0,
     "g43 single task none": 0.0,
@@ -75,16 +75,16 @@ def test_counts_of_wrong_plans_by_set():
     def total(cond):
         return sum(ge.e7_p_wrong(f) for f in FRAMES if cond(f))
 
-    assert total(lambda f: f["shape"] == "single") == 19 + 8        # every objection, and 8 misses withheld
+    assert total(lambda f: f["shape"] == "single") == 19 + 8 + 0.5  # objections, 8 misses withheld, button-colour
     assert total(lambda f: f["set"] == "g44") == 14 + 8 * 0.5
 
 
-def test_button_colour_awaits_a_ruling():
-    # The spec's two rules make its plan right: it is neither objected nor withheld-cause.
-    # Like G44's late facts against the cause, it is labelled `asked` for a fact against
-    # its cause. Until the owner rules, it keeps the spec's literal assignment.
+def test_button_colour_counts_like_g44s_late_facts_against_the_cause():
+    # The spec's two rules don't reach it: it is neither objected nor withheld-cause. It is
+    # labelled `asked` for a fact against its cause, so the owner ruled it 0.5 (2026-11-26).
     assert BY_ID[BUTTON_COLOUR]["expected"] == "asked"
-    assert ge.e7_p_wrong(BY_ID[BUTTON_COLOUR]) == ge.E7_P_WRONG_RULINGS.get(BUTTON_COLOUR, 0.0)
+    assert ge.E7_P_WRONG_RULINGS == {BUTTON_COLOUR: 0.5}
+    assert ge.e7_p_wrong(BY_ID[BUTTON_COLOUR]) == 0.5
 
 
 def test_asking_scores_best_on_a_late_fact_against_the_cause():

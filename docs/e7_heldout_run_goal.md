@@ -2,7 +2,7 @@
 
 **Status:** fixed, 2026-11-26, before any Jev or LLM call. Nothing in it has run.
 - The owner approved the question changes on 2026-11-25: three rewordings and two new questions.
-- The owner settled row 4 and E7d's labels on 2026-11-26 (see the end).
+- The owner settled row 4, E7d's labels and five details of the runs on 2026-11-26 (see the end).
 
 ## Why
 
@@ -50,7 +50,7 @@ E5b's own failure also stands: in conversations it objected to nine sound plans 
 
 **Conversation state.** Conversations are sent whole, with the conversation note, as in E5b. G43's first exploration found that sending only the user's turns made conversations worse, so that change is not proposed.
 
-**One request.** E5c and E5d asked their questions in separate requests. If, on dev, any of their questions' AUCs drops by more than 0.02 in the combined request, those questions go back to their own requests.
+**One request.** E5c and E5d asked their questions in separate requests. If, on dev, any of their questions' AUCs drops by more than 0.02 in the combined request, those questions go back to their own requests. The drop is measured against the same questions asked in requests of their own, on the same model, on E5c's and E5d's dev sets (owner, 2026-11-26).
 
 ### Decision table (rows in order)
 
@@ -101,6 +101,8 @@ The configuration with the most cells within max(0.07, one case) of the LLM wins
 | Facts-against pairs ([E7a](e7a_facts_against_pairs_goal.md)) | 16 | the 2026-11-22 branch, and tuning `t_fa` and `t_ro`. A blind check of their labels ([E7d](e7d_pairs_blind_check_goal.md)) gave κ 0.88 on `expected` |
 
 **Before the dev run.** The candidate reads whole conversations, so E8's 21 conversations and the four conversation pairs get assistant replies recorded once, from the unaided model, as G43 and G44 did. A conversation is used only if its earlier turns were answered with no question and no objection.
+- **How the earlier replies are judged (owner, 2026-11-26).** G44's sound-step judge, shown the user's own turns up to each reply. Many of these turns ask for nothing, and in most of E8's conversations the plan comes only in the last turn, so G44's fixed situation and plan don't fit.
+- **Built is recorded, not required.** Whether each reply built what was asked is reported alongside.
 
 **Before selection:**
 1. **Check the spent pool against the current rules.** Its labels predate rule (b) and the 2026-11-22 rule.
@@ -132,6 +134,7 @@ The configuration with the most cells within max(0.07, one case) of the LLM wins
 - **Utility:** c = 0.25 with 20% wrong plans.
   - Each held-out case's plan counts as wrong or right from its recorded frame: an `objected` case's plan is wrong, and a withheld-cause case takes its family's fits or misses.
   - G44's `late_fact_against` plans count as a 50% chance of being wrong (owner, 2026-11-25). The fact counts against the cause they act on, but the plan might still help. Their utility is the average of the two outcomes, which makes asking the best-scoring action.
+  - G43's single message `button-colour` counts the same way (owner, 2026-11-26). It has been labelled `asked` since 2026-11-22 for a fact against its cause, and the two rules above don't reach it.
   - A test checks this on every held-out case before the run, as code only.
 - **Decision rule (unchanged):**
   - utility no worse than the LLM's by more than 0.02 per decision;
@@ -156,11 +159,16 @@ The configuration with the most cells within max(0.07, one case) of the LLM wins
 9. **Row 4.** It fires when `facts_against_cause` ≥ t_fa or `plan_ruled_out` ≥ t_ro, and objects when `plan_ruled_out` ≥ t_ro, otherwise asks. In all eight `objected` pairs, the user's fact rules out the plan without counting against the cause (E7d). The grid is unchanged.
 10. **E7d's labels.** Both disagreements keep the set's `asked`, and the pairs are owner-checked.
 
+11. **The Jev model.** `jev-latest`, for E7's runs only; the app's pin is left as it is. Its release date is recorded at each run, and the run stops if it changes between dev and held-out.
+12. **Judging the dev conversations' earlier replies.** On the user's own turns up to each reply (see "Before the dev run").
+13. **The reference for the 0.02 AUC drop.** The same questions in requests of their own, on the same model (see "One request"). About 250 more Jev requests.
+14. **`button-colour`'s plan.** A 50% chance of being wrong, like G44's late facts against the cause.
+
 **Not ruled.** E7d's proposal that wedding-film-export's reversibility becomes `false`. E7 scores only `expected` on the pairs, so it does not affect E7.
 
 ## Cost
 
-- **Jev:** about 1,800 requests (dev about 420 cases and held-out 164, three repeats each). Well under a dollar.
+- **Jev:** about 1,800 requests (dev about 420 cases and held-out 164, three repeats each), plus about 250 for the AUC check's reference. Well under a dollar.
 - **LLM classifier:** about 900 calls. That's E8, E5c and the new pairs on dev (the spent pool's answers are cached), plus the held-out sets, three repeats each.
 
 ## Limits

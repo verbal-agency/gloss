@@ -1673,6 +1673,11 @@ The goal is in [e7d_pairs_blind_check_goal.md](e7d_pairs_blind_check_goal.md), a
 - **Row 4** fires when either new question does, and objects when `plan_ruled_out` reaches `t_ro`, otherwise asks, as proposed.
 - **The pairs' labels stand.** Both disagreements keep the set's `asked`, and the set is owner-checked.
 - **Not ruled:** wedding-film-export's reversibility. E7 scores only `expected` on the pairs.
+- **The runs:**
+  - Jev model: `jev-latest`, for E7 only; the app's pin stays as it is;
+  - the dev conversations' earlier replies are judged on the user's own turns up to each reply;
+  - the 0.02 AUC drop is measured against the same questions in requests of their own, on the same model;
+  - G43's `button-colour` counts as a 50% chance of a wrong plan, like G44's late facts against the cause.
 
 # E7: the held-out run (spec fixed 2026-11-26)
 

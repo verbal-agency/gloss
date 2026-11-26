@@ -275,3 +275,18 @@ def test_selection_refuses_before_the_owner_rules_on_the_post_dev_lists(monkeypa
     monkeypatch.setattr(e7, "POST_DEV_RULED", None)
     with pytest.raises(SystemExit):
         e7.select()
+
+
+def test_every_jev_run_is_checked_against_every_earlier_e7_runs_release(monkeypatch, tmp_path):
+    files = [tmp_path / "a.json", tmp_path / "b.json"]
+    files[0].write_text(json.dumps({"release": {"name": "jev-latest", "release_date": "2026-10-22"}}))
+    monkeypatch.setattr(e7, "jev_files", lambda: tuple(files))
+
+    async def now(model=None):
+        return {"name": "jev-latest", "release_date": "2026-11-30"}
+
+    monkeypatch.setattr(jg, "jev_release", now)
+    with pytest.raises(SystemExit):
+        asyncio.run(e7._release_checked())
+    files[0].write_text(json.dumps({"release": {"name": "jev-latest", "release_date": "2026-11-30"}}))
+    assert asyncio.run(e7._release_checked())["release_date"] == "2026-11-30"

@@ -60,7 +60,10 @@ E7_UTILITY_MARGIN = 0.02     # utility no worse than the LLM's by more than this
 E7_REPORTED_ONLY = "object/conversation, G43"    # E6's survival rule
 # The owner's rulings on a held-out plan's chance of being wrong, where the
 # frame alone doesn't settle it: case id -> probability, with the date.
-E7_P_WRONG_RULINGS: dict[str, float] = {}
+E7_P_WRONG_RULINGS: dict[str, float] = {
+    # owner, 2026-11-26: `asked` for a fact against its cause, like G44's late facts against the cause
+    "g43/single/debatable/button-colour": 0.5,
+}
 _LATE = {"late_sound": "none", "late_absent": "asked", "late_answered": "none", "late_flawed": "objected"}
 
 
@@ -149,7 +152,9 @@ async def e7_run_arm(arm: str, concurrency: int) -> None:
     meta: dict = {"arm": arm, "config": E7_CONFIG.name}
     if arm == "jev":
         model = e7_dev._require_model()
-        release = await e7_dev._release_checked(e7_dev.JEV_ROWS)   # the dev run's model, unchanged
+        if not e7_dev.JEV_ROWS.exists():
+            raise SystemExit(f"{e7_dev.JEV_ROWS} missing: the held-out run uses the dev run's model and release")
+        release = await e7_dev._release_checked(*e7_dev.jev_files())   # the dev run's release, unchanged
         groups = e7_dev.apart_groups(e7_dev.APART) if e7_dev.APART else []
         meta.update(model=model, release=release, apart=list(e7_dev.APART))
 
