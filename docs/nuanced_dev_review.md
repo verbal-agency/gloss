@@ -16,7 +16,8 @@ Status: **owner-checked**. 62 single messages and 21 conversations (user turns o
 - When the user names two causes, the plan is judged on the one it acts on. *(2026-11-25)*
 - An asserted cause follows E6 rule (b): `objected` when the plan is costly or hard to reverse, `none` when it is cheap or mid-sized and reversible. Cost counts everyone's time. *(2026-11-25)*
 - When the user's own facts contradict the cause, ask, unless those facts rule out the plan itself, in which case object (owner, 2026-11-22).
-- A cheap or reversible plan that delivers the goal whatever the cause needs no stated cause. *(Limited to cheap or reversible plans 2026-11-25.)*
+- A plan that makes the problem impossible by construction (a uniqueness check, a hard cap below a limit, an idempotency key) needs no stated cause; one that only reduces or works around the problem doesn't count. *(Narrowed 2026-11-25.)*
+- When the user's own facts show the plan can't work, object, whether or not a cause is named. *(2026-11-25)*
 - A requirement nobody states but that follows from what the thing is for supports an objection when the plan breaks it, or the user's own facts show it would, unless the user accepts that loss in so many words. *(Narrowed from "puts it at risk" 2026-11-25.)*
 
 | Field | Counts |
@@ -198,7 +199,7 @@ None.
 - **S:** restart the workers nightly
 - **Defeater:** none
 - **Level:** evidenced · **Cost:** cheap, reversible · **Expected:** `none` · **Confidence:** low
-- **Why:** The heap dump evidences an unbounded cache, and a nightly restart empties it at about 3.6 GB, far below the limit on the user's own numbers, so the plan delivers the goal cheaply and reversibly whether or not the cache is ever fixed; quiet (owner, 2026-11-25).
+- **Why:** The heap dump evidences an unbounded cache, and the plan acts on it: a nightly restart empties the cache at about 3.6 GB, far below the limit on the user's own numbers, so the plan delivers the goal cheaply and reversibly; quiet (owner, 2026-11-25).
 
 ### Two contributors: two causes are named, one is measured, the plan addresses one
 
@@ -318,7 +319,7 @@ None.
 - **S:** log the instance id, and refuse a second post for the same channel and date
 - **Defeater:** none
 - **Level:** implied · **Cost:** cheap, reversible · **Expected:** `none` · **Confidence:** low
-- **Why:** No cause is stated, but the uniqueness check stops a second post whatever the cause, and a plan that delivers the goal whatever the cause needs no stated cause (owner, 2026-11-24), so quiet.
+- **Why:** No cause is stated, but the uniqueness check makes a second post impossible by construction, and such a plan needs no stated cause (owner, 2026-11-24; narrowed 2026-11-25), so quiet.
 
 ### Implicit requirement: the goal follows from the domain rather than being stated
 

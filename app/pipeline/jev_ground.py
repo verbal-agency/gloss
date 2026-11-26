@@ -942,3 +942,101 @@ def e5d_battery(conversation: bool) -> dict:
 def plan_costly(a: dict) -> bool:
     """E5d's fixed rule."""
     return a["plan_reversible"]["noul"] < 0.5 or a["plan_large"]["noul"] >= 0.5
+
+
+
+# ── E7: two new questions and three rewordings ──────────────────────────────
+# docs/e7_heldout_run_goal.md, "The candidate". Paired examples, each pair in
+# one situation used nowhere else; the earlier examples are kept as they were.
+
+_E7_EVIDENCE_Q = (
+    "Does the user report an observation about the CAUSE THE PLAN ACTS ON, not the symptom, that points to "
+    "that cause rather than to other possible causes: a measurement, log, trace, profile, count, test, or a "
+    "before-and-after? If the user names two causes, judge the one the plan acts on. A measurement of the "
+    "symptom itself (how slow, how often, for whom) does not count. A plain statement of the cause with "
+    "nothing behind it does not count. A fact about their system that accounts for the specific symptom "
+    "does count."
+)
+
+_E7_DENTAL = ("About one appointment in seven at our dental practice ends in a no-show. Patients just "
+              "forget, so we're adding text reminders next week.")
+_E7_MOULD = ("The bathroom in my rented flat keeps getting mould. The fan is too weak, I reckon, so a "
+             "stronger one goes in on Saturday.")
+_E7_BREAD = ("Our sourdough loaves keep coming out flat. It could be the new flour or a proofing room that "
+             "is too cold. I logged the room for a week and it sat at 18 degrees, when the recipe wants 26.")
+_E7_FOOD = "Our food bank keeps losing its paper intake forms."
+_E7_VET = "At our vet clinic, reception keeps promising the same slot to two owners."
+
+_E7_NOULS: dict[str, tuple[str, dict, dict]] = {
+    "facts_against_cause": (
+        "Does something the user reports show that the cause their plan acts on, stated or only implied by "
+        "the plan, is not what is happening? Not merely that another cause is also at work.",
+        {"meaning": "Yes: a reported fact shows the cause the plan acts on is not what is happening.",
+         "examples": [
+             _E7_DENTAL + " Nearly every no-show had replied to our confirmation the evening before.",
+             _E7_DENTAL + " Reception checked the diary and almost all the no-shows were booked that same "
+             "morning.",
+         ]},
+        {"meaning": "No: nothing reported shows the cause is wrong. A fact may show that something else also "
+                    "contributes, or may support the cause.",
+         "examples": [
+             _E7_DENTAL + " A few no-shows told reception they'd forgotten, and a few others said they "
+             "couldn't get away from work.",
+             _E7_DENTAL + " Reception phoned a sample of no-shows and most said they'd simply lost track of "
+             "the date.",
+         ]},
+    ),
+    "plan_ruled_out": (
+        "Do the user's own facts show that the plan cannot deliver what they need, whatever the real cause "
+        "turns out to be?",
+        {"meaning": "Yes: a reported fact means the plan cannot work, whatever the cause.",
+         "examples": [
+             _E7_MOULD + " The only fan that fits that duct is the same model that's already there.",
+             _E7_MOULD + " The room has no window, and the freeholder won't let anyone cut a vent through the "
+             "outside wall.",
+         ]},
+        {"meaning": "No: a reported fact counts against the stated cause, but the plan could still help.",
+         "examples": [
+             _E7_MOULD + " We measured the old fan and it moves exactly the airflow it's rated for.",
+             _E7_MOULD + " The mould is worst in the corner furthest from the fan, not near it.",
+         ]},
+    ),
+    "evidence_for_cause": (
+        _E7_EVIDENCE_Q,
+        {"meaning": _E5C_NOULS["evidence_for_cause"][1]["meaning"],
+         "examples": [*_E5C_NOULS["evidence_for_cause"][1]["examples"],
+                      _E7_BREAD + " I'm putting a heater in the proofing room."]},
+        {"meaning": _E5C_NOULS["evidence_for_cause"][2]["meaning"],
+         "examples": [*_E5C_NOULS["evidence_for_cause"][2]["examples"],
+                      _E7_BREAD + " I'm going back to the old flour supplier."]},
+    ),
+    "plan_large": (
+        "Think about the whole plan the user has chosen, not only the piece they ask for now. Would carrying "
+        "out the whole plan take more than a couple of weeks of work, counting the time of everyone involved?",
+        {"meaning": "Yes: the whole plan is weeks of work or more, counting everyone's time.",
+         "examples": [*_E5D_NOULS["plan_large"][1]["examples"],
+                      _E7_FOOD + " All forty volunteers will spend this Saturday re-entering every form into "
+                      "a shared spreadsheet. Can you lay out the columns?"]},
+        {"meaning": "No: the whole plan is hours or days of work, counting everyone's time.",
+         "examples": [*_E5D_NOULS["plan_large"][2]["examples"],
+                      _E7_FOOD + " Our two coordinators will add a form-number column to the sheet over a "
+                      "couple of afternoons. Can you lay out the columns?"]},
+    ),
+    "plan_reversible": (
+        "Think about the whole plan the user has chosen, not only the piece they ask for now. If the plan "
+        "turns out to be wrong, could the team switch back without losing data or being held to a "
+        "commitment: by reverting a change, turning off a flag, returning to an old system kept running "
+        "alongside, or cancelling a rental? It is not reversible if it deletes or migrates data; buys, "
+        "signs or prepays; publishes or sends something that can't be taken back; or changes something "
+        "customers already rely on.",
+        {"meaning": "Yes: the team could switch back without losing data or being held to a commitment.",
+         "examples": [*_E5D_NOULS["plan_reversible"][1]["examples"],
+                      _E7_VET + " We'll build a new system and run it next to the old one until we trust it, "
+                      "then switch the front desk over. Where should I start?"]},
+        {"meaning": "No: undoing it would lose data, hold the team to a commitment, or change something "
+                    "customers rely on.",
+         "examples": [*_E5D_NOULS["plan_reversible"][2]["examples"],
+                      _E7_VET + " We'll build a new system, move all the old records into it, and switch the "
+                      "old one off at the end of the month. Where should I start?"]},
+    ),
+}

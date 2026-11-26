@@ -1593,3 +1593,78 @@ Next: the owner looks at the stable disagreements, then E7.
 - **Counts now:** none 41, asked 14, objected 28. Level counts are unchanged.
 
 Next: E7.
+
+# E7b: a label-only check of the older dev cases (fixed 2026-11-25; run the same day)
+
+**Why and how.** The older dev pool (G40 to G42) was labelled before rule (b), the 2026-11-22 rule and the latest conventions, and E7 tunes on it. The check used E8b's method:
+- **The labeller** was a model that wrote none of these cases and none of the Jev questions.
+- **The guide** was E8b's, with the owner's 2026-11-25 clarifications added.
+- **The cases** were all 137 older single messages and all 143 older conversations (user turns only), each labelled twice.
+
+The goal is in [e7b_older_label_check_goal.md](e7b_older_label_check_goal.md), and the results in [older_blind_review.md](older_blind_review.md).
+
+| Cases | Stored vs A | Stored vs B | A vs B |
+|---|---|---|---|
+| single messages (137) | 0.85 (κ 0.78) | 0.89 (κ 0.84) | 0.89 (κ 0.83) |
+| conversations (143) | 0.85 (κ 0.73) | 0.90 (κ 0.81) | 0.92 (κ 0.84) |
+
+- **Disagreements.** There are 49, of which 22 are stable: 10 single messages and 12 conversations.
+- **Reruns.** Five runs made a stray, denied call after writing their answers: three messaging calls (A3 twice, B4) and two session calls (A6, B2). Each was discarded and rerun under the rule. Every final run made only the two allowed calls.
+
+**The stable disagreements fall into four groups:**
+- **`asked` → `none` (14).** The labeller applies "a plan that delivers the goal whatever the cause needs no stated cause" to retries, rate limiters, autosave, circuit breakers and similar mitigations, including plans the sets built as wrong. As written, the rule reaches far wider than the case it was made for.
+- **`objected` → `asked` (6).** These are older objections with no named cause: G40's mismatch and infeasible proposals, and their conversation forms. In each, the user's facts rule the plan out; for example, workers at 20% CPU never trip an autoscaler set to 70%. The 2026-11-22 rule objects to that whether or not a cause is named, but the guide put that branch under asserted causes only.
+- **`objected` → `none` (1).** In `full/inf-01`, the stated requirement (warn whether or not the model is taken in) rules out a plan that only flags disagreement between two of the model's answers. The labeller missed it.
+- **`none` → `asked` (1).** `g42` `admin-page-fits` is a ruling-1 relabel, where a plan clause states the cause. The labeller didn't count the clause.
+
+**Waiting on the owner.** No label has changed yet. Proposed:
+- narrow the works-whatever-the-cause rule to plans that make the symptom impossible by construction, such as a uniqueness check, a hard cap below a limit, or an idempotency key;
+- state that the 2026-11-22 rule's object branch applies whether or not a cause is named;
+- keep the six older objections and the other two single messages as stored.
+
+Conversations are acted on only once their membership in the dev pool is checked against the recorded histories.
+
+**The owner's rulings (2026-11-25).**
+- **"Works whatever the cause" is narrowed.** It now covers only a plan that makes the problem impossible by construction: a uniqueness check, a hard cap below a limit, or an idempotency key. A plan that only reduces or works around the problem doesn't count.
+  - Five of the 14 such disagreements become `none`: the partner rate limiter and the capped mail relay, each in its single and conversation forms, and the idempotency-key conversation `held/late_absent/snd-02`.
+  - The other nine stay `asked`. E8's `double-standup-reminder` still qualifies.
+- **An objection doesn't need a named cause.** When the user's own facts rule the plan out, Gloss objects whether or not a cause is named. Ruling 2's question covers only a plan that doesn't match the symptom. The six older objections stand.
+- **The other two single messages keep their stored labels:** `full/inf-01` and `admin-page-fits`.
+- **Where the relabels live.** They are recorded as `RELABELS` in `eval/older_blind.py`, for E7 to apply when it builds its dev pool. A conversation's relabel applies only if that conversation is in the pool.
+- **E8.** No label changes. Its conventions now carry both clarifications.
+- **For E7:**
+  - G44's fact-against plans count as a 50% chance of being wrong;
+  - the two new questions' thresholds are tuned on dev;
+  - the 16 facts-against pairs get a blind check of their labels first (E7d).
+
+# E7d: a blind check of the facts-against pairs (fixed 2026-11-25; run the same day)
+
+**Why and how.** E7 tunes the thresholds of its two new questions mainly on the 16 facts-against pairs, whose labels had one author and no review. The check used E8b's method:
+- **The labeller** was a model that wrote none of the pairs, none of the Jev questions and none of their examples.
+- **The guide** was E7b's, with the owner's rulings of 2026-11-25: the narrowed rule for plans that make the problem impossible by construction, and the user's own facts judged at any level.
+- **Twins apart.** The two versions of a situation were never in the same batch, so each was judged without its twin.
+
+The goal is in [e7d_pairs_blind_check_goal.md](e7d_pairs_blind_check_goal.md), and the results in [pairs_blind_review.md](pairs_blind_review.md).
+
+| Field | Set vs A | Set vs B | A vs B |
+|---|---|---|---|
+| `expected` | 0.94 (κ **0.88**) | 0.94 (κ 0.88) | 0.88 (κ 0.75) |
+
+- **The reading.** Kappa on `expected` is 0.88, so the labels are reliable enough to tune `t_fa` and `t_ro` on, once the owner has ruled on the two disagreements.
+- **No reruns.** All four runs made only the two allowed calls.
+- **The pairs hold.** Each pass separated seven of the eight pairs the set's way. Both passes objected to all eight `rules_out` versions, each time because the user's fact shows the plan can't deliver.
+- **Two disagreements, neither stable:**
+  - **lower-field-drains, `against` version** (set `asked`). Pass B objected because the cause is untested and the re-drain costly. That is the cost rule, which comes after the facts rule; its own rationale notes the thinnest barley is on ground that never holds water. Pass A asked.
+  - **third-line-cook, `against` version** (set `asked`). Pass A objected, reading "tickets wait even when both cooks are free" as ruling the hire out. Pass B asked. This is the closest call in the set: the fact shows the wait isn't only a shortage of cooks, but not that a third cook can't help in the busy stretches.
+- **Cost and reversibility agree less** (κ 0.62 and 0.43, pass A). Both passes call two plans hard to reverse that the set calls reversible:
+  - wedding-film-export's £780 graphics card, which the guide's definition counts as irreversible, being a purchase;
+  - yellow-tomatoes' fertiliser, forked into the soil.
+
+  E7 scores only `expected` on the pairs, so these labels don't affect it.
+
+**What it shows about E7's table.** In all eight `objected` pairs, the user's fact rules out the plan without counting against the cause. As drafted, row 4 consults `plan_ruled_out` only after `facts_against_cause` fires. These cases would fall through to the level rows, where the three cheap plans on an asserted cause (bedroom-mould, yellow-tomatoes, algebra-club) get no objection. The owner's ruling that an objection doesn't need a named cause needs `plan_ruled_out` to stand on its own.
+
+**Waiting on the owner.** No label has changed. Proposed:
+- both disagreements keep the set's `asked`;
+- wedding-film-export's reversibility becomes `false`, to match the written definition;
+- row 4 of E7's table fires when either new question does, and objects when `plan_ruled_out` reaches `t_ro`.
