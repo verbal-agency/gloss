@@ -79,8 +79,17 @@ AUC_REFERENCE: str | None = "own"                  # owner, 2026-11-26
 APART: tuple[str, ...] = ("evidence_for_cause",)
 # The owner's rulings after the post-dev check: case id -> new label, or EXCLUDE.
 EXCLUDE = "exclude"
-POST_DEV_RULINGS: dict[str, str] = {}
-POST_DEV_RULED: str | None = None                  # the date of those rulings; None refuses selection
+# Owner, 2026-11-26, on the 28 cases in docs/e7_post_dev_check.md: five relabels
+# from `objected` to `asked` (the user's facts weigh against the cause, but the
+# plan could still help); the other 23 keep their labels; none excluded.
+POST_DEV_RULINGS: dict[str, str] = {
+    "full/mis-06": "asked",
+    "full/mis-13": "asked",
+    "full/inf-11": "asked",
+    "g41/single/contradicted/trial-conversion": "asked",
+    "g42/single/contradicted/partner-outages": "asked",
+}
+POST_DEV_RULED: str | None = "2026-11-26"          # the date of those rulings; None refuses selection
 
 _GROUP = {"none": "quiet", "asked": "ask", "objected": "object"}
 
