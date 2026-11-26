@@ -20,6 +20,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
+from app.pipeline.jev_ground import E7Config
 from eval import g41_eval as g41
 from eval import g43_heldout as h
 from eval import g44_heldout as h44
@@ -52,7 +53,10 @@ async def record_g44(concurrency: int) -> None:
 # on dev is committed. Nothing changes after the result. Output names ids and
 # rates only: held-out texts are never printed.
 
-E7_CONFIG = None     # a jev_ground.E7Config, set from `python -m eval.e7_dev --select` and committed first
+# Picked on dev by `python -m eval.e7_dev --select` (2026-11-26): 16 of 20 cells, utility -0.260.
+# The best overall used t_ach_conv = 0.3 (18 cells, -0.242) but gained 0.018 of utility,
+# under the 0.02 the spec requires; the owner kept the rule as written (2026-11-26).
+E7_CONFIG = E7Config(t_link=0.5, t_ev=0.5, t_ach_conv=0.5, t_fa=0.7, t_ro=0.5)
 E7_OUT = Path("results/e7")
 E7_ROWS = {"llm": E7_OUT / "heldout_llm.json", "jev": E7_OUT / "heldout_jev.json"}
 E7_SUMMARY = E7_OUT / "heldout_summary.json"

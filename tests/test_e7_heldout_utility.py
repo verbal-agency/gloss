@@ -126,9 +126,9 @@ def test_the_decision_rule():
     assert ge.e7_decide(small, {"object/conversation": {"rate": 0.6, "cases": 5}}, 0, 0)["replaces_llm"]
 
 
-def test_the_held_out_run_refuses_before_a_configuration_is_committed():
+def test_the_held_out_run_refuses_before_a_configuration_is_committed(monkeypatch):
     import asyncio
 
-    assert ge.E7_CONFIG is None
+    monkeypatch.setattr(ge, "E7_CONFIG", None)   # the configuration is committed now; check the guard without it
     with pytest.raises(SystemExit):
         asyncio.run(ge.e7_run_arm("jev", 1))
