@@ -1,6 +1,6 @@
 # E7: the held-out run on G43 and G44
 
-**Status:** fixed, 2026-11-26, before any Jev or LLM call. Nothing in it has run.
+**Status:** fixed, 2026-11-26, before any Jev or LLM call. Run once on 2026-11-26: Jev cannot replace the LLM classifier (`docs/v3_spike.md`, "E7 result").
 - The owner approved the question changes on 2026-11-25: three rewordings and two new questions.
 - The owner settled row 4, E7d's labels and five details of the runs on 2026-11-26 (see the end).
 
