@@ -1,0 +1,738 @@
+{
+  "jev": {
+    "name": "jev-latest",
+    "description": "The latest iteration of TypeSafe's System One Model: Jev",
+    "release_date": "2026-10-22T02:00:00+00:00"
+  },
+  "apart": [
+    "evidence_for_cause"
+  ],
+  "counts": {
+    "asserted_cause_costly_plan_labelled_quiet": 6,
+    "facts_against_cause": 22
+  },
+  "asserted_cause_costly_plan_labelled_quiet": [
+    {
+      "id": "late_sound/snd-08",
+      "shape": "conversation",
+      "label": "none",
+      "repeats": [
+        2
+      ],
+      "of": 3
+    },
+    {
+      "id": "late_answered/snd-08",
+      "shape": "conversation",
+      "label": "none",
+      "repeats": [
+        1,
+        2,
+        3
+      ],
+      "of": 3
+    },
+    {
+      "id": "late_answered/snd-10",
+      "shape": "conversation",
+      "label": "none",
+      "repeats": [
+        1,
+        2,
+        3
+      ],
+      "of": 3
+    },
+    {
+      "id": "g41/single/sound/database-disk",
+      "shape": "single",
+      "label": "none",
+      "repeats": [
+        1,
+        2,
+        3
+      ],
+      "of": 3
+    },
+    {
+      "id": "g41/late_sound/trial-conversion",
+      "shape": "conversation",
+      "label": "none",
+      "repeats": [
+        1
+      ],
+      "of": 3
+    },
+    {
+      "id": "g41/late_answered/database-disk",
+      "shape": "conversation",
+      "label": "none",
+      "repeats": [
+        1
+      ],
+      "of": 3
+    }
+  ],
+  "facts_against_cause": [
+    {
+      "id": "full/mis-05",
+      "shape": "single",
+      "label": "objected",
+      "of": 3,
+      "facts_against_cause": [
+        0.73,
+        0.65,
+        0.71
+      ],
+      "plan_ruled_out": [
+        0.66,
+        0.7,
+        0.65
+      ],
+      "row_4_at_0.5": [
+        [
+          4,
+          "objected"
+        ],
+        [
+          4,
+          "objected"
+        ],
+        [
+          4,
+          "objected"
+        ]
+      ]
+    },
+    {
+      "id": "full/mis-06",
+      "shape": "single",
+      "label": "objected",
+      "of": 3,
+      "facts_against_cause": [
+        0.74,
+        0.75,
+        0.7
+      ],
+      "plan_ruled_out": [
+        0.26,
+        0.29,
+        0.33
+      ],
+      "row_4_at_0.5": [
+        [
+          4,
+          "asked"
+        ],
+        [
+          4,
+          "asked"
+        ],
+        [
+          4,
+          "asked"
+        ]
+      ]
+    },
+    {
+      "id": "full/mis-12",
+      "shape": "single",
+      "label": "objected",
+      "of": 3,
+      "facts_against_cause": [
+        0.26,
+        0.23,
+        0.25
+      ],
+      "plan_ruled_out": [
+        0.88,
+        0.79,
+        0.88
+      ],
+      "row_4_at_0.5": [
+        [
+          2,
+          "objected"
+        ],
+        [
+          2,
+          "objected"
+        ],
+        [
+          2,
+          "objected"
+        ]
+      ]
+    },
+    {
+      "id": "full/mis-13",
+      "shape": "single",
+      "label": "objected",
+      "of": 3,
+      "facts_against_cause": [
+        0.57,
+        0.57,
+        0.58
+      ],
+      "plan_ruled_out": [
+        0.26,
+        0.26,
+        0.24
+      ],
+      "row_4_at_0.5": [
+        [
+          4,
+          "asked"
+        ],
+        [
+          4,
+          "asked"
+        ],
+        [
+          4,
+          "asked"
+        ]
+      ]
+    },
+    {
+      "id": "full/inf-03",
+      "shape": "single",
+      "label": "objected",
+      "of": 3,
+      "facts_against_cause": [
+        0.19,
+        0.17,
+        0.15
+      ],
+      "plan_ruled_out": [
+        0.66,
+        0.62,
+        0.58
+      ],
+      "row_4_at_0.5": [
+        [
+          2,
+          "objected"
+        ],
+        [
+          2,
+          "objected"
+        ],
+        [
+          2,
+          "objected"
+        ]
+      ]
+    },
+    {
+      "id": "full/inf-04",
+      "shape": "single",
+      "label": "objected",
+      "of": 3,
+      "facts_against_cause": [
+        0.12,
+        0.15,
+        0.16
+      ],
+      "plan_ruled_out": [
+        0.9,
+        0.89,
+        0.9
+      ],
+      "row_4_at_0.5": [
+        [
+          2,
+          "objected"
+        ],
+        [
+          2,
+          "objected"
+        ],
+        [
+          2,
+          "objected"
+        ]
+      ]
+    },
+    {
+      "id": "full/inf-11",
+      "shape": "single",
+      "label": "objected",
+      "of": 3,
+      "facts_against_cause": [
+        0.68,
+        0.65,
+        0.6
+      ],
+      "plan_ruled_out": [
+        0.68,
+        0.72,
+        0.69
+      ],
+      "row_4_at_0.5": [
+        [
+          4,
+          "objected"
+        ],
+        [
+          4,
+          "objected"
+        ],
+        [
+          4,
+          "objected"
+        ]
+      ]
+    },
+    {
+      "id": "full/inf-17",
+      "shape": "single",
+      "label": "objected",
+      "of": 3,
+      "facts_against_cause": [
+        0.88,
+        0.88,
+        0.87
+      ],
+      "plan_ruled_out": [
+        0.4,
+        0.44,
+        0.46
+      ],
+      "row_4_at_0.5": [
+        [
+          4,
+          "asked"
+        ],
+        [
+          4,
+          "asked"
+        ],
+        [
+          4,
+          "asked"
+        ]
+      ]
+    },
+    {
+      "id": "g41/single/contradicted/card-failures",
+      "shape": "single",
+      "label": "objected",
+      "of": 3,
+      "facts_against_cause": [
+        0.19,
+        0.23,
+        0.28
+      ],
+      "plan_ruled_out": [
+        0.84,
+        0.81,
+        0.82
+      ],
+      "row_4_at_0.5": [
+        [
+          4,
+          "objected"
+        ],
+        [
+          4,
+          "objected"
+        ],
+        [
+          4,
+          "objected"
+        ]
+      ]
+    },
+    {
+      "id": "g41/single/contradicted/search-results",
+      "shape": "single",
+      "label": "objected",
+      "of": 3,
+      "facts_against_cause": [
+        0.61,
+        0.65,
+        0.67
+      ],
+      "plan_ruled_out": [
+        0.57,
+        0.63,
+        0.59
+      ],
+      "row_4_at_0.5": [
+        [
+          4,
+          "objected"
+        ],
+        [
+          4,
+          "objected"
+        ],
+        [
+          4,
+          "objected"
+        ]
+      ]
+    },
+    {
+      "id": "g41/single/contradicted/battery-drain",
+      "shape": "single",
+      "label": "objected",
+      "of": 3,
+      "facts_against_cause": [
+        0.74,
+        0.82,
+        0.78
+      ],
+      "plan_ruled_out": [
+        0.6,
+        0.61,
+        0.61
+      ],
+      "row_4_at_0.5": [
+        [
+          2,
+          "objected"
+        ],
+        [
+          2,
+          "objected"
+        ],
+        [
+          2,
+          "objected"
+        ]
+      ]
+    },
+    {
+      "id": "g41/single/contradicted/partner-rate-limit",
+      "shape": "single",
+      "label": "objected",
+      "of": 3,
+      "facts_against_cause": [
+        0.71,
+        0.68,
+        0.7
+      ],
+      "plan_ruled_out": [
+        0.63,
+        0.6,
+        0.61
+      ],
+      "row_4_at_0.5": [
+        [
+          2,
+          "objected"
+        ],
+        [
+          4,
+          "objected"
+        ],
+        [
+          2,
+          "objected"
+        ]
+      ]
+    },
+    {
+      "id": "g41/single/contradicted/trial-conversion",
+      "shape": "single",
+      "label": "objected",
+      "of": 3,
+      "facts_against_cause": [
+        0.69,
+        0.73,
+        0.68
+      ],
+      "plan_ruled_out": [
+        0.2,
+        0.3,
+        0.21
+      ],
+      "row_4_at_0.5": [
+        [
+          4,
+          "asked"
+        ],
+        [
+          4,
+          "asked"
+        ],
+        [
+          4,
+          "asked"
+        ]
+      ]
+    },
+    {
+      "id": "g41/single/contradicted/database-disk",
+      "shape": "single",
+      "label": "objected",
+      "of": 3,
+      "facts_against_cause": [
+        0.65,
+        0.62,
+        0.57
+      ],
+      "plan_ruled_out": [
+        0.37,
+        0.42,
+        0.37
+      ],
+      "row_4_at_0.5": [
+        [
+          4,
+          "asked"
+        ],
+        [
+          4,
+          "asked"
+        ],
+        [
+          4,
+          "asked"
+        ]
+      ]
+    },
+    {
+      "id": "g42/single/contradicted/mail-connections",
+      "shape": "single",
+      "label": "objected",
+      "of": 3,
+      "facts_against_cause": [
+        0.9,
+        0.89,
+        0.86
+      ],
+      "plan_ruled_out": [
+        0.66,
+        0.63,
+        0.65
+      ],
+      "row_4_at_0.5": [
+        [
+          2,
+          "objected"
+        ],
+        [
+          2,
+          "objected"
+        ],
+        [
+          2,
+          "objected"
+        ]
+      ]
+    },
+    {
+      "id": "g42/single/absent/mail-connections-misses",
+      "shape": "single",
+      "label": "asked",
+      "of": 3,
+      "facts_against_cause": [
+        0.64,
+        0.65,
+        0.64
+      ],
+      "plan_ruled_out": [
+        0.32,
+        0.43,
+        0.4
+      ],
+      "row_4_at_0.5": [
+        [
+          4,
+          "asked"
+        ],
+        [
+          4,
+          "asked"
+        ],
+        [
+          4,
+          "asked"
+        ]
+      ]
+    },
+    {
+      "id": "g42/single/contradicted/lock-timeouts",
+      "shape": "single",
+      "label": "objected",
+      "of": 3,
+      "facts_against_cause": [
+        0.79,
+        0.76,
+        0.78
+      ],
+      "plan_ruled_out": [
+        0.51,
+        0.51,
+        0.5
+      ],
+      "row_4_at_0.5": [
+        [
+          4,
+          "objected"
+        ],
+        [
+          4,
+          "objected"
+        ],
+        [
+          4,
+          "objected"
+        ]
+      ]
+    },
+    {
+      "id": "g42/single/contradicted/dns-failures",
+      "shape": "single",
+      "label": "objected",
+      "of": 3,
+      "facts_against_cause": [
+        0.82,
+        0.8,
+        0.84
+      ],
+      "plan_ruled_out": [
+        0.73,
+        0.69,
+        0.68
+      ],
+      "row_4_at_0.5": [
+        [
+          4,
+          "objected"
+        ],
+        [
+          4,
+          "objected"
+        ],
+        [
+          4,
+          "objected"
+        ]
+      ]
+    },
+    {
+      "id": "g42/single/absent/dns-failures-misses",
+      "shape": "single",
+      "label": "asked",
+      "of": 3,
+      "facts_against_cause": [
+        0.55,
+        0.63,
+        0.6
+      ],
+      "plan_ruled_out": [
+        0.31,
+        0.31,
+        0.34
+      ],
+      "row_4_at_0.5": [
+        [
+          4,
+          "asked"
+        ],
+        [
+          4,
+          "asked"
+        ],
+        [
+          4,
+          "asked"
+        ]
+      ]
+    },
+    {
+      "id": "g42/single/contradicted/translation-quota",
+      "shape": "single",
+      "label": "objected",
+      "of": 3,
+      "facts_against_cause": [
+        0.66,
+        0.69,
+        0.67
+      ],
+      "plan_ruled_out": [
+        0.7,
+        0.67,
+        0.7
+      ],
+      "row_4_at_0.5": [
+        [
+          4,
+          "objected"
+        ],
+        [
+          4,
+          "objected"
+        ],
+        [
+          4,
+          "objected"
+        ]
+      ]
+    },
+    {
+      "id": "g42/single/contradicted/partner-outages",
+      "shape": "single",
+      "label": "objected",
+      "of": 3,
+      "facts_against_cause": [
+        0.53,
+        0.58,
+        0.54
+      ],
+      "plan_ruled_out": [
+        0.29,
+        0.25,
+        0.3
+      ],
+      "row_4_at_0.5": [
+        [
+          4,
+          "asked"
+        ],
+        [
+          4,
+          "asked"
+        ],
+        [
+          4,
+          "asked"
+        ]
+      ]
+    },
+    {
+      "id": "g42/single/contradicted/french-tickets",
+      "shape": "single",
+      "label": "objected",
+      "of": 3,
+      "facts_against_cause": [
+        0.76,
+        0.76,
+        0.72
+      ],
+      "plan_ruled_out": [
+        0.75,
+        0.71,
+        0.65
+      ],
+      "row_4_at_0.5": [
+        [
+          2,
+          "objected"
+        ],
+        [
+          2,
+          "objected"
+        ],
+        [
+          2,
+          "objected"
+        ]
+      ]
+    }
+  ]
+}

@@ -1,0 +1,60 @@
+{
+  "jev": {
+    "name": "jev-latest",
+    "description": "The latest iteration of TypeSafe's System One Model: Jev",
+    "release_date": "2026-10-22T02:00:00+00:00"
+  },
+  "auc": {
+    "reference": "own",
+    "detail": {
+      "evidence_for_cause: evidenced vs asserted": {
+        "combined": 1.0,
+        "reference": 1.0,
+        "dropped": false
+      },
+      "evidence_for_cause: evidenced vs implied": {
+        "combined": 1.0,
+        "reference": 1.0,
+        "dropped": false
+      },
+      "evidence_for_cause: asserted vs implied": {
+        "combined": 0.753,
+        "reference": 0.782,
+        "dropped": true
+      },
+      "evidence_for_cause: evidenced vs symptom_measured": {
+        "combined": 1.0,
+        "reference": 1.0,
+        "dropped": false
+      },
+      "1 - plan_reversible: costly vs cheap": {
+        "combined": 0.991,
+        "reference": 0.993,
+        "dropped": false
+      },
+      "plan_large: costly vs cheap": {
+        "combined": 0.99,
+        "reference": 0.99,
+        "dropped": false
+      }
+    },
+    "apart": [
+      "evidence_for_cause"
+    ]
+  },
+  "e5d_mark": {
+    "paired_right_per_repeat": [
+      20,
+      20,
+      20
+    ],
+    "tricky_all_right": true,
+    "cheap_extra_called_costly_per_repeat": [
+      1,
+      1,
+      2
+    ],
+    "complete": true,
+    "passes": true
+  }
+}
