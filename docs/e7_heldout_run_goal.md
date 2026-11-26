@@ -151,10 +151,10 @@ The configuration with the most cells within max(0.07, one case) of the LLM wins
 7. **"Works whatever the cause."** Narrowed to plans that make the problem impossible by construction.
 8. **Objection without a named cause.** An objection doesn't need a named cause when the user's facts rule the plan out.
 
+**Settled on 2026-11-26:**
+9. **E7d's outcome.** The pairs' labels stand (κ 0.88). Both disagreements keep the set's `asked`, and wedding-film-export's plan becomes hard to reverse, a purchase under the written definition.
+
 **Still open:**
-- **E7d's outcome.** κ 0.88 on `expected`, with two disagreements, neither stable ([pairs_blind_review.md](pairs_blind_review.md)). Proposed:
-  - both keep the set's `asked`;
-  - wedding-film-export's reversibility becomes `false`, to match the written definition.
 - **Row 4 (proposed after E7d).** In all eight `objected` pairs, the user's fact rules out the plan without counting against the cause. Both blind passes objected to all eight for that reason. As drafted, row 4 consults `plan_ruled_out` only after `facts_against_cause` fires, so these cases fall through to the level rows. There, the three cheap plans on an asserted cause get no objection. Proposed row 4:
   - condition: `plan_ruled_out` ≥ t_ro or `facts_against_cause` ≥ t_fa;
   - action: `objected` if `plan_ruled_out` ≥ t_ro, else `asked`.

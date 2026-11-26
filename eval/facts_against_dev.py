@@ -21,6 +21,10 @@ Dev only. Written 2026-11-25 by a model other than the one that wrote the Jev
 questions, their examples, the earlier dev sets and the E7 spec, without
 reading any other set.
 
+E7d (2026-11-26): a blind check agreed with 15 of the 16 labels in each pass. The
+owner kept both disputed labels, and made the graphics card in
+wedding-film-export hard to reverse, a purchase under the written definition.
+
 Review page: python -m eval.facts_against_dev > docs/facts_against_dev_review.md
 """
 from __future__ import annotations
@@ -125,7 +129,8 @@ SITUATIONS: dict[str, dict] = {
         "R": "cut a four-hour export to about an hour",
         "D": "the PC is not powerful enough for 4K exports",
         "S": "buy a new £780 graphics card",
-        "level": "evidenced", "cost": "mid", "reversible": True,
+        # Hard to reverse: a purchase, under the written definition (owner, 2026-11-26, after E7d).
+        "level": "evidenced", "cost": "mid", "reversible": False,
         "rationale": {
             "asked": ("The same PC exported the same kind of film in forty minutes until October, so lack of "
                       "power does not explain the slowdown; what changed is unknown and a faster card might "
@@ -183,7 +188,8 @@ SITUATIONS: dict[str, dict] = {
         "level": "evidenced", "cost": "costly", "reversible": False,
         "rationale": {
             "asked": ("The poorest crop is on ground that never holds water, which waterlogging cannot explain; "
-                      "the cause of the low yield is unknown and new drains might still help the wet end."),
+                      "the cause of the low yield is unknown and new drains might still help the wet end (kept by the owner "
+                      "after E7d, 2026-11-26)."),
             "objected": ("The only outfall is higher than the field's low corner and cannot be lowered, so the "
                          "new pipes would have nowhere to empty and could not dry the field."),
         },
@@ -210,7 +216,8 @@ SITUATIONS: dict[str, dict] = {
         "level": "asserted", "cost": "mid", "reversible": False,
         "rationale": {
             "asked": ("Tickets waited while both cooks were free, which a shortage of cooks does not explain; "
-                      "where the delay comes from is unknown and another pair of hands might still help."),
+                      "where the delay comes from is unknown and another pair of hands might still help in the busy "
+                      "stretches (kept by the owner after E7d, 2026-11-26)."),
             "objected": ("Every burner and the fryer are already in use all service and there is no room on the "
                          "line, so a third cook would have nothing to cook on and could not speed up the mains."),
         },

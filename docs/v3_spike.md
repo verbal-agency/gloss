@@ -1668,3 +1668,9 @@ The goal is in [e7d_pairs_blind_check_goal.md](e7d_pairs_blind_check_goal.md), a
 - both disagreements keep the set's `asked`;
 - wedding-film-export's reversibility becomes `false`, to match the written definition;
 - row 4 of E7's table fires when either new question does, and objects when `plan_ruled_out` reaches `t_ro`.
+
+**The owner's rulings (2026-11-26).**
+- **Both disagreements keep the set's `asked`:** lower-field-drains and third-line-cook, each in its `against` version. Their rationales now say so.
+- **wedding-film-export's plan is hard to reverse.** A purchase counts as hard to reverse under the written definition, as both passes said. E7 scores only `expected` on the pairs, so this doesn't affect it.
+- **The E7d result stands as run.** The results page lists the change under "Since the run".
+- **Row 4 of E7's table** is still open.

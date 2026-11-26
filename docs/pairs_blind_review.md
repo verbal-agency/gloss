@@ -91,4 +91,9 @@ A disagreement is stable when both passes give the same label and it isn't the s
 
 ## Since the run
 
-No label has changed since the run.
+These labels have changed since the run:
+
+- fadev/single/wedding-film-export/asked: `reversible` True → False
+- fadev/single/wedding-film-export/objected: `reversible` True → False
+
+Against the set as it stands now, agreement on `expected` is 0.94 (κ 0.88) for pass A and 0.94 (κ 0.88) for pass B.
