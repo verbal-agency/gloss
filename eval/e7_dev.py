@@ -74,7 +74,9 @@ HISTORY_JUDGING: str | None = "own_words"          # owner, 2026-11-26
 #   "recorded"   the AUCs E5c and E5d recorded on 2026-11-20 (jev-1.14.0, old wordings)
 AUC_REFERENCE: str | None = "own"                  # owner, 2026-11-26
 # Questions moved back to requests of their own by the AUC check (empty: one request).
-APART: tuple[str, ...] = ()
+# 2026-11-26: the check moved evidence_for_cause (asserted vs implied: 0.753
+# combined, 0.782 in its own request, a drop of 0.029).
+APART: tuple[str, ...] = ("evidence_for_cause",)
 # The owner's rulings after the post-dev check: case id -> new label, or EXCLUDE.
 EXCLUDE = "exclude"
 POST_DEV_RULINGS: dict[str, str] = {}
