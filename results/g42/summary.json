@@ -1,0 +1,551 @@
+{
+  "cases": {
+    "dev": 175,
+    "test": 64,
+    "test_conversations": 26
+  },
+  "llm": {
+    "dev": 0.843,
+    "test": {
+      "absent/conversation": {
+        "hit": 9,
+        "n": 18,
+        "missing": 0,
+        "cases": 6,
+        "rate": 0.5
+      },
+      "absent/single": {
+        "hit": 36,
+        "n": 48,
+        "missing": 0,
+        "cases": 16,
+        "rate": 0.75
+      },
+      "answered/conversation": {
+        "hit": 18,
+        "n": 18,
+        "missing": 0,
+        "cases": 6,
+        "rate": 1.0
+      },
+      "contradicted/single": {
+        "hit": 24,
+        "n": 24,
+        "missing": 0,
+        "cases": 8,
+        "rate": 1.0
+      },
+      "sound/conversation": {
+        "hit": 24,
+        "n": 24,
+        "missing": 0,
+        "cases": 8,
+        "rate": 1.0
+      },
+      "sound/single": {
+        "hit": 24,
+        "n": 24,
+        "missing": 0,
+        "cases": 8,
+        "rate": 1.0
+      },
+      "task/conversation": {
+        "hit": 18,
+        "n": 18,
+        "missing": 0,
+        "cases": 6,
+        "rate": 1.0
+      },
+      "task/single": {
+        "hit": 18,
+        "n": 18,
+        "missing": 0,
+        "cases": 6,
+        "rate": 1.0
+      }
+    },
+    "by_pattern": {
+      "error-type/conversation": {
+        "hit": 6,
+        "n": 6,
+        "missing": 0,
+        "cases": 2,
+        "rate": 1.0
+      },
+      "error-type/single": {
+        "hit": 18,
+        "n": 24,
+        "missing": 0,
+        "cases": 8,
+        "rate": 0.75
+      },
+      "plan-names/conversation": {
+        "hit": 3,
+        "n": 12,
+        "missing": 0,
+        "cases": 4,
+        "rate": 0.25
+      },
+      "plan-names/single": {
+        "hit": 18,
+        "n": 24,
+        "missing": 0,
+        "cases": 8,
+        "rate": 0.75
+      }
+    },
+    "by_family": {
+      "admin-page": {
+        "hit": 20,
+        "n": 21,
+        "missing": 0,
+        "cases": 7,
+        "rate": 0.952
+      },
+      "cold-starts": {
+        "hit": 12,
+        "n": 18,
+        "missing": 0,
+        "cases": 6,
+        "rate": 0.667
+      },
+      "dns-failures": {
+        "hit": 18,
+        "n": 18,
+        "missing": 0,
+        "cases": 6,
+        "rate": 1.0
+      },
+      "french-tickets": {
+        "hit": 15,
+        "n": 21,
+        "missing": 0,
+        "cases": 7,
+        "rate": 0.714
+      },
+      "lock-timeouts": {
+        "hit": 21,
+        "n": 21,
+        "missing": 0,
+        "cases": 7,
+        "rate": 1.0
+      },
+      "mail-connections": {
+        "hit": 15,
+        "n": 18,
+        "missing": 0,
+        "cases": 6,
+        "rate": 0.833
+      },
+      "partner-outages": {
+        "hit": 19,
+        "n": 21,
+        "missing": 0,
+        "cases": 7,
+        "rate": 0.905
+      },
+      "task-backup-encryption": {
+        "hit": 6,
+        "n": 6,
+        "missing": 0,
+        "cases": 2,
+        "rate": 1.0
+      },
+      "task-calendar-feed": {
+        "hit": 6,
+        "n": 6,
+        "missing": 0,
+        "cases": 2,
+        "rate": 1.0
+      },
+      "task-cron-move": {
+        "hit": 6,
+        "n": 6,
+        "missing": 0,
+        "cases": 2,
+        "rate": 1.0
+      },
+      "task-lead-upload": {
+        "hit": 6,
+        "n": 6,
+        "missing": 0,
+        "cases": 2,
+        "rate": 1.0
+      },
+      "task-pdf-receipts": {
+        "hit": 6,
+        "n": 6,
+        "missing": 0,
+        "cases": 2,
+        "rate": 1.0
+      },
+      "task-referral-codes": {
+        "hit": 6,
+        "n": 6,
+        "missing": 0,
+        "cases": 2,
+        "rate": 1.0
+      },
+      "translation-quota": {
+        "hit": 15,
+        "n": 18,
+        "missing": 0,
+        "cases": 6,
+        "rate": 0.833
+      }
+    }
+  },
+  "jev": {
+    "arm": "jev_g42_plain",
+    "dev_balanced": 0.88,
+    "shared_best": {
+      "arm": "jev_g42_plain",
+      "rule": "problem_described>=0.3 min(mechanism_stated)<0.7 contra>=0.3",
+      "dev": 0.88
+    },
+    "per_shape_best": {
+      "arm": "jev_g42_plain",
+      "single": "problem_described>=0.7 min(mechanism_stated)<0.7 contra>=0.3",
+      "conversation": "problem_described>=0.3 min(mechanism_stated)<0.7 contra>=0.3",
+      "dev": 0.882
+    },
+    "per_arm_shared": {
+      "jev_g42": {
+        "rule": "problem_described>=0.3 min(mechanism_stated)<0.7 contra>=0.3",
+        "dev": 0.877
+      },
+      "jev_g42_plain": {
+        "rule": "problem_described>=0.3 min(mechanism_stated)<0.7 contra>=0.3",
+        "dev": 0.88
+      }
+    },
+    "single_rule": "problem_described>=0.3 min(mechanism_stated)<0.7 contra>=0.3",
+    "conversation_rule": null,
+    "test": {
+      "absent/conversation": {
+        "hit": 15,
+        "n": 18,
+        "missing": 0,
+        "cases": 6,
+        "rate": 0.833
+      },
+      "absent/single": {
+        "hit": 35,
+        "n": 48,
+        "missing": 0,
+        "cases": 16,
+        "rate": 0.729
+      },
+      "answered/conversation": {
+        "hit": 14,
+        "n": 18,
+        "missing": 0,
+        "cases": 6,
+        "rate": 0.778
+      },
+      "contradicted/single": {
+        "hit": 24,
+        "n": 24,
+        "missing": 0,
+        "cases": 8,
+        "rate": 1.0
+      },
+      "sound/conversation": {
+        "hit": 24,
+        "n": 24,
+        "missing": 0,
+        "cases": 8,
+        "rate": 1.0
+      },
+      "sound/single": {
+        "hit": 24,
+        "n": 24,
+        "missing": 0,
+        "cases": 8,
+        "rate": 1.0
+      },
+      "task/conversation": {
+        "hit": 18,
+        "n": 18,
+        "missing": 0,
+        "cases": 6,
+        "rate": 1.0
+      },
+      "task/single": {
+        "hit": 18,
+        "n": 18,
+        "missing": 0,
+        "cases": 6,
+        "rate": 1.0
+      }
+    },
+    "by_pattern": {
+      "error-type/conversation": {
+        "hit": 6,
+        "n": 6,
+        "missing": 0,
+        "cases": 2,
+        "rate": 1.0
+      },
+      "error-type/single": {
+        "hit": 15,
+        "n": 24,
+        "missing": 0,
+        "cases": 8,
+        "rate": 0.625
+      },
+      "plan-names/conversation": {
+        "hit": 9,
+        "n": 12,
+        "missing": 0,
+        "cases": 4,
+        "rate": 0.75
+      },
+      "plan-names/single": {
+        "hit": 20,
+        "n": 24,
+        "missing": 0,
+        "cases": 8,
+        "rate": 0.833
+      }
+    },
+    "by_family": {
+      "admin-page": {
+        "hit": 21,
+        "n": 21,
+        "missing": 0,
+        "cases": 7,
+        "rate": 1.0
+      },
+      "cold-starts": {
+        "hit": 13,
+        "n": 18,
+        "missing": 0,
+        "cases": 6,
+        "rate": 0.722
+      },
+      "dns-failures": {
+        "hit": 15,
+        "n": 18,
+        "missing": 0,
+        "cases": 6,
+        "rate": 0.833
+      },
+      "french-tickets": {
+        "hit": 16,
+        "n": 21,
+        "missing": 0,
+        "cases": 7,
+        "rate": 0.762
+      },
+      "lock-timeouts": {
+        "hit": 18,
+        "n": 21,
+        "missing": 0,
+        "cases": 7,
+        "rate": 0.857
+      },
+      "mail-connections": {
+        "hit": 14,
+        "n": 18,
+        "missing": 0,
+        "cases": 6,
+        "rate": 0.778
+      },
+      "partner-outages": {
+        "hit": 21,
+        "n": 21,
+        "missing": 0,
+        "cases": 7,
+        "rate": 1.0
+      },
+      "task-backup-encryption": {
+        "hit": 6,
+        "n": 6,
+        "missing": 0,
+        "cases": 2,
+        "rate": 1.0
+      },
+      "task-calendar-feed": {
+        "hit": 6,
+        "n": 6,
+        "missing": 0,
+        "cases": 2,
+        "rate": 1.0
+      },
+      "task-cron-move": {
+        "hit": 6,
+        "n": 6,
+        "missing": 0,
+        "cases": 2,
+        "rate": 1.0
+      },
+      "task-lead-upload": {
+        "hit": 6,
+        "n": 6,
+        "missing": 0,
+        "cases": 2,
+        "rate": 1.0
+      },
+      "task-pdf-receipts": {
+        "hit": 6,
+        "n": 6,
+        "missing": 0,
+        "cases": 2,
+        "rate": 1.0
+      },
+      "task-referral-codes": {
+        "hit": 6,
+        "n": 6,
+        "missing": 0,
+        "cases": 2,
+        "rate": 1.0
+      },
+      "translation-quota": {
+        "hit": 18,
+        "n": 18,
+        "missing": 0,
+        "cases": 6,
+        "rate": 1.0
+      }
+    }
+  },
+  "g41_pick_on_g42_test": {
+    "test": {
+      "absent/conversation": {
+        "hit": 5,
+        "n": 18,
+        "missing": 0,
+        "cases": 6,
+        "rate": 0.278
+      },
+      "absent/single": {
+        "hit": 18,
+        "n": 48,
+        "missing": 0,
+        "cases": 16,
+        "rate": 0.375
+      },
+      "answered/conversation": {
+        "hit": 14,
+        "n": 18,
+        "missing": 0,
+        "cases": 6,
+        "rate": 0.778
+      },
+      "contradicted/single": {
+        "hit": 24,
+        "n": 24,
+        "missing": 0,
+        "cases": 8,
+        "rate": 1.0
+      },
+      "sound/conversation": {
+        "hit": 24,
+        "n": 24,
+        "missing": 0,
+        "cases": 8,
+        "rate": 1.0
+      },
+      "sound/single": {
+        "hit": 24,
+        "n": 24,
+        "missing": 0,
+        "cases": 8,
+        "rate": 1.0
+      },
+      "task/conversation": {
+        "hit": 18,
+        "n": 18,
+        "missing": 0,
+        "cases": 6,
+        "rate": 1.0
+      },
+      "task/single": {
+        "hit": 18,
+        "n": 18,
+        "missing": 0,
+        "cases": 6,
+        "rate": 1.0
+      }
+    },
+    "by_pattern": {
+      "error-type/conversation": {
+        "hit": 2,
+        "n": 6,
+        "missing": 0,
+        "cases": 2,
+        "rate": 0.333
+      },
+      "error-type/single": {
+        "hit": 6,
+        "n": 24,
+        "missing": 0,
+        "cases": 8,
+        "rate": 0.25
+      },
+      "plan-names/conversation": {
+        "hit": 3,
+        "n": 12,
+        "missing": 0,
+        "cases": 4,
+        "rate": 0.25
+      },
+      "plan-names/single": {
+        "hit": 12,
+        "n": 24,
+        "missing": 0,
+        "cases": 8,
+        "rate": 0.5
+      }
+    }
+  },
+  "decision": {
+    "matches_current": false,
+    "detail": {
+      "absent/conversation": {
+        "llm": 0.5,
+        "jev": 0.833,
+        "tolerance": 0.167,
+        "met": true
+      },
+      "absent/single": {
+        "llm": 0.75,
+        "jev": 0.729,
+        "tolerance": 0.07,
+        "met": true
+      },
+      "answered/conversation": {
+        "llm": 1.0,
+        "jev": 0.778,
+        "tolerance": 0.167,
+        "met": false
+      },
+      "sound/conversation": {
+        "llm": 1.0,
+        "jev": 1.0,
+        "tolerance": 0.125,
+        "met": true
+      },
+      "sound/single": {
+        "llm": 1.0,
+        "jev": 1.0,
+        "tolerance": 0.125,
+        "met": true
+      },
+      "task/conversation": {
+        "llm": 1.0,
+        "jev": 1.0,
+        "tolerance": 0.167,
+        "met": true
+      },
+      "task/single": {
+        "llm": 1.0,
+        "jev": 1.0,
+        "tolerance": 0.167,
+        "met": true
+      }
+    },
+    "reading": "Jev does not match the current classifier"
+  }
+}

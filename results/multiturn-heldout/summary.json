@@ -1,0 +1,106 @@
+{
+  "repeats": 3,
+  "files": [
+    "heldout_repeat1.json",
+    "heldout_repeat2.json",
+    "heldout_repeat3.json"
+  ],
+  "scenarios": {
+    "late_sound": {
+      "mark": 0.8,
+      "direct_late": {
+        "pass_per_repeat": [
+          14,
+          14,
+          14
+        ],
+        "n": 14,
+        "lowest_rate": 1.0,
+        "highest_rate": 1.0,
+        "met_per_repeat": [
+          true,
+          true,
+          true
+        ],
+        "always_succeeded": 14,
+        "never_succeeded": 0,
+        "varied": []
+      },
+      "ground_late": {
+        "pass_per_repeat": [
+          14,
+          14,
+          13
+        ],
+        "n": 14,
+        "lowest_rate": 0.929,
+        "highest_rate": 1.0,
+        "met_per_repeat": [
+          true,
+          true,
+          true
+        ],
+        "always_succeeded": 13,
+        "never_succeeded": 0,
+        "varied": [
+          "held/late_sound/lost-edits"
+        ]
+      }
+    },
+    "late_absent": {
+      "mark": 0.75,
+      "direct_late": {
+        "pass_per_repeat": [
+          0,
+          0,
+          0
+        ],
+        "n": 14,
+        "lowest_rate": 0.0,
+        "highest_rate": 0.0,
+        "met_per_repeat": [
+          false,
+          false,
+          false
+        ],
+        "always_succeeded": 0,
+        "never_succeeded": 14,
+        "varied": []
+      },
+      "ground_late": {
+        "pass_per_repeat": [
+          10,
+          12,
+          11
+        ],
+        "n": 14,
+        "lowest_rate": 0.714,
+        "highest_rate": 0.857,
+        "met_per_repeat": [
+          false,
+          true,
+          true
+        ],
+        "always_succeeded": 10,
+        "never_succeeded": 2,
+        "varied": [
+          "held/late_absent/lost-edits-misses",
+          "held/late_absent/snd-15"
+        ]
+      }
+    }
+  },
+  "task_controls_ground_late": {
+    "held/late_sound/task-snd-05": [
+      true,
+      true,
+      true
+    ],
+    "held/late_sound/task-snd-09": [
+      true,
+      true,
+      true
+    ]
+  },
+  "claim": "mixed: report the range and claim neither"
+}

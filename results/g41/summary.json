@@ -1,0 +1,525 @@
+{
+  "cases": {
+    "dev": 105,
+    "test": 70,
+    "test_conversations": 32
+  },
+  "llm": {
+    "dev": 0.807,
+    "test": {
+      "absent/conversation": {
+        "hit": 21,
+        "n": 30,
+        "missing": 0,
+        "cases": 10,
+        "rate": 0.7
+      },
+      "absent/single": {
+        "hit": 48,
+        "n": 48,
+        "missing": 0,
+        "cases": 16,
+        "rate": 1.0
+      },
+      "answered/conversation": {
+        "hit": 24,
+        "n": 24,
+        "missing": 0,
+        "cases": 8,
+        "rate": 1.0
+      },
+      "contradicted/single": {
+        "hit": 24,
+        "n": 24,
+        "missing": 0,
+        "cases": 8,
+        "rate": 1.0
+      },
+      "sound/conversation": {
+        "hit": 24,
+        "n": 24,
+        "missing": 0,
+        "cases": 8,
+        "rate": 1.0
+      },
+      "sound/single": {
+        "hit": 24,
+        "n": 24,
+        "missing": 0,
+        "cases": 8,
+        "rate": 1.0
+      },
+      "task/conversation": {
+        "hit": 18,
+        "n": 18,
+        "missing": 0,
+        "cases": 6,
+        "rate": 1.0
+      },
+      "task/single": {
+        "hit": 18,
+        "n": 18,
+        "missing": 0,
+        "cases": 6,
+        "rate": 1.0
+      }
+    },
+    "by_family": {
+      "battery-drain": {
+        "hit": 21,
+        "n": 21,
+        "missing": 0,
+        "cases": 7,
+        "rate": 1.0
+      },
+      "card-failures": {
+        "hit": 21,
+        "n": 21,
+        "missing": 0,
+        "cases": 7,
+        "rate": 1.0
+      },
+      "database-disk": {
+        "hit": 19,
+        "n": 24,
+        "missing": 0,
+        "cases": 8,
+        "rate": 0.792
+      },
+      "late-report": {
+        "hit": 24,
+        "n": 24,
+        "missing": 0,
+        "cases": 8,
+        "rate": 1.0
+      },
+      "partner-rate-limit": {
+        "hit": 21,
+        "n": 21,
+        "missing": 0,
+        "cases": 7,
+        "rate": 1.0
+      },
+      "search-results": {
+        "hit": 18,
+        "n": 18,
+        "missing": 0,
+        "cases": 6,
+        "rate": 1.0
+      },
+      "stale-dashboard": {
+        "hit": 20,
+        "n": 21,
+        "missing": 0,
+        "cases": 7,
+        "rate": 0.952
+      },
+      "task-admin-2fa": {
+        "hit": 6,
+        "n": 6,
+        "missing": 0,
+        "cases": 2,
+        "rate": 1.0
+      },
+      "task-appointment-reminders": {
+        "hit": 6,
+        "n": 6,
+        "missing": 0,
+        "cases": 2,
+        "rate": 1.0
+      },
+      "task-invoice-csv": {
+        "hit": 6,
+        "n": 6,
+        "missing": 0,
+        "cases": 2,
+        "rate": 1.0
+      },
+      "task-s3-uploads": {
+        "hit": 6,
+        "n": 6,
+        "missing": 0,
+        "cases": 2,
+        "rate": 1.0
+      },
+      "task-team-invites": {
+        "hit": 6,
+        "n": 6,
+        "missing": 0,
+        "cases": 2,
+        "rate": 1.0
+      },
+      "task-weekly-digest": {
+        "hit": 6,
+        "n": 6,
+        "missing": 0,
+        "cases": 2,
+        "rate": 1.0
+      },
+      "trial-conversion": {
+        "hit": 21,
+        "n": 24,
+        "missing": 0,
+        "cases": 8,
+        "rate": 0.875
+      }
+    }
+  },
+  "jev": {
+    "arm": "jev_text",
+    "dev_balanced": 0.824,
+    "shared_best": {
+      "arm": "jev_text",
+      "rule": "link: problem_described>=0.3 p_absent>=0.2 contra>=0.3",
+      "dev": 0.824
+    },
+    "per_shape_best": {
+      "arm": "jev_text",
+      "single": "link: problem_described>=0.3 p_absent>=0.3 contra>=0.3",
+      "conversation": "link: problem_described>=0.3 p_absent>=0.2 contra>=0.3",
+      "dev": 0.84
+    },
+    "per_arm_shared": {
+      "jev_text": {
+        "rule": "link: problem_described>=0.3 p_absent>=0.2 contra>=0.3",
+        "dev": 0.824
+      },
+      "jev_json": {
+        "rule": "link: problem_described>=0.3 p_absent>=0.2 contra>=0.3",
+        "dev": 0.777
+      }
+    },
+    "single_rule": "link: problem_described>=0.3 p_absent>=0.2 contra>=0.3",
+    "conversation_rule": null,
+    "test": {
+      "absent/conversation": {
+        "hit": 20,
+        "n": 30,
+        "missing": 0,
+        "cases": 10,
+        "rate": 0.667
+      },
+      "absent/single": {
+        "hit": 35,
+        "n": 48,
+        "missing": 0,
+        "cases": 16,
+        "rate": 0.729
+      },
+      "answered/conversation": {
+        "hit": 24,
+        "n": 24,
+        "missing": 0,
+        "cases": 8,
+        "rate": 1.0
+      },
+      "contradicted/single": {
+        "hit": 21,
+        "n": 24,
+        "missing": 0,
+        "cases": 8,
+        "rate": 0.875
+      },
+      "sound/conversation": {
+        "hit": 24,
+        "n": 24,
+        "missing": 0,
+        "cases": 8,
+        "rate": 1.0
+      },
+      "sound/single": {
+        "hit": 24,
+        "n": 24,
+        "missing": 0,
+        "cases": 8,
+        "rate": 1.0
+      },
+      "task/conversation": {
+        "hit": 18,
+        "n": 18,
+        "missing": 0,
+        "cases": 6,
+        "rate": 1.0
+      },
+      "task/single": {
+        "hit": 18,
+        "n": 18,
+        "missing": 0,
+        "cases": 6,
+        "rate": 1.0
+      }
+    },
+    "by_family": {
+      "battery-drain": {
+        "hit": 21,
+        "n": 21,
+        "missing": 0,
+        "cases": 7,
+        "rate": 1.0
+      },
+      "card-failures": {
+        "hit": 18,
+        "n": 21,
+        "missing": 0,
+        "cases": 7,
+        "rate": 0.857
+      },
+      "database-disk": {
+        "hit": 17,
+        "n": 24,
+        "missing": 0,
+        "cases": 8,
+        "rate": 0.708
+      },
+      "late-report": {
+        "hit": 24,
+        "n": 24,
+        "missing": 0,
+        "cases": 8,
+        "rate": 1.0
+      },
+      "partner-rate-limit": {
+        "hit": 12,
+        "n": 21,
+        "missing": 0,
+        "cases": 7,
+        "rate": 0.571
+      },
+      "search-results": {
+        "hit": 18,
+        "n": 18,
+        "missing": 0,
+        "cases": 6,
+        "rate": 1.0
+      },
+      "stale-dashboard": {
+        "hit": 15,
+        "n": 21,
+        "missing": 0,
+        "cases": 7,
+        "rate": 0.714
+      },
+      "task-admin-2fa": {
+        "hit": 6,
+        "n": 6,
+        "missing": 0,
+        "cases": 2,
+        "rate": 1.0
+      },
+      "task-appointment-reminders": {
+        "hit": 6,
+        "n": 6,
+        "missing": 0,
+        "cases": 2,
+        "rate": 1.0
+      },
+      "task-invoice-csv": {
+        "hit": 6,
+        "n": 6,
+        "missing": 0,
+        "cases": 2,
+        "rate": 1.0
+      },
+      "task-s3-uploads": {
+        "hit": 6,
+        "n": 6,
+        "missing": 0,
+        "cases": 2,
+        "rate": 1.0
+      },
+      "task-team-invites": {
+        "hit": 6,
+        "n": 6,
+        "missing": 0,
+        "cases": 2,
+        "rate": 1.0
+      },
+      "task-weekly-digest": {
+        "hit": 6,
+        "n": 6,
+        "missing": 0,
+        "cases": 2,
+        "rate": 1.0
+      },
+      "trial-conversion": {
+        "hit": 23,
+        "n": 24,
+        "missing": 0,
+        "cases": 8,
+        "rate": 0.958
+      }
+    }
+  },
+  "jev_by_state": {
+    "jev_text": {
+      "rule": "link: problem_described>=0.3 p_absent>=0.2 contra>=0.3",
+      "test": {
+        "absent/conversation": {
+          "hit": 20,
+          "n": 30,
+          "missing": 0,
+          "cases": 10,
+          "rate": 0.667
+        },
+        "absent/single": {
+          "hit": 35,
+          "n": 48,
+          "missing": 0,
+          "cases": 16,
+          "rate": 0.729
+        },
+        "answered/conversation": {
+          "hit": 24,
+          "n": 24,
+          "missing": 0,
+          "cases": 8,
+          "rate": 1.0
+        },
+        "contradicted/single": {
+          "hit": 21,
+          "n": 24,
+          "missing": 0,
+          "cases": 8,
+          "rate": 0.875
+        },
+        "sound/conversation": {
+          "hit": 24,
+          "n": 24,
+          "missing": 0,
+          "cases": 8,
+          "rate": 1.0
+        },
+        "sound/single": {
+          "hit": 24,
+          "n": 24,
+          "missing": 0,
+          "cases": 8,
+          "rate": 1.0
+        },
+        "task/conversation": {
+          "hit": 18,
+          "n": 18,
+          "missing": 0,
+          "cases": 6,
+          "rate": 1.0
+        },
+        "task/single": {
+          "hit": 18,
+          "n": 18,
+          "missing": 0,
+          "cases": 6,
+          "rate": 1.0
+        }
+      }
+    },
+    "jev_json": {
+      "rule": "link: problem_described>=0.3 p_absent>=0.2 contra>=0.3",
+      "test": {
+        "absent/conversation": {
+          "hit": 19,
+          "n": 30,
+          "missing": 0,
+          "cases": 10,
+          "rate": 0.633
+        },
+        "absent/single": {
+          "hit": 39,
+          "n": 48,
+          "missing": 0,
+          "cases": 16,
+          "rate": 0.812
+        },
+        "answered/conversation": {
+          "hit": 24,
+          "n": 24,
+          "missing": 0,
+          "cases": 8,
+          "rate": 1.0
+        },
+        "contradicted/single": {
+          "hit": 21,
+          "n": 24,
+          "missing": 0,
+          "cases": 8,
+          "rate": 0.875
+        },
+        "sound/conversation": {
+          "hit": 24,
+          "n": 24,
+          "missing": 0,
+          "cases": 8,
+          "rate": 1.0
+        },
+        "sound/single": {
+          "hit": 24,
+          "n": 24,
+          "missing": 0,
+          "cases": 8,
+          "rate": 1.0
+        },
+        "task/conversation": {
+          "hit": 18,
+          "n": 18,
+          "missing": 0,
+          "cases": 6,
+          "rate": 1.0
+        },
+        "task/single": {
+          "hit": 18,
+          "n": 18,
+          "missing": 0,
+          "cases": 6,
+          "rate": 1.0
+        }
+      }
+    }
+  },
+  "decision": {
+    "matches_current": false,
+    "detail": {
+      "absent/conversation": {
+        "llm": 0.7,
+        "jev": 0.667,
+        "tolerance": 0.1,
+        "met": true
+      },
+      "absent/single": {
+        "llm": 1.0,
+        "jev": 0.729,
+        "tolerance": 0.07,
+        "met": false
+      },
+      "answered/conversation": {
+        "llm": 1.0,
+        "jev": 1.0,
+        "tolerance": 0.125,
+        "met": true
+      },
+      "sound/conversation": {
+        "llm": 1.0,
+        "jev": 1.0,
+        "tolerance": 0.125,
+        "met": true
+      },
+      "sound/single": {
+        "llm": 1.0,
+        "jev": 1.0,
+        "tolerance": 0.125,
+        "met": true
+      },
+      "task/conversation": {
+        "llm": 1.0,
+        "jev": 1.0,
+        "tolerance": 0.167,
+        "met": true
+      },
+      "task/single": {
+        "llm": 1.0,
+        "jev": 1.0,
+        "tolerance": 0.167,
+        "met": true
+      }
+    },
+    "reading": "Jev does not match the current classifier"
+  }
+}

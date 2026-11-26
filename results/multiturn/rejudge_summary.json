@@ -1,0 +1,383 @@
+{
+  "survival_changes": [],
+  "runs": {
+    "1": {
+      "report": {
+        "late_sound": {
+          "drafted": 6,
+          "survived": 6,
+          "not_survived": [],
+          "mark": 0.8,
+          "scorable": true,
+          "direct_late": {
+            "pass": 6,
+            "n": 6,
+            "rate": 1.0,
+            "met": true,
+            "built": 6,
+            "pass_and_built": 6
+          },
+          "ground_late": {
+            "pass": 6,
+            "n": 6,
+            "rate": 1.0,
+            "met": true,
+            "built": 6,
+            "pass_and_built": 6
+          }
+        },
+        "late_flawed": {
+          "drafted": 9,
+          "survived": 0,
+          "not_survived": [
+            "late_flawed/mis-05",
+            "late_flawed/mis-06",
+            "late_flawed/mis-07",
+            "late_flawed/mis-08",
+            "late_flawed/mis-09",
+            "late_flawed/mis-10",
+            "late_flawed/mis-11",
+            "late_flawed/mis-12",
+            "late_flawed/mis-13"
+          ],
+          "mark": 0.85,
+          "scorable": false,
+          "direct_late": {
+            "pass": 0,
+            "n": 0,
+            "rate": null,
+            "met": null,
+            "built": 0,
+            "pass_and_built": 0
+          },
+          "ground_late": {
+            "pass": 0,
+            "n": 0,
+            "rate": null,
+            "met": null,
+            "built": 0,
+            "pass_and_built": 0
+          }
+        },
+        "late_absent": {
+          "drafted": 13,
+          "survived": 6,
+          "not_survived": [
+            "late_absent/mis-05",
+            "late_absent/mis-06",
+            "late_absent/mis-08",
+            "late_absent/mis-11",
+            "late_absent/mis-12",
+            "late_absent/mis-13",
+            "late_absent/snd-01"
+          ],
+          "mark": 0.75,
+          "scorable": true,
+          "direct_late": {
+            "pass": 0,
+            "n": 6,
+            "rate": 0.0,
+            "met": false,
+            "built": 6,
+            "pass_and_built": 0
+          },
+          "ground_late": {
+            "pass": 0,
+            "n": 6,
+            "rate": 0.0,
+            "met": false,
+            "built": 6,
+            "pass_and_built": 0
+          }
+        },
+        "late_answered": {
+          "drafted": 4,
+          "survived": 4,
+          "not_survived": [],
+          "mark": null,
+          "scorable": false,
+          "direct_late": {
+            "pass": 4,
+            "n": 4,
+            "rate": 1.0,
+            "met": null,
+            "built": 4,
+            "pass_and_built": 4,
+            "asked_again": 0,
+            "objected": 0
+          },
+          "ground_late": {
+            "pass": 4,
+            "n": 4,
+            "rate": 1.0,
+            "met": null,
+            "built": 4,
+            "pass_and_built": 4,
+            "asked_again": 0,
+            "objected": 0
+          }
+        }
+      },
+      "final_verdict_flips": [],
+      "decision": {
+        "decision": "change",
+        "marks_met": {
+          "late_sound": true,
+          "late_absent": false,
+          "late_flawed": null,
+          "late_answered_repeat_questions": 0
+        },
+        "reason": "as merged the check misses a mark: make the one planned change (give the classifier the conversation) and run again"
+      }
+    },
+    "2": {
+      "report": {
+        "late_sound": {
+          "drafted": 6,
+          "survived": 6,
+          "not_survived": [],
+          "mark": 0.8,
+          "scorable": true,
+          "direct_late": {
+            "pass": 6,
+            "n": 6,
+            "rate": 1.0,
+            "met": true,
+            "built": 6,
+            "pass_and_built": 6
+          },
+          "ground_late": {
+            "pass": 6,
+            "n": 6,
+            "rate": 1.0,
+            "met": true,
+            "built": 6,
+            "pass_and_built": 6
+          }
+        },
+        "late_flawed": {
+          "drafted": 9,
+          "survived": 0,
+          "not_survived": [
+            "late_flawed/mis-05",
+            "late_flawed/mis-06",
+            "late_flawed/mis-07",
+            "late_flawed/mis-08",
+            "late_flawed/mis-09",
+            "late_flawed/mis-10",
+            "late_flawed/mis-11",
+            "late_flawed/mis-12",
+            "late_flawed/mis-13"
+          ],
+          "mark": 0.85,
+          "scorable": false,
+          "direct_late": {
+            "pass": 0,
+            "n": 0,
+            "rate": null,
+            "met": null,
+            "built": 0,
+            "pass_and_built": 0
+          },
+          "ground_late": {
+            "pass": 0,
+            "n": 0,
+            "rate": null,
+            "met": null,
+            "built": 0,
+            "pass_and_built": 0
+          }
+        },
+        "late_absent": {
+          "drafted": 13,
+          "survived": 6,
+          "not_survived": [
+            "late_absent/mis-05",
+            "late_absent/mis-06",
+            "late_absent/mis-08",
+            "late_absent/mis-11",
+            "late_absent/mis-12",
+            "late_absent/mis-13",
+            "late_absent/snd-01"
+          ],
+          "mark": 0.75,
+          "scorable": true,
+          "direct_late": {
+            "pass": 0,
+            "n": 6,
+            "rate": 0.0,
+            "met": false,
+            "built": 6,
+            "pass_and_built": 0
+          },
+          "ground_late": {
+            "pass": 4,
+            "n": 6,
+            "rate": 0.667,
+            "met": false,
+            "built": 2,
+            "pass_and_built": 0
+          }
+        },
+        "late_answered": {
+          "drafted": 4,
+          "survived": 4,
+          "not_survived": [],
+          "mark": null,
+          "scorable": false,
+          "direct_late": {
+            "pass": 4,
+            "n": 4,
+            "rate": 1.0,
+            "met": null,
+            "built": 4,
+            "pass_and_built": 4,
+            "asked_again": 0,
+            "objected": 0
+          },
+          "ground_late": {
+            "pass": 4,
+            "n": 4,
+            "rate": 1.0,
+            "met": null,
+            "built": 4,
+            "pass_and_built": 4,
+            "asked_again": 0,
+            "objected": 0
+          }
+        }
+      },
+      "final_verdict_flips": [],
+      "decision": {
+        "decision": "stop",
+        "marks_met": {
+          "late_sound": true,
+          "late_absent": false,
+          "late_flawed": null,
+          "late_answered_repeat_questions": 0
+        },
+        "reason": "the multi-turn check does not meet its marks in this form: ship the single-message result and state the limit"
+      }
+    },
+    "3": {
+      "report": {
+        "late_sound": {
+          "drafted": 6,
+          "survived": 6,
+          "not_survived": [],
+          "mark": 0.8,
+          "scorable": true,
+          "direct_late": {
+            "pass": 6,
+            "n": 6,
+            "rate": 1.0,
+            "met": true,
+            "built": 6,
+            "pass_and_built": 6
+          },
+          "ground_late": {
+            "pass": 5,
+            "n": 6,
+            "rate": 0.833,
+            "met": true,
+            "built": 5,
+            "pass_and_built": 5
+          }
+        },
+        "late_flawed": {
+          "drafted": 9,
+          "survived": 0,
+          "not_survived": [
+            "late_flawed/mis-05",
+            "late_flawed/mis-06",
+            "late_flawed/mis-07",
+            "late_flawed/mis-08",
+            "late_flawed/mis-09",
+            "late_flawed/mis-10",
+            "late_flawed/mis-11",
+            "late_flawed/mis-12",
+            "late_flawed/mis-13"
+          ],
+          "mark": 0.85,
+          "scorable": false,
+          "direct_late": {
+            "pass": 0,
+            "n": 0,
+            "rate": null,
+            "met": null,
+            "built": 0,
+            "pass_and_built": 0
+          },
+          "ground_late": {
+            "pass": 0,
+            "n": 0,
+            "rate": null,
+            "met": null,
+            "built": 0,
+            "pass_and_built": 0
+          }
+        },
+        "late_absent": {
+          "drafted": 13,
+          "survived": 6,
+          "not_survived": [
+            "late_absent/mis-05",
+            "late_absent/mis-06",
+            "late_absent/mis-08",
+            "late_absent/mis-11",
+            "late_absent/mis-12",
+            "late_absent/mis-13",
+            "late_absent/snd-01"
+          ],
+          "mark": 0.75,
+          "scorable": true,
+          "direct_late": {
+            "pass": 0,
+            "n": 6,
+            "rate": 0.0,
+            "met": false,
+            "built": 6,
+            "pass_and_built": 0
+          },
+          "ground_late": {
+            "pass": 5,
+            "n": 6,
+            "rate": 0.833,
+            "met": true,
+            "built": 1,
+            "pass_and_built": 0
+          }
+        },
+        "late_answered": {
+          "drafted": 4,
+          "survived": 4,
+          "not_survived": [],
+          "mark": null,
+          "scorable": false,
+          "direct_late": {
+            "pass": 4,
+            "n": 4,
+            "rate": 1.0,
+            "met": null,
+            "built": 4,
+            "pass_and_built": 4,
+            "asked_again": 0,
+            "objected": 0
+          },
+          "ground_late": {
+            "pass": 3,
+            "n": 4,
+            "rate": 0.75,
+            "met": null,
+            "built": 4,
+            "pass_and_built": 3,
+            "asked_again": 1,
+            "objected": 0
+          }
+        }
+      },
+      "final_verdict_flips": [],
+      "decision": null
+    }
+  }
+}
