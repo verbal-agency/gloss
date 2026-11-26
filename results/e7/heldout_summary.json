@@ -1,0 +1,555 @@
+{
+  "config": "link>=0.5 ev>=0.5 ach_conv<0.5 fa>=0.7 ro>=0.5",
+  "cases": {
+    "single": 62,
+    "conversations": {
+      "g43": 38,
+      "g44": 64
+    }
+  },
+  "jev": {
+    "model": "jev-latest",
+    "release": {
+      "name": "jev-latest",
+      "description": "The latest iteration of TypeSafe's System One Model: Jev",
+      "release_date": "2026-10-22T02:00:00+00:00"
+    },
+    "apart": [
+      "evidence_for_cause"
+    ],
+    "release_changed_during_run": null
+  },
+  "decision": {
+    "utility": {
+      "llm": -0.227,
+      "jev": -0.27,
+      "margin": 0.02,
+      "met": false
+    },
+    "cells": {
+      "answered/conversation": {
+        "jev": 1.0,
+        "llm": 1.0,
+        "tolerance": 0.143,
+        "met": true
+      },
+      "ask/conversation": {
+        "jev": 0.667,
+        "llm": 0.536,
+        "tolerance": 0.07,
+        "met": true
+      },
+      "ask/single": {
+        "jev": 0.647,
+        "llm": 0.824,
+        "tolerance": 0.07,
+        "met": false
+      },
+      "object/conversation": {
+        "jev": 0.857,
+        "llm": 1.0,
+        "tolerance": 0.071,
+        "met": false
+      },
+      "object/single": {
+        "jev": 0.842,
+        "llm": 0.825,
+        "tolerance": 0.07,
+        "met": true
+      },
+      "quiet/conversation": {
+        "jev": 0.827,
+        "llm": 0.955,
+        "tolerance": 0.07,
+        "met": false
+      },
+      "quiet/single": {
+        "jev": 1.0,
+        "llm": 0.867,
+        "tolerance": 0.07,
+        "met": true
+      },
+      "task/conversation": {
+        "jev": 0.833,
+        "llm": 1.0,
+        "tolerance": 0.167,
+        "met": true
+      },
+      "task/single": {
+        "jev": 1.0,
+        "llm": 1.0,
+        "tolerance": 0.167,
+        "met": true
+      }
+    },
+    "cells_met": false,
+    "replaces_llm": false,
+    "reading": "Jev cannot replace the LLM classifier"
+  },
+  "reported_only": {
+    "by_set": {
+      "llm": {
+        "g43 answered/conversation": {
+          "hit": 21,
+          "n": 21,
+          "missing": 0,
+          "cases": 7,
+          "rate": 1.0
+        },
+        "g43 ask/conversation": {
+          "hit": 7,
+          "n": 15,
+          "missing": 0,
+          "cases": 5,
+          "rate": 0.467
+        },
+        "g43 ask/single": {
+          "hit": 42,
+          "n": 51,
+          "missing": 0,
+          "cases": 17,
+          "rate": 0.824
+        },
+        "g43 object/single": {
+          "hit": 47,
+          "n": 57,
+          "missing": 0,
+          "cases": 19,
+          "rate": 0.825
+        },
+        "g43 quiet/conversation": {
+          "hit": 54,
+          "n": 60,
+          "missing": 0,
+          "cases": 20,
+          "rate": 0.9
+        },
+        "g43 quiet/single": {
+          "hit": 52,
+          "n": 60,
+          "missing": 0,
+          "cases": 20,
+          "rate": 0.867
+        },
+        "g43 task/conversation": {
+          "hit": 18,
+          "n": 18,
+          "missing": 0,
+          "cases": 6,
+          "rate": 1.0
+        },
+        "g43 task/single": {
+          "hit": 18,
+          "n": 18,
+          "missing": 0,
+          "cases": 6,
+          "rate": 1.0
+        },
+        "g44 ask/conversation": {
+          "hit": 30,
+          "n": 54,
+          "missing": 0,
+          "cases": 18,
+          "rate": 0.556
+        },
+        "g44 object/conversation": {
+          "hit": 42,
+          "n": 42,
+          "missing": 0,
+          "cases": 14,
+          "rate": 1.0
+        },
+        "g44 quiet/conversation": {
+          "hit": 95,
+          "n": 96,
+          "missing": 1,
+          "cases": 32,
+          "rate": 0.99
+        }
+      },
+      "jev": {
+        "g43 answered/conversation": {
+          "hit": 21,
+          "n": 21,
+          "missing": 0,
+          "cases": 7,
+          "rate": 1.0
+        },
+        "g43 ask/conversation": {
+          "hit": 10,
+          "n": 15,
+          "missing": 0,
+          "cases": 5,
+          "rate": 0.667
+        },
+        "g43 ask/single": {
+          "hit": 33,
+          "n": 51,
+          "missing": 0,
+          "cases": 17,
+          "rate": 0.647
+        },
+        "g43 object/single": {
+          "hit": 48,
+          "n": 57,
+          "missing": 0,
+          "cases": 19,
+          "rate": 0.842
+        },
+        "g43 quiet/conversation": {
+          "hit": 57,
+          "n": 60,
+          "missing": 0,
+          "cases": 20,
+          "rate": 0.95
+        },
+        "g43 quiet/single": {
+          "hit": 60,
+          "n": 60,
+          "missing": 0,
+          "cases": 20,
+          "rate": 1.0
+        },
+        "g43 task/conversation": {
+          "hit": 15,
+          "n": 18,
+          "missing": 0,
+          "cases": 6,
+          "rate": 0.833
+        },
+        "g43 task/single": {
+          "hit": 18,
+          "n": 18,
+          "missing": 0,
+          "cases": 6,
+          "rate": 1.0
+        },
+        "g44 ask/conversation": {
+          "hit": 36,
+          "n": 54,
+          "missing": 0,
+          "cases": 18,
+          "rate": 0.667
+        },
+        "g44 object/conversation": {
+          "hit": 36,
+          "n": 42,
+          "missing": 0,
+          "cases": 14,
+          "rate": 0.857
+        },
+        "g44 quiet/conversation": {
+          "hit": 72,
+          "n": 96,
+          "missing": 0,
+          "cases": 32,
+          "rate": 0.75
+        }
+      }
+    },
+    "by_kind": {
+      "llm": {
+        "g43 absent": {
+          "hit": 42,
+          "n": 48,
+          "missing": 0,
+          "cases": 16,
+          "rate": 0.875
+        },
+        "g43 contradicted": {
+          "hit": 24,
+          "n": 24,
+          "missing": 0,
+          "cases": 8,
+          "rate": 1.0
+        },
+        "g43 debatable": {
+          "hit": 6,
+          "n": 12,
+          "missing": 0,
+          "cases": 4,
+          "rate": 0.5
+        },
+        "g43 investigation": {
+          "hit": 4,
+          "n": 12,
+          "missing": 0,
+          "cases": 4,
+          "rate": 0.333
+        },
+        "g43 late_absent": {
+          "hit": 7,
+          "n": 15,
+          "missing": 0,
+          "cases": 5,
+          "rate": 0.467
+        },
+        "g43 late_answered": {
+          "hit": 21,
+          "n": 21,
+          "missing": 0,
+          "cases": 7,
+          "rate": 1.0
+        },
+        "g43 late_sound": {
+          "hit": 54,
+          "n": 60,
+          "missing": 0,
+          "cases": 20,
+          "rate": 0.9
+        },
+        "g43 late_task": {
+          "hit": 18,
+          "n": 18,
+          "missing": 0,
+          "cases": 6,
+          "rate": 1.0
+        },
+        "g43 requirement_broken": {
+          "hit": 15,
+          "n": 18,
+          "missing": 0,
+          "cases": 6,
+          "rate": 0.833
+        },
+        "g43 requirement_met": {
+          "hit": 18,
+          "n": 18,
+          "missing": 0,
+          "cases": 6,
+          "rate": 1.0
+        },
+        "g43 sound": {
+          "hit": 24,
+          "n": 24,
+          "missing": 0,
+          "cases": 8,
+          "rate": 1.0
+        },
+        "g43 task": {
+          "hit": 18,
+          "n": 18,
+          "missing": 0,
+          "cases": 6,
+          "rate": 1.0
+        },
+        "g43 weak": {
+          "hit": 8,
+          "n": 12,
+          "missing": 0,
+          "cases": 4,
+          "rate": 0.667
+        },
+        "g44 late_fact_against": {
+          "hit": 0,
+          "n": 24,
+          "missing": 0,
+          "cases": 8,
+          "rate": 0.0
+        },
+        "g44 late_fact_for": {
+          "hit": 23,
+          "n": 24,
+          "missing": 1,
+          "cases": 8,
+          "rate": 0.958
+        },
+        "g44 late_problem_absent": {
+          "hit": 30,
+          "n": 30,
+          "missing": 0,
+          "cases": 10,
+          "rate": 1.0
+        },
+        "g44 late_problem_stated": {
+          "hit": 30,
+          "n": 30,
+          "missing": 0,
+          "cases": 10,
+          "rate": 1.0
+        },
+        "g44 late_req_broken": {
+          "hit": 18,
+          "n": 18,
+          "missing": 0,
+          "cases": 6,
+          "rate": 1.0
+        },
+        "g44 late_req_met": {
+          "hit": 18,
+          "n": 18,
+          "missing": 0,
+          "cases": 6,
+          "rate": 1.0
+        },
+        "g44 late_switch_fits": {
+          "hit": 24,
+          "n": 24,
+          "missing": 0,
+          "cases": 8,
+          "rate": 1.0
+        },
+        "g44 late_switch_misses": {
+          "hit": 24,
+          "n": 24,
+          "missing": 0,
+          "cases": 8,
+          "rate": 1.0
+        }
+      },
+      "jev": {
+        "g43 absent": {
+          "hit": 33,
+          "n": 48,
+          "missing": 0,
+          "cases": 16,
+          "rate": 0.688
+        },
+        "g43 contradicted": {
+          "hit": 18,
+          "n": 24,
+          "missing": 0,
+          "cases": 8,
+          "rate": 0.75
+        },
+        "g43 debatable": {
+          "hit": 9,
+          "n": 12,
+          "missing": 0,
+          "cases": 4,
+          "rate": 0.75
+        },
+        "g43 investigation": {
+          "hit": 12,
+          "n": 12,
+          "missing": 0,
+          "cases": 4,
+          "rate": 1.0
+        },
+        "g43 late_absent": {
+          "hit": 10,
+          "n": 15,
+          "missing": 0,
+          "cases": 5,
+          "rate": 0.667
+        },
+        "g43 late_answered": {
+          "hit": 21,
+          "n": 21,
+          "missing": 0,
+          "cases": 7,
+          "rate": 1.0
+        },
+        "g43 late_sound": {
+          "hit": 57,
+          "n": 60,
+          "missing": 0,
+          "cases": 20,
+          "rate": 0.95
+        },
+        "g43 late_task": {
+          "hit": 15,
+          "n": 18,
+          "missing": 0,
+          "cases": 6,
+          "rate": 0.833
+        },
+        "g43 requirement_broken": {
+          "hit": 18,
+          "n": 18,
+          "missing": 0,
+          "cases": 6,
+          "rate": 1.0
+        },
+        "g43 requirement_met": {
+          "hit": 18,
+          "n": 18,
+          "missing": 0,
+          "cases": 6,
+          "rate": 1.0
+        },
+        "g43 sound": {
+          "hit": 24,
+          "n": 24,
+          "missing": 0,
+          "cases": 8,
+          "rate": 1.0
+        },
+        "g43 task": {
+          "hit": 18,
+          "n": 18,
+          "missing": 0,
+          "cases": 6,
+          "rate": 1.0
+        },
+        "g43 weak": {
+          "hit": 9,
+          "n": 12,
+          "missing": 0,
+          "cases": 4,
+          "rate": 0.75
+        },
+        "g44 late_fact_against": {
+          "hit": 6,
+          "n": 24,
+          "missing": 0,
+          "cases": 8,
+          "rate": 0.25
+        },
+        "g44 late_fact_for": {
+          "hit": 24,
+          "n": 24,
+          "missing": 0,
+          "cases": 8,
+          "rate": 1.0
+        },
+        "g44 late_problem_absent": {
+          "hit": 30,
+          "n": 30,
+          "missing": 0,
+          "cases": 10,
+          "rate": 1.0
+        },
+        "g44 late_problem_stated": {
+          "hit": 27,
+          "n": 30,
+          "missing": 0,
+          "cases": 10,
+          "rate": 0.9
+        },
+        "g44 late_req_broken": {
+          "hit": 18,
+          "n": 18,
+          "missing": 0,
+          "cases": 6,
+          "rate": 1.0
+        },
+        "g44 late_req_met": {
+          "hit": 6,
+          "n": 18,
+          "missing": 0,
+          "cases": 6,
+          "rate": 0.333
+        },
+        "g44 late_switch_fits": {
+          "hit": 15,
+          "n": 24,
+          "missing": 0,
+          "cases": 8,
+          "rate": 0.625
+        },
+        "g44 late_switch_misses": {
+          "hit": 18,
+          "n": 24,
+          "missing": 0,
+          "cases": 8,
+          "rate": 0.75
+        }
+      }
+    },
+    "object/conversation, G43": {
+      "llm": null,
+      "jev": null
+    }
+  }
+}

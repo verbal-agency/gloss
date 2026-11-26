@@ -1,0 +1,4403 @@
+{
+  "jev": {
+    "name": "jev-latest",
+    "description": "The latest iteration of TypeSafe's System One Model: Jev",
+    "release_date": "2026-10-22T02:00:00+00:00"
+  },
+  "apart": [
+    "evidence_for_cause"
+  ],
+  "post_dev_rulings": {
+    "date": "2026-11-26",
+    "rulings": {
+      "full/mis-06": "asked",
+      "full/mis-13": "asked",
+      "full/inf-11": "asked",
+      "g41/single/contradicted/trial-conversion": "asked",
+      "g42/single/contradicted/partner-outages": "asked"
+    }
+  },
+  "cases": {
+    "spent": 239,
+    "e5c": 32,
+    "e5d": 52,
+    "e8": 81,
+    "pairs": 12
+  },
+  "llm": {
+    "utility": -0.237,
+    "cells": {
+      "e5c ask/single": {
+        "hit": 46,
+        "n": 48,
+        "missing": 0,
+        "cases": 16,
+        "rate": 0.958
+      },
+      "e5c quiet/single": {
+        "hit": 48,
+        "n": 48,
+        "missing": 0,
+        "cases": 16,
+        "rate": 1.0
+      },
+      "e8 ask/conversation": {
+        "hit": 15,
+        "n": 15,
+        "missing": 0,
+        "cases": 5,
+        "rate": 1.0
+      },
+      "e8 ask/single": {
+        "hit": 18,
+        "n": 24,
+        "missing": 0,
+        "cases": 8,
+        "rate": 0.75
+      },
+      "e8 object/conversation": {
+        "hit": 6,
+        "n": 18,
+        "missing": 0,
+        "cases": 6,
+        "rate": 0.333
+      },
+      "e8 object/single": {
+        "hit": 27,
+        "n": 66,
+        "missing": 0,
+        "cases": 22,
+        "rate": 0.409
+      },
+      "e8 quiet/conversation": {
+        "hit": 21,
+        "n": 24,
+        "missing": 0,
+        "cases": 8,
+        "rate": 0.875
+      },
+      "e8 quiet/single": {
+        "hit": 84,
+        "n": 96,
+        "missing": 0,
+        "cases": 32,
+        "rate": 0.875
+      },
+      "pairs ask/conversation": {
+        "hit": 0,
+        "n": 6,
+        "missing": 0,
+        "cases": 2,
+        "rate": 0.0
+      },
+      "pairs ask/single": {
+        "hit": 0,
+        "n": 12,
+        "missing": 0,
+        "cases": 4,
+        "rate": 0.0
+      },
+      "pairs object/conversation": {
+        "hit": 6,
+        "n": 6,
+        "missing": 0,
+        "cases": 2,
+        "rate": 1.0
+      },
+      "pairs object/single": {
+        "hit": 12,
+        "n": 12,
+        "missing": 0,
+        "cases": 4,
+        "rate": 1.0
+      },
+      "spent answered/conversation": {
+        "hit": 54,
+        "n": 54,
+        "missing": 0,
+        "cases": 18,
+        "rate": 1.0
+      },
+      "spent ask/conversation": {
+        "hit": 70,
+        "n": 96,
+        "missing": 0,
+        "cases": 32,
+        "rate": 0.729
+      },
+      "spent ask/single": {
+        "hit": 120,
+        "n": 138,
+        "missing": 0,
+        "cases": 46,
+        "rate": 0.87
+      },
+      "spent object/single": {
+        "hit": 97,
+        "n": 126,
+        "missing": 0,
+        "cases": 42,
+        "rate": 0.77
+      },
+      "spent quiet/conversation": {
+        "hit": 110,
+        "n": 120,
+        "missing": 0,
+        "cases": 40,
+        "rate": 0.917
+      },
+      "spent quiet/single": {
+        "hit": 94,
+        "n": 111,
+        "missing": 0,
+        "cases": 37,
+        "rate": 0.847
+      },
+      "spent task/conversation": {
+        "hit": 36,
+        "n": 36,
+        "missing": 0,
+        "cases": 12,
+        "rate": 1.0
+      },
+      "spent task/single": {
+        "hit": 36,
+        "n": 36,
+        "missing": 0,
+        "cases": 12,
+        "rate": 1.0
+      }
+    }
+  },
+  "chosen": {
+    "config": "link>=0.5 ev>=0.5 ach_conv<0.5 fa>=0.7 ro>=0.5",
+    "reason": "the best configuration uses t_ach_conv = 0.3 but gains +0.018 of utility, under 0.02",
+    "best_overall": "link>=0.5 ev>=0.5 ach_conv<0.3 fa>=0.7 ro>=0.5",
+    "best_without_0.3": "link>=0.5 ev>=0.5 ach_conv<0.5 fa>=0.7 ro>=0.5"
+  },
+  "configurations": [
+    {
+      "config": "link>=0.5 ev>=0.5 ach_conv<0.5 fa>=0.5 ro>=0.5",
+      "cells_within": 16,
+      "cells": 20,
+      "utility": -0.262,
+      "detail": {
+        "e5c ask/single": {
+          "jev": 0.896,
+          "llm": 0.958,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "e5c quiet/single": {
+          "jev": 0.938,
+          "llm": 1.0,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "e8 ask/conversation": {
+          "jev": 0.8,
+          "llm": 1.0,
+          "tolerance": 0.2,
+          "met": true
+        },
+        "e8 ask/single": {
+          "jev": 0.625,
+          "llm": 0.75,
+          "tolerance": 0.125,
+          "met": true
+        },
+        "e8 object/conversation": {
+          "jev": 0.944,
+          "llm": 0.333,
+          "tolerance": 0.167,
+          "met": true
+        },
+        "e8 object/single": {
+          "jev": 0.636,
+          "llm": 0.409,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "e8 quiet/conversation": {
+          "jev": 0.708,
+          "llm": 0.875,
+          "tolerance": 0.125,
+          "met": false
+        },
+        "e8 quiet/single": {
+          "jev": 0.719,
+          "llm": 0.875,
+          "tolerance": 0.07,
+          "met": false
+        },
+        "pairs ask/conversation": {
+          "jev": 0.5,
+          "llm": 0.0,
+          "tolerance": 0.5,
+          "met": true
+        },
+        "pairs ask/single": {
+          "jev": 0.917,
+          "llm": 0.0,
+          "tolerance": 0.25,
+          "met": true
+        },
+        "pairs object/conversation": {
+          "jev": 1.0,
+          "llm": 1.0,
+          "tolerance": 0.5,
+          "met": true
+        },
+        "pairs object/single": {
+          "jev": 1.0,
+          "llm": 1.0,
+          "tolerance": 0.25,
+          "met": true
+        },
+        "spent answered/conversation": {
+          "jev": 0.907,
+          "llm": 1.0,
+          "tolerance": 0.07,
+          "met": false
+        },
+        "spent ask/conversation": {
+          "jev": 0.927,
+          "llm": 0.729,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent ask/single": {
+          "jev": 0.87,
+          "llm": 0.87,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent object/single": {
+          "jev": 0.754,
+          "llm": 0.77,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent quiet/conversation": {
+          "jev": 0.85,
+          "llm": 0.917,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent quiet/single": {
+          "jev": 0.901,
+          "llm": 0.847,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent task/conversation": {
+          "jev": 0.833,
+          "llm": 1.0,
+          "tolerance": 0.083,
+          "met": false
+        },
+        "spent task/single": {
+          "jev": 0.972,
+          "llm": 1.0,
+          "tolerance": 0.083,
+          "met": true
+        }
+      }
+    },
+    {
+      "config": "link>=0.5 ev>=0.5 ach_conv<0.5 fa>=0.5 ro>=0.7",
+      "cells_within": 15,
+      "cells": 20,
+      "utility": -0.265,
+      "detail": {
+        "e5c ask/single": {
+          "jev": 0.896,
+          "llm": 0.958,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "e5c quiet/single": {
+          "jev": 0.938,
+          "llm": 1.0,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "e8 ask/conversation": {
+          "jev": 0.8,
+          "llm": 1.0,
+          "tolerance": 0.2,
+          "met": true
+        },
+        "e8 ask/single": {
+          "jev": 0.625,
+          "llm": 0.75,
+          "tolerance": 0.125,
+          "met": true
+        },
+        "e8 object/conversation": {
+          "jev": 0.944,
+          "llm": 0.333,
+          "tolerance": 0.167,
+          "met": true
+        },
+        "e8 object/single": {
+          "jev": 0.591,
+          "llm": 0.409,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "e8 quiet/conversation": {
+          "jev": 0.708,
+          "llm": 0.875,
+          "tolerance": 0.125,
+          "met": false
+        },
+        "e8 quiet/single": {
+          "jev": 0.719,
+          "llm": 0.875,
+          "tolerance": 0.07,
+          "met": false
+        },
+        "pairs ask/conversation": {
+          "jev": 0.5,
+          "llm": 0.0,
+          "tolerance": 0.5,
+          "met": true
+        },
+        "pairs ask/single": {
+          "jev": 0.917,
+          "llm": 0.0,
+          "tolerance": 0.25,
+          "met": true
+        },
+        "pairs object/conversation": {
+          "jev": 1.0,
+          "llm": 1.0,
+          "tolerance": 0.5,
+          "met": true
+        },
+        "pairs object/single": {
+          "jev": 1.0,
+          "llm": 1.0,
+          "tolerance": 0.25,
+          "met": true
+        },
+        "spent answered/conversation": {
+          "jev": 0.907,
+          "llm": 1.0,
+          "tolerance": 0.07,
+          "met": false
+        },
+        "spent ask/conversation": {
+          "jev": 0.927,
+          "llm": 0.729,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent ask/single": {
+          "jev": 0.884,
+          "llm": 0.87,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent object/single": {
+          "jev": 0.659,
+          "llm": 0.77,
+          "tolerance": 0.07,
+          "met": false
+        },
+        "spent quiet/conversation": {
+          "jev": 0.85,
+          "llm": 0.917,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent quiet/single": {
+          "jev": 0.901,
+          "llm": 0.847,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent task/conversation": {
+          "jev": 0.833,
+          "llm": 1.0,
+          "tolerance": 0.083,
+          "met": false
+        },
+        "spent task/single": {
+          "jev": 0.972,
+          "llm": 1.0,
+          "tolerance": 0.083,
+          "met": true
+        }
+      }
+    },
+    {
+      "config": "link>=0.5 ev>=0.5 ach_conv<0.5 fa>=0.7 ro>=0.5",
+      "cells_within": 16,
+      "cells": 20,
+      "utility": -0.26,
+      "detail": {
+        "e5c ask/single": {
+          "jev": 0.896,
+          "llm": 0.958,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "e5c quiet/single": {
+          "jev": 0.938,
+          "llm": 1.0,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "e8 ask/conversation": {
+          "jev": 0.8,
+          "llm": 1.0,
+          "tolerance": 0.2,
+          "met": true
+        },
+        "e8 ask/single": {
+          "jev": 0.625,
+          "llm": 0.75,
+          "tolerance": 0.125,
+          "met": true
+        },
+        "e8 object/conversation": {
+          "jev": 1.0,
+          "llm": 0.333,
+          "tolerance": 0.167,
+          "met": true
+        },
+        "e8 object/single": {
+          "jev": 0.727,
+          "llm": 0.409,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "e8 quiet/conversation": {
+          "jev": 0.708,
+          "llm": 0.875,
+          "tolerance": 0.125,
+          "met": false
+        },
+        "e8 quiet/single": {
+          "jev": 0.74,
+          "llm": 0.875,
+          "tolerance": 0.07,
+          "met": false
+        },
+        "pairs ask/conversation": {
+          "jev": 0.5,
+          "llm": 0.0,
+          "tolerance": 0.5,
+          "met": true
+        },
+        "pairs ask/single": {
+          "jev": 0.417,
+          "llm": 0.0,
+          "tolerance": 0.25,
+          "met": true
+        },
+        "pairs object/conversation": {
+          "jev": 1.0,
+          "llm": 1.0,
+          "tolerance": 0.5,
+          "met": true
+        },
+        "pairs object/single": {
+          "jev": 1.0,
+          "llm": 1.0,
+          "tolerance": 0.25,
+          "met": true
+        },
+        "spent answered/conversation": {
+          "jev": 0.907,
+          "llm": 1.0,
+          "tolerance": 0.07,
+          "met": false
+        },
+        "spent ask/conversation": {
+          "jev": 0.927,
+          "llm": 0.729,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent ask/single": {
+          "jev": 0.812,
+          "llm": 0.87,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent object/single": {
+          "jev": 0.778,
+          "llm": 0.77,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent quiet/conversation": {
+          "jev": 0.85,
+          "llm": 0.917,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent quiet/single": {
+          "jev": 0.901,
+          "llm": 0.847,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent task/conversation": {
+          "jev": 0.833,
+          "llm": 1.0,
+          "tolerance": 0.083,
+          "met": false
+        },
+        "spent task/single": {
+          "jev": 0.972,
+          "llm": 1.0,
+          "tolerance": 0.083,
+          "met": true
+        }
+      }
+    },
+    {
+      "config": "link>=0.5 ev>=0.5 ach_conv<0.5 fa>=0.7 ro>=0.7",
+      "cells_within": 16,
+      "cells": 20,
+      "utility": -0.261,
+      "detail": {
+        "e5c ask/single": {
+          "jev": 0.896,
+          "llm": 0.958,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "e5c quiet/single": {
+          "jev": 0.938,
+          "llm": 1.0,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "e8 ask/conversation": {
+          "jev": 0.8,
+          "llm": 1.0,
+          "tolerance": 0.2,
+          "met": true
+        },
+        "e8 ask/single": {
+          "jev": 0.625,
+          "llm": 0.75,
+          "tolerance": 0.125,
+          "met": true
+        },
+        "e8 object/conversation": {
+          "jev": 1.0,
+          "llm": 0.333,
+          "tolerance": 0.167,
+          "met": true
+        },
+        "e8 object/single": {
+          "jev": 0.682,
+          "llm": 0.409,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "e8 quiet/conversation": {
+          "jev": 0.708,
+          "llm": 0.875,
+          "tolerance": 0.125,
+          "met": false
+        },
+        "e8 quiet/single": {
+          "jev": 0.74,
+          "llm": 0.875,
+          "tolerance": 0.07,
+          "met": false
+        },
+        "pairs ask/conversation": {
+          "jev": 0.5,
+          "llm": 0.0,
+          "tolerance": 0.5,
+          "met": true
+        },
+        "pairs ask/single": {
+          "jev": 0.417,
+          "llm": 0.0,
+          "tolerance": 0.25,
+          "met": true
+        },
+        "pairs object/conversation": {
+          "jev": 1.0,
+          "llm": 1.0,
+          "tolerance": 0.5,
+          "met": true
+        },
+        "pairs object/single": {
+          "jev": 1.0,
+          "llm": 1.0,
+          "tolerance": 0.25,
+          "met": true
+        },
+        "spent answered/conversation": {
+          "jev": 0.907,
+          "llm": 1.0,
+          "tolerance": 0.07,
+          "met": false
+        },
+        "spent ask/conversation": {
+          "jev": 0.927,
+          "llm": 0.729,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent ask/single": {
+          "jev": 0.812,
+          "llm": 0.87,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent object/single": {
+          "jev": 0.722,
+          "llm": 0.77,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent quiet/conversation": {
+          "jev": 0.85,
+          "llm": 0.917,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent quiet/single": {
+          "jev": 0.901,
+          "llm": 0.847,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent task/conversation": {
+          "jev": 0.833,
+          "llm": 1.0,
+          "tolerance": 0.083,
+          "met": false
+        },
+        "spent task/single": {
+          "jev": 0.972,
+          "llm": 1.0,
+          "tolerance": 0.083,
+          "met": true
+        }
+      }
+    },
+    {
+      "config": "link>=0.5 ev>=0.5 ach_conv<0.3 fa>=0.5 ro>=0.5",
+      "cells_within": 18,
+      "cells": 20,
+      "utility": -0.245,
+      "detail": {
+        "e5c ask/single": {
+          "jev": 0.896,
+          "llm": 0.958,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "e5c quiet/single": {
+          "jev": 0.938,
+          "llm": 1.0,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "e8 ask/conversation": {
+          "jev": 0.8,
+          "llm": 1.0,
+          "tolerance": 0.2,
+          "met": true
+        },
+        "e8 ask/single": {
+          "jev": 0.625,
+          "llm": 0.75,
+          "tolerance": 0.125,
+          "met": true
+        },
+        "e8 object/conversation": {
+          "jev": 0.944,
+          "llm": 0.333,
+          "tolerance": 0.167,
+          "met": true
+        },
+        "e8 object/single": {
+          "jev": 0.636,
+          "llm": 0.409,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "e8 quiet/conversation": {
+          "jev": 0.75,
+          "llm": 0.875,
+          "tolerance": 0.125,
+          "met": true
+        },
+        "e8 quiet/single": {
+          "jev": 0.719,
+          "llm": 0.875,
+          "tolerance": 0.07,
+          "met": false
+        },
+        "pairs ask/conversation": {
+          "jev": 0.5,
+          "llm": 0.0,
+          "tolerance": 0.5,
+          "met": true
+        },
+        "pairs ask/single": {
+          "jev": 0.917,
+          "llm": 0.0,
+          "tolerance": 0.25,
+          "met": true
+        },
+        "pairs object/conversation": {
+          "jev": 1.0,
+          "llm": 1.0,
+          "tolerance": 0.5,
+          "met": true
+        },
+        "pairs object/single": {
+          "jev": 1.0,
+          "llm": 1.0,
+          "tolerance": 0.25,
+          "met": true
+        },
+        "spent answered/conversation": {
+          "jev": 0.907,
+          "llm": 1.0,
+          "tolerance": 0.07,
+          "met": false
+        },
+        "spent ask/conversation": {
+          "jev": 0.927,
+          "llm": 0.729,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent ask/single": {
+          "jev": 0.87,
+          "llm": 0.87,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent object/single": {
+          "jev": 0.754,
+          "llm": 0.77,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent quiet/conversation": {
+          "jev": 0.925,
+          "llm": 0.917,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent quiet/single": {
+          "jev": 0.901,
+          "llm": 0.847,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent task/conversation": {
+          "jev": 1.0,
+          "llm": 1.0,
+          "tolerance": 0.083,
+          "met": true
+        },
+        "spent task/single": {
+          "jev": 0.972,
+          "llm": 1.0,
+          "tolerance": 0.083,
+          "met": true
+        }
+      }
+    },
+    {
+      "config": "link>=0.5 ev>=0.5 ach_conv<0.3 fa>=0.5 ro>=0.7",
+      "cells_within": 17,
+      "cells": 20,
+      "utility": -0.248,
+      "detail": {
+        "e5c ask/single": {
+          "jev": 0.896,
+          "llm": 0.958,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "e5c quiet/single": {
+          "jev": 0.938,
+          "llm": 1.0,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "e8 ask/conversation": {
+          "jev": 0.8,
+          "llm": 1.0,
+          "tolerance": 0.2,
+          "met": true
+        },
+        "e8 ask/single": {
+          "jev": 0.625,
+          "llm": 0.75,
+          "tolerance": 0.125,
+          "met": true
+        },
+        "e8 object/conversation": {
+          "jev": 0.944,
+          "llm": 0.333,
+          "tolerance": 0.167,
+          "met": true
+        },
+        "e8 object/single": {
+          "jev": 0.591,
+          "llm": 0.409,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "e8 quiet/conversation": {
+          "jev": 0.75,
+          "llm": 0.875,
+          "tolerance": 0.125,
+          "met": true
+        },
+        "e8 quiet/single": {
+          "jev": 0.719,
+          "llm": 0.875,
+          "tolerance": 0.07,
+          "met": false
+        },
+        "pairs ask/conversation": {
+          "jev": 0.5,
+          "llm": 0.0,
+          "tolerance": 0.5,
+          "met": true
+        },
+        "pairs ask/single": {
+          "jev": 0.917,
+          "llm": 0.0,
+          "tolerance": 0.25,
+          "met": true
+        },
+        "pairs object/conversation": {
+          "jev": 1.0,
+          "llm": 1.0,
+          "tolerance": 0.5,
+          "met": true
+        },
+        "pairs object/single": {
+          "jev": 1.0,
+          "llm": 1.0,
+          "tolerance": 0.25,
+          "met": true
+        },
+        "spent answered/conversation": {
+          "jev": 0.907,
+          "llm": 1.0,
+          "tolerance": 0.07,
+          "met": false
+        },
+        "spent ask/conversation": {
+          "jev": 0.927,
+          "llm": 0.729,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent ask/single": {
+          "jev": 0.884,
+          "llm": 0.87,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent object/single": {
+          "jev": 0.659,
+          "llm": 0.77,
+          "tolerance": 0.07,
+          "met": false
+        },
+        "spent quiet/conversation": {
+          "jev": 0.925,
+          "llm": 0.917,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent quiet/single": {
+          "jev": 0.901,
+          "llm": 0.847,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent task/conversation": {
+          "jev": 1.0,
+          "llm": 1.0,
+          "tolerance": 0.083,
+          "met": true
+        },
+        "spent task/single": {
+          "jev": 0.972,
+          "llm": 1.0,
+          "tolerance": 0.083,
+          "met": true
+        }
+      }
+    },
+    {
+      "config": "link>=0.5 ev>=0.5 ach_conv<0.3 fa>=0.7 ro>=0.5",
+      "cells_within": 18,
+      "cells": 20,
+      "utility": -0.242,
+      "detail": {
+        "e5c ask/single": {
+          "jev": 0.896,
+          "llm": 0.958,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "e5c quiet/single": {
+          "jev": 0.938,
+          "llm": 1.0,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "e8 ask/conversation": {
+          "jev": 0.8,
+          "llm": 1.0,
+          "tolerance": 0.2,
+          "met": true
+        },
+        "e8 ask/single": {
+          "jev": 0.625,
+          "llm": 0.75,
+          "tolerance": 0.125,
+          "met": true
+        },
+        "e8 object/conversation": {
+          "jev": 1.0,
+          "llm": 0.333,
+          "tolerance": 0.167,
+          "met": true
+        },
+        "e8 object/single": {
+          "jev": 0.727,
+          "llm": 0.409,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "e8 quiet/conversation": {
+          "jev": 0.75,
+          "llm": 0.875,
+          "tolerance": 0.125,
+          "met": true
+        },
+        "e8 quiet/single": {
+          "jev": 0.74,
+          "llm": 0.875,
+          "tolerance": 0.07,
+          "met": false
+        },
+        "pairs ask/conversation": {
+          "jev": 0.5,
+          "llm": 0.0,
+          "tolerance": 0.5,
+          "met": true
+        },
+        "pairs ask/single": {
+          "jev": 0.417,
+          "llm": 0.0,
+          "tolerance": 0.25,
+          "met": true
+        },
+        "pairs object/conversation": {
+          "jev": 1.0,
+          "llm": 1.0,
+          "tolerance": 0.5,
+          "met": true
+        },
+        "pairs object/single": {
+          "jev": 1.0,
+          "llm": 1.0,
+          "tolerance": 0.25,
+          "met": true
+        },
+        "spent answered/conversation": {
+          "jev": 0.907,
+          "llm": 1.0,
+          "tolerance": 0.07,
+          "met": false
+        },
+        "spent ask/conversation": {
+          "jev": 0.927,
+          "llm": 0.729,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent ask/single": {
+          "jev": 0.812,
+          "llm": 0.87,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent object/single": {
+          "jev": 0.778,
+          "llm": 0.77,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent quiet/conversation": {
+          "jev": 0.925,
+          "llm": 0.917,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent quiet/single": {
+          "jev": 0.901,
+          "llm": 0.847,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent task/conversation": {
+          "jev": 1.0,
+          "llm": 1.0,
+          "tolerance": 0.083,
+          "met": true
+        },
+        "spent task/single": {
+          "jev": 0.972,
+          "llm": 1.0,
+          "tolerance": 0.083,
+          "met": true
+        }
+      }
+    },
+    {
+      "config": "link>=0.5 ev>=0.5 ach_conv<0.3 fa>=0.7 ro>=0.7",
+      "cells_within": 18,
+      "cells": 20,
+      "utility": -0.244,
+      "detail": {
+        "e5c ask/single": {
+          "jev": 0.896,
+          "llm": 0.958,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "e5c quiet/single": {
+          "jev": 0.938,
+          "llm": 1.0,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "e8 ask/conversation": {
+          "jev": 0.8,
+          "llm": 1.0,
+          "tolerance": 0.2,
+          "met": true
+        },
+        "e8 ask/single": {
+          "jev": 0.625,
+          "llm": 0.75,
+          "tolerance": 0.125,
+          "met": true
+        },
+        "e8 object/conversation": {
+          "jev": 1.0,
+          "llm": 0.333,
+          "tolerance": 0.167,
+          "met": true
+        },
+        "e8 object/single": {
+          "jev": 0.682,
+          "llm": 0.409,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "e8 quiet/conversation": {
+          "jev": 0.75,
+          "llm": 0.875,
+          "tolerance": 0.125,
+          "met": true
+        },
+        "e8 quiet/single": {
+          "jev": 0.74,
+          "llm": 0.875,
+          "tolerance": 0.07,
+          "met": false
+        },
+        "pairs ask/conversation": {
+          "jev": 0.5,
+          "llm": 0.0,
+          "tolerance": 0.5,
+          "met": true
+        },
+        "pairs ask/single": {
+          "jev": 0.417,
+          "llm": 0.0,
+          "tolerance": 0.25,
+          "met": true
+        },
+        "pairs object/conversation": {
+          "jev": 1.0,
+          "llm": 1.0,
+          "tolerance": 0.5,
+          "met": true
+        },
+        "pairs object/single": {
+          "jev": 1.0,
+          "llm": 1.0,
+          "tolerance": 0.25,
+          "met": true
+        },
+        "spent answered/conversation": {
+          "jev": 0.907,
+          "llm": 1.0,
+          "tolerance": 0.07,
+          "met": false
+        },
+        "spent ask/conversation": {
+          "jev": 0.927,
+          "llm": 0.729,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent ask/single": {
+          "jev": 0.812,
+          "llm": 0.87,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent object/single": {
+          "jev": 0.722,
+          "llm": 0.77,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent quiet/conversation": {
+          "jev": 0.925,
+          "llm": 0.917,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent quiet/single": {
+          "jev": 0.901,
+          "llm": 0.847,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent task/conversation": {
+          "jev": 1.0,
+          "llm": 1.0,
+          "tolerance": 0.083,
+          "met": true
+        },
+        "spent task/single": {
+          "jev": 0.972,
+          "llm": 1.0,
+          "tolerance": 0.083,
+          "met": true
+        }
+      }
+    },
+    {
+      "config": "link>=0.5 ev>=0.7 ach_conv<0.5 fa>=0.5 ro>=0.5",
+      "cells_within": 14,
+      "cells": 20,
+      "utility": -0.285,
+      "detail": {
+        "e5c ask/single": {
+          "jev": 0.896,
+          "llm": 0.958,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "e5c quiet/single": {
+          "jev": 0.938,
+          "llm": 1.0,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "e8 ask/conversation": {
+          "jev": 0.8,
+          "llm": 1.0,
+          "tolerance": 0.2,
+          "met": true
+        },
+        "e8 ask/single": {
+          "jev": 0.625,
+          "llm": 0.75,
+          "tolerance": 0.125,
+          "met": true
+        },
+        "e8 object/conversation": {
+          "jev": 0.944,
+          "llm": 0.333,
+          "tolerance": 0.167,
+          "met": true
+        },
+        "e8 object/single": {
+          "jev": 0.682,
+          "llm": 0.409,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "e8 quiet/conversation": {
+          "jev": 0.583,
+          "llm": 0.875,
+          "tolerance": 0.125,
+          "met": false
+        },
+        "e8 quiet/single": {
+          "jev": 0.719,
+          "llm": 0.875,
+          "tolerance": 0.07,
+          "met": false
+        },
+        "pairs ask/conversation": {
+          "jev": 0.5,
+          "llm": 0.0,
+          "tolerance": 0.5,
+          "met": true
+        },
+        "pairs ask/single": {
+          "jev": 0.917,
+          "llm": 0.0,
+          "tolerance": 0.25,
+          "met": true
+        },
+        "pairs object/conversation": {
+          "jev": 1.0,
+          "llm": 1.0,
+          "tolerance": 0.5,
+          "met": true
+        },
+        "pairs object/single": {
+          "jev": 1.0,
+          "llm": 1.0,
+          "tolerance": 0.25,
+          "met": true
+        },
+        "spent answered/conversation": {
+          "jev": 0.87,
+          "llm": 1.0,
+          "tolerance": 0.07,
+          "met": false
+        },
+        "spent ask/conversation": {
+          "jev": 0.927,
+          "llm": 0.729,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent ask/single": {
+          "jev": 0.913,
+          "llm": 0.87,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent object/single": {
+          "jev": 0.69,
+          "llm": 0.77,
+          "tolerance": 0.07,
+          "met": false
+        },
+        "spent quiet/conversation": {
+          "jev": 0.825,
+          "llm": 0.917,
+          "tolerance": 0.07,
+          "met": false
+        },
+        "spent quiet/single": {
+          "jev": 0.874,
+          "llm": 0.847,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent task/conversation": {
+          "jev": 0.833,
+          "llm": 1.0,
+          "tolerance": 0.083,
+          "met": false
+        },
+        "spent task/single": {
+          "jev": 0.972,
+          "llm": 1.0,
+          "tolerance": 0.083,
+          "met": true
+        }
+      }
+    },
+    {
+      "config": "link>=0.5 ev>=0.7 ach_conv<0.5 fa>=0.5 ro>=0.7",
+      "cells_within": 14,
+      "cells": 20,
+      "utility": -0.288,
+      "detail": {
+        "e5c ask/single": {
+          "jev": 0.896,
+          "llm": 0.958,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "e5c quiet/single": {
+          "jev": 0.938,
+          "llm": 1.0,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "e8 ask/conversation": {
+          "jev": 0.8,
+          "llm": 1.0,
+          "tolerance": 0.2,
+          "met": true
+        },
+        "e8 ask/single": {
+          "jev": 0.625,
+          "llm": 0.75,
+          "tolerance": 0.125,
+          "met": true
+        },
+        "e8 object/conversation": {
+          "jev": 0.944,
+          "llm": 0.333,
+          "tolerance": 0.167,
+          "met": true
+        },
+        "e8 object/single": {
+          "jev": 0.636,
+          "llm": 0.409,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "e8 quiet/conversation": {
+          "jev": 0.583,
+          "llm": 0.875,
+          "tolerance": 0.125,
+          "met": false
+        },
+        "e8 quiet/single": {
+          "jev": 0.719,
+          "llm": 0.875,
+          "tolerance": 0.07,
+          "met": false
+        },
+        "pairs ask/conversation": {
+          "jev": 0.5,
+          "llm": 0.0,
+          "tolerance": 0.5,
+          "met": true
+        },
+        "pairs ask/single": {
+          "jev": 0.917,
+          "llm": 0.0,
+          "tolerance": 0.25,
+          "met": true
+        },
+        "pairs object/conversation": {
+          "jev": 1.0,
+          "llm": 1.0,
+          "tolerance": 0.5,
+          "met": true
+        },
+        "pairs object/single": {
+          "jev": 1.0,
+          "llm": 1.0,
+          "tolerance": 0.25,
+          "met": true
+        },
+        "spent answered/conversation": {
+          "jev": 0.87,
+          "llm": 1.0,
+          "tolerance": 0.07,
+          "met": false
+        },
+        "spent ask/conversation": {
+          "jev": 0.927,
+          "llm": 0.729,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent ask/single": {
+          "jev": 0.928,
+          "llm": 0.87,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent object/single": {
+          "jev": 0.595,
+          "llm": 0.77,
+          "tolerance": 0.07,
+          "met": false
+        },
+        "spent quiet/conversation": {
+          "jev": 0.825,
+          "llm": 0.917,
+          "tolerance": 0.07,
+          "met": false
+        },
+        "spent quiet/single": {
+          "jev": 0.874,
+          "llm": 0.847,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent task/conversation": {
+          "jev": 0.833,
+          "llm": 1.0,
+          "tolerance": 0.083,
+          "met": false
+        },
+        "spent task/single": {
+          "jev": 0.972,
+          "llm": 1.0,
+          "tolerance": 0.083,
+          "met": true
+        }
+      }
+    },
+    {
+      "config": "link>=0.5 ev>=0.7 ach_conv<0.5 fa>=0.7 ro>=0.5",
+      "cells_within": 14,
+      "cells": 20,
+      "utility": -0.294,
+      "detail": {
+        "e5c ask/single": {
+          "jev": 0.896,
+          "llm": 0.958,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "e5c quiet/single": {
+          "jev": 0.938,
+          "llm": 1.0,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "e8 ask/conversation": {
+          "jev": 0.8,
+          "llm": 1.0,
+          "tolerance": 0.2,
+          "met": true
+        },
+        "e8 ask/single": {
+          "jev": 0.625,
+          "llm": 0.75,
+          "tolerance": 0.125,
+          "met": true
+        },
+        "e8 object/conversation": {
+          "jev": 1.0,
+          "llm": 0.333,
+          "tolerance": 0.167,
+          "met": true
+        },
+        "e8 object/single": {
+          "jev": 0.773,
+          "llm": 0.409,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "e8 quiet/conversation": {
+          "jev": 0.583,
+          "llm": 0.875,
+          "tolerance": 0.125,
+          "met": false
+        },
+        "e8 quiet/single": {
+          "jev": 0.74,
+          "llm": 0.875,
+          "tolerance": 0.07,
+          "met": false
+        },
+        "pairs ask/conversation": {
+          "jev": 0.5,
+          "llm": 0.0,
+          "tolerance": 0.5,
+          "met": true
+        },
+        "pairs ask/single": {
+          "jev": 0.417,
+          "llm": 0.0,
+          "tolerance": 0.25,
+          "met": true
+        },
+        "pairs object/conversation": {
+          "jev": 1.0,
+          "llm": 1.0,
+          "tolerance": 0.5,
+          "met": true
+        },
+        "pairs object/single": {
+          "jev": 1.0,
+          "llm": 1.0,
+          "tolerance": 0.25,
+          "met": true
+        },
+        "spent answered/conversation": {
+          "jev": 0.87,
+          "llm": 1.0,
+          "tolerance": 0.07,
+          "met": false
+        },
+        "spent ask/conversation": {
+          "jev": 0.927,
+          "llm": 0.729,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent ask/single": {
+          "jev": 0.855,
+          "llm": 0.87,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent object/single": {
+          "jev": 0.69,
+          "llm": 0.77,
+          "tolerance": 0.07,
+          "met": false
+        },
+        "spent quiet/conversation": {
+          "jev": 0.825,
+          "llm": 0.917,
+          "tolerance": 0.07,
+          "met": false
+        },
+        "spent quiet/single": {
+          "jev": 0.874,
+          "llm": 0.847,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent task/conversation": {
+          "jev": 0.833,
+          "llm": 1.0,
+          "tolerance": 0.083,
+          "met": false
+        },
+        "spent task/single": {
+          "jev": 0.972,
+          "llm": 1.0,
+          "tolerance": 0.083,
+          "met": true
+        }
+      }
+    },
+    {
+      "config": "link>=0.5 ev>=0.7 ach_conv<0.5 fa>=0.7 ro>=0.7",
+      "cells_within": 14,
+      "cells": 20,
+      "utility": -0.299,
+      "detail": {
+        "e5c ask/single": {
+          "jev": 0.896,
+          "llm": 0.958,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "e5c quiet/single": {
+          "jev": 0.938,
+          "llm": 1.0,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "e8 ask/conversation": {
+          "jev": 0.8,
+          "llm": 1.0,
+          "tolerance": 0.2,
+          "met": true
+        },
+        "e8 ask/single": {
+          "jev": 0.625,
+          "llm": 0.75,
+          "tolerance": 0.125,
+          "met": true
+        },
+        "e8 object/conversation": {
+          "jev": 1.0,
+          "llm": 0.333,
+          "tolerance": 0.167,
+          "met": true
+        },
+        "e8 object/single": {
+          "jev": 0.727,
+          "llm": 0.409,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "e8 quiet/conversation": {
+          "jev": 0.583,
+          "llm": 0.875,
+          "tolerance": 0.125,
+          "met": false
+        },
+        "e8 quiet/single": {
+          "jev": 0.74,
+          "llm": 0.875,
+          "tolerance": 0.07,
+          "met": false
+        },
+        "pairs ask/conversation": {
+          "jev": 0.5,
+          "llm": 0.0,
+          "tolerance": 0.5,
+          "met": true
+        },
+        "pairs ask/single": {
+          "jev": 0.417,
+          "llm": 0.0,
+          "tolerance": 0.25,
+          "met": true
+        },
+        "pairs object/conversation": {
+          "jev": 1.0,
+          "llm": 1.0,
+          "tolerance": 0.5,
+          "met": true
+        },
+        "pairs object/single": {
+          "jev": 1.0,
+          "llm": 1.0,
+          "tolerance": 0.25,
+          "met": true
+        },
+        "spent answered/conversation": {
+          "jev": 0.87,
+          "llm": 1.0,
+          "tolerance": 0.07,
+          "met": false
+        },
+        "spent ask/conversation": {
+          "jev": 0.927,
+          "llm": 0.729,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent ask/single": {
+          "jev": 0.855,
+          "llm": 0.87,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent object/single": {
+          "jev": 0.635,
+          "llm": 0.77,
+          "tolerance": 0.07,
+          "met": false
+        },
+        "spent quiet/conversation": {
+          "jev": 0.825,
+          "llm": 0.917,
+          "tolerance": 0.07,
+          "met": false
+        },
+        "spent quiet/single": {
+          "jev": 0.874,
+          "llm": 0.847,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent task/conversation": {
+          "jev": 0.833,
+          "llm": 1.0,
+          "tolerance": 0.083,
+          "met": false
+        },
+        "spent task/single": {
+          "jev": 0.972,
+          "llm": 1.0,
+          "tolerance": 0.083,
+          "met": true
+        }
+      }
+    },
+    {
+      "config": "link>=0.5 ev>=0.7 ach_conv<0.3 fa>=0.5 ro>=0.5",
+      "cells_within": 16,
+      "cells": 20,
+      "utility": -0.27,
+      "detail": {
+        "e5c ask/single": {
+          "jev": 0.896,
+          "llm": 0.958,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "e5c quiet/single": {
+          "jev": 0.938,
+          "llm": 1.0,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "e8 ask/conversation": {
+          "jev": 0.8,
+          "llm": 1.0,
+          "tolerance": 0.2,
+          "met": true
+        },
+        "e8 ask/single": {
+          "jev": 0.625,
+          "llm": 0.75,
+          "tolerance": 0.125,
+          "met": true
+        },
+        "e8 object/conversation": {
+          "jev": 0.944,
+          "llm": 0.333,
+          "tolerance": 0.167,
+          "met": true
+        },
+        "e8 object/single": {
+          "jev": 0.682,
+          "llm": 0.409,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "e8 quiet/conversation": {
+          "jev": 0.625,
+          "llm": 0.875,
+          "tolerance": 0.125,
+          "met": false
+        },
+        "e8 quiet/single": {
+          "jev": 0.719,
+          "llm": 0.875,
+          "tolerance": 0.07,
+          "met": false
+        },
+        "pairs ask/conversation": {
+          "jev": 0.5,
+          "llm": 0.0,
+          "tolerance": 0.5,
+          "met": true
+        },
+        "pairs ask/single": {
+          "jev": 0.917,
+          "llm": 0.0,
+          "tolerance": 0.25,
+          "met": true
+        },
+        "pairs object/conversation": {
+          "jev": 1.0,
+          "llm": 1.0,
+          "tolerance": 0.5,
+          "met": true
+        },
+        "pairs object/single": {
+          "jev": 1.0,
+          "llm": 1.0,
+          "tolerance": 0.25,
+          "met": true
+        },
+        "spent answered/conversation": {
+          "jev": 0.87,
+          "llm": 1.0,
+          "tolerance": 0.07,
+          "met": false
+        },
+        "spent ask/conversation": {
+          "jev": 0.927,
+          "llm": 0.729,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent ask/single": {
+          "jev": 0.913,
+          "llm": 0.87,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent object/single": {
+          "jev": 0.69,
+          "llm": 0.77,
+          "tolerance": 0.07,
+          "met": false
+        },
+        "spent quiet/conversation": {
+          "jev": 0.883,
+          "llm": 0.917,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent quiet/single": {
+          "jev": 0.874,
+          "llm": 0.847,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent task/conversation": {
+          "jev": 1.0,
+          "llm": 1.0,
+          "tolerance": 0.083,
+          "met": true
+        },
+        "spent task/single": {
+          "jev": 0.972,
+          "llm": 1.0,
+          "tolerance": 0.083,
+          "met": true
+        }
+      }
+    },
+    {
+      "config": "link>=0.5 ev>=0.7 ach_conv<0.3 fa>=0.5 ro>=0.7",
+      "cells_within": 16,
+      "cells": 20,
+      "utility": -0.273,
+      "detail": {
+        "e5c ask/single": {
+          "jev": 0.896,
+          "llm": 0.958,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "e5c quiet/single": {
+          "jev": 0.938,
+          "llm": 1.0,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "e8 ask/conversation": {
+          "jev": 0.8,
+          "llm": 1.0,
+          "tolerance": 0.2,
+          "met": true
+        },
+        "e8 ask/single": {
+          "jev": 0.625,
+          "llm": 0.75,
+          "tolerance": 0.125,
+          "met": true
+        },
+        "e8 object/conversation": {
+          "jev": 0.944,
+          "llm": 0.333,
+          "tolerance": 0.167,
+          "met": true
+        },
+        "e8 object/single": {
+          "jev": 0.636,
+          "llm": 0.409,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "e8 quiet/conversation": {
+          "jev": 0.625,
+          "llm": 0.875,
+          "tolerance": 0.125,
+          "met": false
+        },
+        "e8 quiet/single": {
+          "jev": 0.719,
+          "llm": 0.875,
+          "tolerance": 0.07,
+          "met": false
+        },
+        "pairs ask/conversation": {
+          "jev": 0.5,
+          "llm": 0.0,
+          "tolerance": 0.5,
+          "met": true
+        },
+        "pairs ask/single": {
+          "jev": 0.917,
+          "llm": 0.0,
+          "tolerance": 0.25,
+          "met": true
+        },
+        "pairs object/conversation": {
+          "jev": 1.0,
+          "llm": 1.0,
+          "tolerance": 0.5,
+          "met": true
+        },
+        "pairs object/single": {
+          "jev": 1.0,
+          "llm": 1.0,
+          "tolerance": 0.25,
+          "met": true
+        },
+        "spent answered/conversation": {
+          "jev": 0.87,
+          "llm": 1.0,
+          "tolerance": 0.07,
+          "met": false
+        },
+        "spent ask/conversation": {
+          "jev": 0.927,
+          "llm": 0.729,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent ask/single": {
+          "jev": 0.928,
+          "llm": 0.87,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent object/single": {
+          "jev": 0.595,
+          "llm": 0.77,
+          "tolerance": 0.07,
+          "met": false
+        },
+        "spent quiet/conversation": {
+          "jev": 0.883,
+          "llm": 0.917,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent quiet/single": {
+          "jev": 0.874,
+          "llm": 0.847,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent task/conversation": {
+          "jev": 1.0,
+          "llm": 1.0,
+          "tolerance": 0.083,
+          "met": true
+        },
+        "spent task/single": {
+          "jev": 0.972,
+          "llm": 1.0,
+          "tolerance": 0.083,
+          "met": true
+        }
+      }
+    },
+    {
+      "config": "link>=0.5 ev>=0.7 ach_conv<0.3 fa>=0.7 ro>=0.5",
+      "cells_within": 16,
+      "cells": 20,
+      "utility": -0.279,
+      "detail": {
+        "e5c ask/single": {
+          "jev": 0.896,
+          "llm": 0.958,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "e5c quiet/single": {
+          "jev": 0.938,
+          "llm": 1.0,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "e8 ask/conversation": {
+          "jev": 0.8,
+          "llm": 1.0,
+          "tolerance": 0.2,
+          "met": true
+        },
+        "e8 ask/single": {
+          "jev": 0.625,
+          "llm": 0.75,
+          "tolerance": 0.125,
+          "met": true
+        },
+        "e8 object/conversation": {
+          "jev": 1.0,
+          "llm": 0.333,
+          "tolerance": 0.167,
+          "met": true
+        },
+        "e8 object/single": {
+          "jev": 0.773,
+          "llm": 0.409,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "e8 quiet/conversation": {
+          "jev": 0.625,
+          "llm": 0.875,
+          "tolerance": 0.125,
+          "met": false
+        },
+        "e8 quiet/single": {
+          "jev": 0.74,
+          "llm": 0.875,
+          "tolerance": 0.07,
+          "met": false
+        },
+        "pairs ask/conversation": {
+          "jev": 0.5,
+          "llm": 0.0,
+          "tolerance": 0.5,
+          "met": true
+        },
+        "pairs ask/single": {
+          "jev": 0.417,
+          "llm": 0.0,
+          "tolerance": 0.25,
+          "met": true
+        },
+        "pairs object/conversation": {
+          "jev": 1.0,
+          "llm": 1.0,
+          "tolerance": 0.5,
+          "met": true
+        },
+        "pairs object/single": {
+          "jev": 1.0,
+          "llm": 1.0,
+          "tolerance": 0.25,
+          "met": true
+        },
+        "spent answered/conversation": {
+          "jev": 0.87,
+          "llm": 1.0,
+          "tolerance": 0.07,
+          "met": false
+        },
+        "spent ask/conversation": {
+          "jev": 0.927,
+          "llm": 0.729,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent ask/single": {
+          "jev": 0.855,
+          "llm": 0.87,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent object/single": {
+          "jev": 0.69,
+          "llm": 0.77,
+          "tolerance": 0.07,
+          "met": false
+        },
+        "spent quiet/conversation": {
+          "jev": 0.883,
+          "llm": 0.917,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent quiet/single": {
+          "jev": 0.874,
+          "llm": 0.847,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent task/conversation": {
+          "jev": 1.0,
+          "llm": 1.0,
+          "tolerance": 0.083,
+          "met": true
+        },
+        "spent task/single": {
+          "jev": 0.972,
+          "llm": 1.0,
+          "tolerance": 0.083,
+          "met": true
+        }
+      }
+    },
+    {
+      "config": "link>=0.5 ev>=0.7 ach_conv<0.3 fa>=0.7 ro>=0.7",
+      "cells_within": 16,
+      "cells": 20,
+      "utility": -0.285,
+      "detail": {
+        "e5c ask/single": {
+          "jev": 0.896,
+          "llm": 0.958,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "e5c quiet/single": {
+          "jev": 0.938,
+          "llm": 1.0,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "e8 ask/conversation": {
+          "jev": 0.8,
+          "llm": 1.0,
+          "tolerance": 0.2,
+          "met": true
+        },
+        "e8 ask/single": {
+          "jev": 0.625,
+          "llm": 0.75,
+          "tolerance": 0.125,
+          "met": true
+        },
+        "e8 object/conversation": {
+          "jev": 1.0,
+          "llm": 0.333,
+          "tolerance": 0.167,
+          "met": true
+        },
+        "e8 object/single": {
+          "jev": 0.727,
+          "llm": 0.409,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "e8 quiet/conversation": {
+          "jev": 0.625,
+          "llm": 0.875,
+          "tolerance": 0.125,
+          "met": false
+        },
+        "e8 quiet/single": {
+          "jev": 0.74,
+          "llm": 0.875,
+          "tolerance": 0.07,
+          "met": false
+        },
+        "pairs ask/conversation": {
+          "jev": 0.5,
+          "llm": 0.0,
+          "tolerance": 0.5,
+          "met": true
+        },
+        "pairs ask/single": {
+          "jev": 0.417,
+          "llm": 0.0,
+          "tolerance": 0.25,
+          "met": true
+        },
+        "pairs object/conversation": {
+          "jev": 1.0,
+          "llm": 1.0,
+          "tolerance": 0.5,
+          "met": true
+        },
+        "pairs object/single": {
+          "jev": 1.0,
+          "llm": 1.0,
+          "tolerance": 0.25,
+          "met": true
+        },
+        "spent answered/conversation": {
+          "jev": 0.87,
+          "llm": 1.0,
+          "tolerance": 0.07,
+          "met": false
+        },
+        "spent ask/conversation": {
+          "jev": 0.927,
+          "llm": 0.729,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent ask/single": {
+          "jev": 0.855,
+          "llm": 0.87,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent object/single": {
+          "jev": 0.635,
+          "llm": 0.77,
+          "tolerance": 0.07,
+          "met": false
+        },
+        "spent quiet/conversation": {
+          "jev": 0.883,
+          "llm": 0.917,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent quiet/single": {
+          "jev": 0.874,
+          "llm": 0.847,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent task/conversation": {
+          "jev": 1.0,
+          "llm": 1.0,
+          "tolerance": 0.083,
+          "met": true
+        },
+        "spent task/single": {
+          "jev": 0.972,
+          "llm": 1.0,
+          "tolerance": 0.083,
+          "met": true
+        }
+      }
+    },
+    {
+      "config": "link>=0.7 ev>=0.5 ach_conv<0.5 fa>=0.5 ro>=0.5",
+      "cells_within": 15,
+      "cells": 20,
+      "utility": -0.261,
+      "detail": {
+        "e5c ask/single": {
+          "jev": 1.0,
+          "llm": 0.958,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "e5c quiet/single": {
+          "jev": 0.938,
+          "llm": 1.0,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "e8 ask/conversation": {
+          "jev": 0.8,
+          "llm": 1.0,
+          "tolerance": 0.2,
+          "met": true
+        },
+        "e8 ask/single": {
+          "jev": 0.625,
+          "llm": 0.75,
+          "tolerance": 0.125,
+          "met": true
+        },
+        "e8 object/conversation": {
+          "jev": 0.944,
+          "llm": 0.333,
+          "tolerance": 0.167,
+          "met": true
+        },
+        "e8 object/single": {
+          "jev": 0.591,
+          "llm": 0.409,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "e8 quiet/conversation": {
+          "jev": 0.583,
+          "llm": 0.875,
+          "tolerance": 0.125,
+          "met": false
+        },
+        "e8 quiet/single": {
+          "jev": 0.719,
+          "llm": 0.875,
+          "tolerance": 0.07,
+          "met": false
+        },
+        "pairs ask/conversation": {
+          "jev": 0.5,
+          "llm": 0.0,
+          "tolerance": 0.5,
+          "met": true
+        },
+        "pairs ask/single": {
+          "jev": 0.917,
+          "llm": 0.0,
+          "tolerance": 0.25,
+          "met": true
+        },
+        "pairs object/conversation": {
+          "jev": 1.0,
+          "llm": 1.0,
+          "tolerance": 0.5,
+          "met": true
+        },
+        "pairs object/single": {
+          "jev": 1.0,
+          "llm": 1.0,
+          "tolerance": 0.25,
+          "met": true
+        },
+        "spent answered/conversation": {
+          "jev": 0.907,
+          "llm": 1.0,
+          "tolerance": 0.07,
+          "met": false
+        },
+        "spent ask/conversation": {
+          "jev": 0.958,
+          "llm": 0.729,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent ask/single": {
+          "jev": 0.928,
+          "llm": 0.87,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent object/single": {
+          "jev": 0.754,
+          "llm": 0.77,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent quiet/conversation": {
+          "jev": 0.825,
+          "llm": 0.917,
+          "tolerance": 0.07,
+          "met": false
+        },
+        "spent quiet/single": {
+          "jev": 0.892,
+          "llm": 0.847,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent task/conversation": {
+          "jev": 0.833,
+          "llm": 1.0,
+          "tolerance": 0.083,
+          "met": false
+        },
+        "spent task/single": {
+          "jev": 0.972,
+          "llm": 1.0,
+          "tolerance": 0.083,
+          "met": true
+        }
+      }
+    },
+    {
+      "config": "link>=0.7 ev>=0.5 ach_conv<0.5 fa>=0.5 ro>=0.7",
+      "cells_within": 14,
+      "cells": 20,
+      "utility": -0.264,
+      "detail": {
+        "e5c ask/single": {
+          "jev": 1.0,
+          "llm": 0.958,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "e5c quiet/single": {
+          "jev": 0.938,
+          "llm": 1.0,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "e8 ask/conversation": {
+          "jev": 0.8,
+          "llm": 1.0,
+          "tolerance": 0.2,
+          "met": true
+        },
+        "e8 ask/single": {
+          "jev": 0.625,
+          "llm": 0.75,
+          "tolerance": 0.125,
+          "met": true
+        },
+        "e8 object/conversation": {
+          "jev": 0.944,
+          "llm": 0.333,
+          "tolerance": 0.167,
+          "met": true
+        },
+        "e8 object/single": {
+          "jev": 0.545,
+          "llm": 0.409,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "e8 quiet/conversation": {
+          "jev": 0.583,
+          "llm": 0.875,
+          "tolerance": 0.125,
+          "met": false
+        },
+        "e8 quiet/single": {
+          "jev": 0.719,
+          "llm": 0.875,
+          "tolerance": 0.07,
+          "met": false
+        },
+        "pairs ask/conversation": {
+          "jev": 0.5,
+          "llm": 0.0,
+          "tolerance": 0.5,
+          "met": true
+        },
+        "pairs ask/single": {
+          "jev": 0.917,
+          "llm": 0.0,
+          "tolerance": 0.25,
+          "met": true
+        },
+        "pairs object/conversation": {
+          "jev": 1.0,
+          "llm": 1.0,
+          "tolerance": 0.5,
+          "met": true
+        },
+        "pairs object/single": {
+          "jev": 1.0,
+          "llm": 1.0,
+          "tolerance": 0.25,
+          "met": true
+        },
+        "spent answered/conversation": {
+          "jev": 0.907,
+          "llm": 1.0,
+          "tolerance": 0.07,
+          "met": false
+        },
+        "spent ask/conversation": {
+          "jev": 0.958,
+          "llm": 0.729,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent ask/single": {
+          "jev": 0.942,
+          "llm": 0.87,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent object/single": {
+          "jev": 0.659,
+          "llm": 0.77,
+          "tolerance": 0.07,
+          "met": false
+        },
+        "spent quiet/conversation": {
+          "jev": 0.825,
+          "llm": 0.917,
+          "tolerance": 0.07,
+          "met": false
+        },
+        "spent quiet/single": {
+          "jev": 0.892,
+          "llm": 0.847,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent task/conversation": {
+          "jev": 0.833,
+          "llm": 1.0,
+          "tolerance": 0.083,
+          "met": false
+        },
+        "spent task/single": {
+          "jev": 0.972,
+          "llm": 1.0,
+          "tolerance": 0.083,
+          "met": true
+        }
+      }
+    },
+    {
+      "config": "link>=0.7 ev>=0.5 ach_conv<0.5 fa>=0.7 ro>=0.5",
+      "cells_within": 15,
+      "cells": 20,
+      "utility": -0.258,
+      "detail": {
+        "e5c ask/single": {
+          "jev": 1.0,
+          "llm": 0.958,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "e5c quiet/single": {
+          "jev": 0.938,
+          "llm": 1.0,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "e8 ask/conversation": {
+          "jev": 0.8,
+          "llm": 1.0,
+          "tolerance": 0.2,
+          "met": true
+        },
+        "e8 ask/single": {
+          "jev": 0.625,
+          "llm": 0.75,
+          "tolerance": 0.125,
+          "met": true
+        },
+        "e8 object/conversation": {
+          "jev": 1.0,
+          "llm": 0.333,
+          "tolerance": 0.167,
+          "met": true
+        },
+        "e8 object/single": {
+          "jev": 0.682,
+          "llm": 0.409,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "e8 quiet/conversation": {
+          "jev": 0.583,
+          "llm": 0.875,
+          "tolerance": 0.125,
+          "met": false
+        },
+        "e8 quiet/single": {
+          "jev": 0.74,
+          "llm": 0.875,
+          "tolerance": 0.07,
+          "met": false
+        },
+        "pairs ask/conversation": {
+          "jev": 0.5,
+          "llm": 0.0,
+          "tolerance": 0.5,
+          "met": true
+        },
+        "pairs ask/single": {
+          "jev": 0.417,
+          "llm": 0.0,
+          "tolerance": 0.25,
+          "met": true
+        },
+        "pairs object/conversation": {
+          "jev": 1.0,
+          "llm": 1.0,
+          "tolerance": 0.5,
+          "met": true
+        },
+        "pairs object/single": {
+          "jev": 1.0,
+          "llm": 1.0,
+          "tolerance": 0.25,
+          "met": true
+        },
+        "spent answered/conversation": {
+          "jev": 0.907,
+          "llm": 1.0,
+          "tolerance": 0.07,
+          "met": false
+        },
+        "spent ask/conversation": {
+          "jev": 0.958,
+          "llm": 0.729,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent ask/single": {
+          "jev": 0.87,
+          "llm": 0.87,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent object/single": {
+          "jev": 0.778,
+          "llm": 0.77,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent quiet/conversation": {
+          "jev": 0.825,
+          "llm": 0.917,
+          "tolerance": 0.07,
+          "met": false
+        },
+        "spent quiet/single": {
+          "jev": 0.892,
+          "llm": 0.847,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent task/conversation": {
+          "jev": 0.833,
+          "llm": 1.0,
+          "tolerance": 0.083,
+          "met": false
+        },
+        "spent task/single": {
+          "jev": 0.972,
+          "llm": 1.0,
+          "tolerance": 0.083,
+          "met": true
+        }
+      }
+    },
+    {
+      "config": "link>=0.7 ev>=0.5 ach_conv<0.5 fa>=0.7 ro>=0.7",
+      "cells_within": 15,
+      "cells": 20,
+      "utility": -0.26,
+      "detail": {
+        "e5c ask/single": {
+          "jev": 1.0,
+          "llm": 0.958,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "e5c quiet/single": {
+          "jev": 0.938,
+          "llm": 1.0,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "e8 ask/conversation": {
+          "jev": 0.8,
+          "llm": 1.0,
+          "tolerance": 0.2,
+          "met": true
+        },
+        "e8 ask/single": {
+          "jev": 0.625,
+          "llm": 0.75,
+          "tolerance": 0.125,
+          "met": true
+        },
+        "e8 object/conversation": {
+          "jev": 1.0,
+          "llm": 0.333,
+          "tolerance": 0.167,
+          "met": true
+        },
+        "e8 object/single": {
+          "jev": 0.636,
+          "llm": 0.409,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "e8 quiet/conversation": {
+          "jev": 0.583,
+          "llm": 0.875,
+          "tolerance": 0.125,
+          "met": false
+        },
+        "e8 quiet/single": {
+          "jev": 0.74,
+          "llm": 0.875,
+          "tolerance": 0.07,
+          "met": false
+        },
+        "pairs ask/conversation": {
+          "jev": 0.5,
+          "llm": 0.0,
+          "tolerance": 0.5,
+          "met": true
+        },
+        "pairs ask/single": {
+          "jev": 0.417,
+          "llm": 0.0,
+          "tolerance": 0.25,
+          "met": true
+        },
+        "pairs object/conversation": {
+          "jev": 1.0,
+          "llm": 1.0,
+          "tolerance": 0.5,
+          "met": true
+        },
+        "pairs object/single": {
+          "jev": 1.0,
+          "llm": 1.0,
+          "tolerance": 0.25,
+          "met": true
+        },
+        "spent answered/conversation": {
+          "jev": 0.907,
+          "llm": 1.0,
+          "tolerance": 0.07,
+          "met": false
+        },
+        "spent ask/conversation": {
+          "jev": 0.958,
+          "llm": 0.729,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent ask/single": {
+          "jev": 0.87,
+          "llm": 0.87,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent object/single": {
+          "jev": 0.722,
+          "llm": 0.77,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent quiet/conversation": {
+          "jev": 0.825,
+          "llm": 0.917,
+          "tolerance": 0.07,
+          "met": false
+        },
+        "spent quiet/single": {
+          "jev": 0.892,
+          "llm": 0.847,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent task/conversation": {
+          "jev": 0.833,
+          "llm": 1.0,
+          "tolerance": 0.083,
+          "met": false
+        },
+        "spent task/single": {
+          "jev": 0.972,
+          "llm": 1.0,
+          "tolerance": 0.083,
+          "met": true
+        }
+      }
+    },
+    {
+      "config": "link>=0.7 ev>=0.5 ach_conv<0.3 fa>=0.5 ro>=0.5",
+      "cells_within": 17,
+      "cells": 20,
+      "utility": -0.243,
+      "detail": {
+        "e5c ask/single": {
+          "jev": 1.0,
+          "llm": 0.958,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "e5c quiet/single": {
+          "jev": 0.938,
+          "llm": 1.0,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "e8 ask/conversation": {
+          "jev": 0.8,
+          "llm": 1.0,
+          "tolerance": 0.2,
+          "met": true
+        },
+        "e8 ask/single": {
+          "jev": 0.625,
+          "llm": 0.75,
+          "tolerance": 0.125,
+          "met": true
+        },
+        "e8 object/conversation": {
+          "jev": 0.944,
+          "llm": 0.333,
+          "tolerance": 0.167,
+          "met": true
+        },
+        "e8 object/single": {
+          "jev": 0.591,
+          "llm": 0.409,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "e8 quiet/conversation": {
+          "jev": 0.625,
+          "llm": 0.875,
+          "tolerance": 0.125,
+          "met": false
+        },
+        "e8 quiet/single": {
+          "jev": 0.719,
+          "llm": 0.875,
+          "tolerance": 0.07,
+          "met": false
+        },
+        "pairs ask/conversation": {
+          "jev": 0.5,
+          "llm": 0.0,
+          "tolerance": 0.5,
+          "met": true
+        },
+        "pairs ask/single": {
+          "jev": 0.917,
+          "llm": 0.0,
+          "tolerance": 0.25,
+          "met": true
+        },
+        "pairs object/conversation": {
+          "jev": 1.0,
+          "llm": 1.0,
+          "tolerance": 0.5,
+          "met": true
+        },
+        "pairs object/single": {
+          "jev": 1.0,
+          "llm": 1.0,
+          "tolerance": 0.25,
+          "met": true
+        },
+        "spent answered/conversation": {
+          "jev": 0.907,
+          "llm": 1.0,
+          "tolerance": 0.07,
+          "met": false
+        },
+        "spent ask/conversation": {
+          "jev": 0.958,
+          "llm": 0.729,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent ask/single": {
+          "jev": 0.928,
+          "llm": 0.87,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent object/single": {
+          "jev": 0.754,
+          "llm": 0.77,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent quiet/conversation": {
+          "jev": 0.9,
+          "llm": 0.917,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent quiet/single": {
+          "jev": 0.892,
+          "llm": 0.847,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent task/conversation": {
+          "jev": 1.0,
+          "llm": 1.0,
+          "tolerance": 0.083,
+          "met": true
+        },
+        "spent task/single": {
+          "jev": 0.972,
+          "llm": 1.0,
+          "tolerance": 0.083,
+          "met": true
+        }
+      }
+    },
+    {
+      "config": "link>=0.7 ev>=0.5 ach_conv<0.3 fa>=0.5 ro>=0.7",
+      "cells_within": 16,
+      "cells": 20,
+      "utility": -0.247,
+      "detail": {
+        "e5c ask/single": {
+          "jev": 1.0,
+          "llm": 0.958,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "e5c quiet/single": {
+          "jev": 0.938,
+          "llm": 1.0,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "e8 ask/conversation": {
+          "jev": 0.8,
+          "llm": 1.0,
+          "tolerance": 0.2,
+          "met": true
+        },
+        "e8 ask/single": {
+          "jev": 0.625,
+          "llm": 0.75,
+          "tolerance": 0.125,
+          "met": true
+        },
+        "e8 object/conversation": {
+          "jev": 0.944,
+          "llm": 0.333,
+          "tolerance": 0.167,
+          "met": true
+        },
+        "e8 object/single": {
+          "jev": 0.545,
+          "llm": 0.409,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "e8 quiet/conversation": {
+          "jev": 0.625,
+          "llm": 0.875,
+          "tolerance": 0.125,
+          "met": false
+        },
+        "e8 quiet/single": {
+          "jev": 0.719,
+          "llm": 0.875,
+          "tolerance": 0.07,
+          "met": false
+        },
+        "pairs ask/conversation": {
+          "jev": 0.5,
+          "llm": 0.0,
+          "tolerance": 0.5,
+          "met": true
+        },
+        "pairs ask/single": {
+          "jev": 0.917,
+          "llm": 0.0,
+          "tolerance": 0.25,
+          "met": true
+        },
+        "pairs object/conversation": {
+          "jev": 1.0,
+          "llm": 1.0,
+          "tolerance": 0.5,
+          "met": true
+        },
+        "pairs object/single": {
+          "jev": 1.0,
+          "llm": 1.0,
+          "tolerance": 0.25,
+          "met": true
+        },
+        "spent answered/conversation": {
+          "jev": 0.907,
+          "llm": 1.0,
+          "tolerance": 0.07,
+          "met": false
+        },
+        "spent ask/conversation": {
+          "jev": 0.958,
+          "llm": 0.729,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent ask/single": {
+          "jev": 0.942,
+          "llm": 0.87,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent object/single": {
+          "jev": 0.659,
+          "llm": 0.77,
+          "tolerance": 0.07,
+          "met": false
+        },
+        "spent quiet/conversation": {
+          "jev": 0.9,
+          "llm": 0.917,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent quiet/single": {
+          "jev": 0.892,
+          "llm": 0.847,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent task/conversation": {
+          "jev": 1.0,
+          "llm": 1.0,
+          "tolerance": 0.083,
+          "met": true
+        },
+        "spent task/single": {
+          "jev": 0.972,
+          "llm": 1.0,
+          "tolerance": 0.083,
+          "met": true
+        }
+      }
+    },
+    {
+      "config": "link>=0.7 ev>=0.5 ach_conv<0.3 fa>=0.7 ro>=0.5",
+      "cells_within": 17,
+      "cells": 20,
+      "utility": -0.241,
+      "detail": {
+        "e5c ask/single": {
+          "jev": 1.0,
+          "llm": 0.958,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "e5c quiet/single": {
+          "jev": 0.938,
+          "llm": 1.0,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "e8 ask/conversation": {
+          "jev": 0.8,
+          "llm": 1.0,
+          "tolerance": 0.2,
+          "met": true
+        },
+        "e8 ask/single": {
+          "jev": 0.625,
+          "llm": 0.75,
+          "tolerance": 0.125,
+          "met": true
+        },
+        "e8 object/conversation": {
+          "jev": 1.0,
+          "llm": 0.333,
+          "tolerance": 0.167,
+          "met": true
+        },
+        "e8 object/single": {
+          "jev": 0.682,
+          "llm": 0.409,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "e8 quiet/conversation": {
+          "jev": 0.625,
+          "llm": 0.875,
+          "tolerance": 0.125,
+          "met": false
+        },
+        "e8 quiet/single": {
+          "jev": 0.74,
+          "llm": 0.875,
+          "tolerance": 0.07,
+          "met": false
+        },
+        "pairs ask/conversation": {
+          "jev": 0.5,
+          "llm": 0.0,
+          "tolerance": 0.5,
+          "met": true
+        },
+        "pairs ask/single": {
+          "jev": 0.417,
+          "llm": 0.0,
+          "tolerance": 0.25,
+          "met": true
+        },
+        "pairs object/conversation": {
+          "jev": 1.0,
+          "llm": 1.0,
+          "tolerance": 0.5,
+          "met": true
+        },
+        "pairs object/single": {
+          "jev": 1.0,
+          "llm": 1.0,
+          "tolerance": 0.25,
+          "met": true
+        },
+        "spent answered/conversation": {
+          "jev": 0.907,
+          "llm": 1.0,
+          "tolerance": 0.07,
+          "met": false
+        },
+        "spent ask/conversation": {
+          "jev": 0.958,
+          "llm": 0.729,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent ask/single": {
+          "jev": 0.87,
+          "llm": 0.87,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent object/single": {
+          "jev": 0.778,
+          "llm": 0.77,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent quiet/conversation": {
+          "jev": 0.9,
+          "llm": 0.917,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent quiet/single": {
+          "jev": 0.892,
+          "llm": 0.847,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent task/conversation": {
+          "jev": 1.0,
+          "llm": 1.0,
+          "tolerance": 0.083,
+          "met": true
+        },
+        "spent task/single": {
+          "jev": 0.972,
+          "llm": 1.0,
+          "tolerance": 0.083,
+          "met": true
+        }
+      }
+    },
+    {
+      "config": "link>=0.7 ev>=0.5 ach_conv<0.3 fa>=0.7 ro>=0.7",
+      "cells_within": 17,
+      "cells": 20,
+      "utility": -0.242,
+      "detail": {
+        "e5c ask/single": {
+          "jev": 1.0,
+          "llm": 0.958,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "e5c quiet/single": {
+          "jev": 0.938,
+          "llm": 1.0,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "e8 ask/conversation": {
+          "jev": 0.8,
+          "llm": 1.0,
+          "tolerance": 0.2,
+          "met": true
+        },
+        "e8 ask/single": {
+          "jev": 0.625,
+          "llm": 0.75,
+          "tolerance": 0.125,
+          "met": true
+        },
+        "e8 object/conversation": {
+          "jev": 1.0,
+          "llm": 0.333,
+          "tolerance": 0.167,
+          "met": true
+        },
+        "e8 object/single": {
+          "jev": 0.636,
+          "llm": 0.409,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "e8 quiet/conversation": {
+          "jev": 0.625,
+          "llm": 0.875,
+          "tolerance": 0.125,
+          "met": false
+        },
+        "e8 quiet/single": {
+          "jev": 0.74,
+          "llm": 0.875,
+          "tolerance": 0.07,
+          "met": false
+        },
+        "pairs ask/conversation": {
+          "jev": 0.5,
+          "llm": 0.0,
+          "tolerance": 0.5,
+          "met": true
+        },
+        "pairs ask/single": {
+          "jev": 0.417,
+          "llm": 0.0,
+          "tolerance": 0.25,
+          "met": true
+        },
+        "pairs object/conversation": {
+          "jev": 1.0,
+          "llm": 1.0,
+          "tolerance": 0.5,
+          "met": true
+        },
+        "pairs object/single": {
+          "jev": 1.0,
+          "llm": 1.0,
+          "tolerance": 0.25,
+          "met": true
+        },
+        "spent answered/conversation": {
+          "jev": 0.907,
+          "llm": 1.0,
+          "tolerance": 0.07,
+          "met": false
+        },
+        "spent ask/conversation": {
+          "jev": 0.958,
+          "llm": 0.729,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent ask/single": {
+          "jev": 0.87,
+          "llm": 0.87,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent object/single": {
+          "jev": 0.722,
+          "llm": 0.77,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent quiet/conversation": {
+          "jev": 0.9,
+          "llm": 0.917,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent quiet/single": {
+          "jev": 0.892,
+          "llm": 0.847,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent task/conversation": {
+          "jev": 1.0,
+          "llm": 1.0,
+          "tolerance": 0.083,
+          "met": true
+        },
+        "spent task/single": {
+          "jev": 0.972,
+          "llm": 1.0,
+          "tolerance": 0.083,
+          "met": true
+        }
+      }
+    },
+    {
+      "config": "link>=0.7 ev>=0.7 ach_conv<0.5 fa>=0.5 ro>=0.5",
+      "cells_within": 14,
+      "cells": 20,
+      "utility": -0.275,
+      "detail": {
+        "e5c ask/single": {
+          "jev": 1.0,
+          "llm": 0.958,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "e5c quiet/single": {
+          "jev": 0.938,
+          "llm": 1.0,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "e8 ask/conversation": {
+          "jev": 0.8,
+          "llm": 1.0,
+          "tolerance": 0.2,
+          "met": true
+        },
+        "e8 ask/single": {
+          "jev": 0.625,
+          "llm": 0.75,
+          "tolerance": 0.125,
+          "met": true
+        },
+        "e8 object/conversation": {
+          "jev": 0.944,
+          "llm": 0.333,
+          "tolerance": 0.167,
+          "met": true
+        },
+        "e8 object/single": {
+          "jev": 0.636,
+          "llm": 0.409,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "e8 quiet/conversation": {
+          "jev": 0.458,
+          "llm": 0.875,
+          "tolerance": 0.125,
+          "met": false
+        },
+        "e8 quiet/single": {
+          "jev": 0.719,
+          "llm": 0.875,
+          "tolerance": 0.07,
+          "met": false
+        },
+        "pairs ask/conversation": {
+          "jev": 0.5,
+          "llm": 0.0,
+          "tolerance": 0.5,
+          "met": true
+        },
+        "pairs ask/single": {
+          "jev": 0.917,
+          "llm": 0.0,
+          "tolerance": 0.25,
+          "met": true
+        },
+        "pairs object/conversation": {
+          "jev": 1.0,
+          "llm": 1.0,
+          "tolerance": 0.5,
+          "met": true
+        },
+        "pairs object/single": {
+          "jev": 1.0,
+          "llm": 1.0,
+          "tolerance": 0.25,
+          "met": true
+        },
+        "spent answered/conversation": {
+          "jev": 0.87,
+          "llm": 1.0,
+          "tolerance": 0.07,
+          "met": false
+        },
+        "spent ask/conversation": {
+          "jev": 0.958,
+          "llm": 0.729,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent ask/single": {
+          "jev": 0.971,
+          "llm": 0.87,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent object/single": {
+          "jev": 0.69,
+          "llm": 0.77,
+          "tolerance": 0.07,
+          "met": false
+        },
+        "spent quiet/conversation": {
+          "jev": 0.8,
+          "llm": 0.917,
+          "tolerance": 0.07,
+          "met": false
+        },
+        "spent quiet/single": {
+          "jev": 0.865,
+          "llm": 0.847,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent task/conversation": {
+          "jev": 0.833,
+          "llm": 1.0,
+          "tolerance": 0.083,
+          "met": false
+        },
+        "spent task/single": {
+          "jev": 0.972,
+          "llm": 1.0,
+          "tolerance": 0.083,
+          "met": true
+        }
+      }
+    },
+    {
+      "config": "link>=0.7 ev>=0.7 ach_conv<0.5 fa>=0.5 ro>=0.7",
+      "cells_within": 14,
+      "cells": 20,
+      "utility": -0.278,
+      "detail": {
+        "e5c ask/single": {
+          "jev": 1.0,
+          "llm": 0.958,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "e5c quiet/single": {
+          "jev": 0.938,
+          "llm": 1.0,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "e8 ask/conversation": {
+          "jev": 0.8,
+          "llm": 1.0,
+          "tolerance": 0.2,
+          "met": true
+        },
+        "e8 ask/single": {
+          "jev": 0.625,
+          "llm": 0.75,
+          "tolerance": 0.125,
+          "met": true
+        },
+        "e8 object/conversation": {
+          "jev": 0.944,
+          "llm": 0.333,
+          "tolerance": 0.167,
+          "met": true
+        },
+        "e8 object/single": {
+          "jev": 0.591,
+          "llm": 0.409,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "e8 quiet/conversation": {
+          "jev": 0.458,
+          "llm": 0.875,
+          "tolerance": 0.125,
+          "met": false
+        },
+        "e8 quiet/single": {
+          "jev": 0.719,
+          "llm": 0.875,
+          "tolerance": 0.07,
+          "met": false
+        },
+        "pairs ask/conversation": {
+          "jev": 0.5,
+          "llm": 0.0,
+          "tolerance": 0.5,
+          "met": true
+        },
+        "pairs ask/single": {
+          "jev": 0.917,
+          "llm": 0.0,
+          "tolerance": 0.25,
+          "met": true
+        },
+        "pairs object/conversation": {
+          "jev": 1.0,
+          "llm": 1.0,
+          "tolerance": 0.5,
+          "met": true
+        },
+        "pairs object/single": {
+          "jev": 1.0,
+          "llm": 1.0,
+          "tolerance": 0.25,
+          "met": true
+        },
+        "spent answered/conversation": {
+          "jev": 0.87,
+          "llm": 1.0,
+          "tolerance": 0.07,
+          "met": false
+        },
+        "spent ask/conversation": {
+          "jev": 0.958,
+          "llm": 0.729,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent ask/single": {
+          "jev": 0.986,
+          "llm": 0.87,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent object/single": {
+          "jev": 0.595,
+          "llm": 0.77,
+          "tolerance": 0.07,
+          "met": false
+        },
+        "spent quiet/conversation": {
+          "jev": 0.8,
+          "llm": 0.917,
+          "tolerance": 0.07,
+          "met": false
+        },
+        "spent quiet/single": {
+          "jev": 0.865,
+          "llm": 0.847,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent task/conversation": {
+          "jev": 0.833,
+          "llm": 1.0,
+          "tolerance": 0.083,
+          "met": false
+        },
+        "spent task/single": {
+          "jev": 0.972,
+          "llm": 1.0,
+          "tolerance": 0.083,
+          "met": true
+        }
+      }
+    },
+    {
+      "config": "link>=0.7 ev>=0.7 ach_conv<0.5 fa>=0.7 ro>=0.5",
+      "cells_within": 14,
+      "cells": 20,
+      "utility": -0.279,
+      "detail": {
+        "e5c ask/single": {
+          "jev": 1.0,
+          "llm": 0.958,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "e5c quiet/single": {
+          "jev": 0.938,
+          "llm": 1.0,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "e8 ask/conversation": {
+          "jev": 0.8,
+          "llm": 1.0,
+          "tolerance": 0.2,
+          "met": true
+        },
+        "e8 ask/single": {
+          "jev": 0.625,
+          "llm": 0.75,
+          "tolerance": 0.125,
+          "met": true
+        },
+        "e8 object/conversation": {
+          "jev": 1.0,
+          "llm": 0.333,
+          "tolerance": 0.167,
+          "met": true
+        },
+        "e8 object/single": {
+          "jev": 0.727,
+          "llm": 0.409,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "e8 quiet/conversation": {
+          "jev": 0.458,
+          "llm": 0.875,
+          "tolerance": 0.125,
+          "met": false
+        },
+        "e8 quiet/single": {
+          "jev": 0.74,
+          "llm": 0.875,
+          "tolerance": 0.07,
+          "met": false
+        },
+        "pairs ask/conversation": {
+          "jev": 0.5,
+          "llm": 0.0,
+          "tolerance": 0.5,
+          "met": true
+        },
+        "pairs ask/single": {
+          "jev": 0.417,
+          "llm": 0.0,
+          "tolerance": 0.25,
+          "met": true
+        },
+        "pairs object/conversation": {
+          "jev": 1.0,
+          "llm": 1.0,
+          "tolerance": 0.5,
+          "met": true
+        },
+        "pairs object/single": {
+          "jev": 1.0,
+          "llm": 1.0,
+          "tolerance": 0.25,
+          "met": true
+        },
+        "spent answered/conversation": {
+          "jev": 0.87,
+          "llm": 1.0,
+          "tolerance": 0.07,
+          "met": false
+        },
+        "spent ask/conversation": {
+          "jev": 0.958,
+          "llm": 0.729,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent ask/single": {
+          "jev": 0.935,
+          "llm": 0.87,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent object/single": {
+          "jev": 0.69,
+          "llm": 0.77,
+          "tolerance": 0.07,
+          "met": false
+        },
+        "spent quiet/conversation": {
+          "jev": 0.8,
+          "llm": 0.917,
+          "tolerance": 0.07,
+          "met": false
+        },
+        "spent quiet/single": {
+          "jev": 0.865,
+          "llm": 0.847,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent task/conversation": {
+          "jev": 0.833,
+          "llm": 1.0,
+          "tolerance": 0.083,
+          "met": false
+        },
+        "spent task/single": {
+          "jev": 0.972,
+          "llm": 1.0,
+          "tolerance": 0.083,
+          "met": true
+        }
+      }
+    },
+    {
+      "config": "link>=0.7 ev>=0.7 ach_conv<0.5 fa>=0.7 ro>=0.7",
+      "cells_within": 14,
+      "cells": 20,
+      "utility": -0.284,
+      "detail": {
+        "e5c ask/single": {
+          "jev": 1.0,
+          "llm": 0.958,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "e5c quiet/single": {
+          "jev": 0.938,
+          "llm": 1.0,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "e8 ask/conversation": {
+          "jev": 0.8,
+          "llm": 1.0,
+          "tolerance": 0.2,
+          "met": true
+        },
+        "e8 ask/single": {
+          "jev": 0.625,
+          "llm": 0.75,
+          "tolerance": 0.125,
+          "met": true
+        },
+        "e8 object/conversation": {
+          "jev": 1.0,
+          "llm": 0.333,
+          "tolerance": 0.167,
+          "met": true
+        },
+        "e8 object/single": {
+          "jev": 0.682,
+          "llm": 0.409,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "e8 quiet/conversation": {
+          "jev": 0.458,
+          "llm": 0.875,
+          "tolerance": 0.125,
+          "met": false
+        },
+        "e8 quiet/single": {
+          "jev": 0.74,
+          "llm": 0.875,
+          "tolerance": 0.07,
+          "met": false
+        },
+        "pairs ask/conversation": {
+          "jev": 0.5,
+          "llm": 0.0,
+          "tolerance": 0.5,
+          "met": true
+        },
+        "pairs ask/single": {
+          "jev": 0.417,
+          "llm": 0.0,
+          "tolerance": 0.25,
+          "met": true
+        },
+        "pairs object/conversation": {
+          "jev": 1.0,
+          "llm": 1.0,
+          "tolerance": 0.5,
+          "met": true
+        },
+        "pairs object/single": {
+          "jev": 1.0,
+          "llm": 1.0,
+          "tolerance": 0.25,
+          "met": true
+        },
+        "spent answered/conversation": {
+          "jev": 0.87,
+          "llm": 1.0,
+          "tolerance": 0.07,
+          "met": false
+        },
+        "spent ask/conversation": {
+          "jev": 0.958,
+          "llm": 0.729,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent ask/single": {
+          "jev": 0.935,
+          "llm": 0.87,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent object/single": {
+          "jev": 0.635,
+          "llm": 0.77,
+          "tolerance": 0.07,
+          "met": false
+        },
+        "spent quiet/conversation": {
+          "jev": 0.8,
+          "llm": 0.917,
+          "tolerance": 0.07,
+          "met": false
+        },
+        "spent quiet/single": {
+          "jev": 0.865,
+          "llm": 0.847,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent task/conversation": {
+          "jev": 0.833,
+          "llm": 1.0,
+          "tolerance": 0.083,
+          "met": false
+        },
+        "spent task/single": {
+          "jev": 0.972,
+          "llm": 1.0,
+          "tolerance": 0.083,
+          "met": true
+        }
+      }
+    },
+    {
+      "config": "link>=0.7 ev>=0.7 ach_conv<0.3 fa>=0.5 ro>=0.5",
+      "cells_within": 16,
+      "cells": 20,
+      "utility": -0.26,
+      "detail": {
+        "e5c ask/single": {
+          "jev": 1.0,
+          "llm": 0.958,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "e5c quiet/single": {
+          "jev": 0.938,
+          "llm": 1.0,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "e8 ask/conversation": {
+          "jev": 0.8,
+          "llm": 1.0,
+          "tolerance": 0.2,
+          "met": true
+        },
+        "e8 ask/single": {
+          "jev": 0.625,
+          "llm": 0.75,
+          "tolerance": 0.125,
+          "met": true
+        },
+        "e8 object/conversation": {
+          "jev": 0.944,
+          "llm": 0.333,
+          "tolerance": 0.167,
+          "met": true
+        },
+        "e8 object/single": {
+          "jev": 0.636,
+          "llm": 0.409,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "e8 quiet/conversation": {
+          "jev": 0.5,
+          "llm": 0.875,
+          "tolerance": 0.125,
+          "met": false
+        },
+        "e8 quiet/single": {
+          "jev": 0.719,
+          "llm": 0.875,
+          "tolerance": 0.07,
+          "met": false
+        },
+        "pairs ask/conversation": {
+          "jev": 0.5,
+          "llm": 0.0,
+          "tolerance": 0.5,
+          "met": true
+        },
+        "pairs ask/single": {
+          "jev": 0.917,
+          "llm": 0.0,
+          "tolerance": 0.25,
+          "met": true
+        },
+        "pairs object/conversation": {
+          "jev": 1.0,
+          "llm": 1.0,
+          "tolerance": 0.5,
+          "met": true
+        },
+        "pairs object/single": {
+          "jev": 1.0,
+          "llm": 1.0,
+          "tolerance": 0.25,
+          "met": true
+        },
+        "spent answered/conversation": {
+          "jev": 0.87,
+          "llm": 1.0,
+          "tolerance": 0.07,
+          "met": false
+        },
+        "spent ask/conversation": {
+          "jev": 0.958,
+          "llm": 0.729,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent ask/single": {
+          "jev": 0.971,
+          "llm": 0.87,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent object/single": {
+          "jev": 0.69,
+          "llm": 0.77,
+          "tolerance": 0.07,
+          "met": false
+        },
+        "spent quiet/conversation": {
+          "jev": 0.858,
+          "llm": 0.917,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent quiet/single": {
+          "jev": 0.865,
+          "llm": 0.847,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent task/conversation": {
+          "jev": 1.0,
+          "llm": 1.0,
+          "tolerance": 0.083,
+          "met": true
+        },
+        "spent task/single": {
+          "jev": 0.972,
+          "llm": 1.0,
+          "tolerance": 0.083,
+          "met": true
+        }
+      }
+    },
+    {
+      "config": "link>=0.7 ev>=0.7 ach_conv<0.3 fa>=0.5 ro>=0.7",
+      "cells_within": 16,
+      "cells": 20,
+      "utility": -0.263,
+      "detail": {
+        "e5c ask/single": {
+          "jev": 1.0,
+          "llm": 0.958,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "e5c quiet/single": {
+          "jev": 0.938,
+          "llm": 1.0,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "e8 ask/conversation": {
+          "jev": 0.8,
+          "llm": 1.0,
+          "tolerance": 0.2,
+          "met": true
+        },
+        "e8 ask/single": {
+          "jev": 0.625,
+          "llm": 0.75,
+          "tolerance": 0.125,
+          "met": true
+        },
+        "e8 object/conversation": {
+          "jev": 0.944,
+          "llm": 0.333,
+          "tolerance": 0.167,
+          "met": true
+        },
+        "e8 object/single": {
+          "jev": 0.591,
+          "llm": 0.409,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "e8 quiet/conversation": {
+          "jev": 0.5,
+          "llm": 0.875,
+          "tolerance": 0.125,
+          "met": false
+        },
+        "e8 quiet/single": {
+          "jev": 0.719,
+          "llm": 0.875,
+          "tolerance": 0.07,
+          "met": false
+        },
+        "pairs ask/conversation": {
+          "jev": 0.5,
+          "llm": 0.0,
+          "tolerance": 0.5,
+          "met": true
+        },
+        "pairs ask/single": {
+          "jev": 0.917,
+          "llm": 0.0,
+          "tolerance": 0.25,
+          "met": true
+        },
+        "pairs object/conversation": {
+          "jev": 1.0,
+          "llm": 1.0,
+          "tolerance": 0.5,
+          "met": true
+        },
+        "pairs object/single": {
+          "jev": 1.0,
+          "llm": 1.0,
+          "tolerance": 0.25,
+          "met": true
+        },
+        "spent answered/conversation": {
+          "jev": 0.87,
+          "llm": 1.0,
+          "tolerance": 0.07,
+          "met": false
+        },
+        "spent ask/conversation": {
+          "jev": 0.958,
+          "llm": 0.729,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent ask/single": {
+          "jev": 0.986,
+          "llm": 0.87,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent object/single": {
+          "jev": 0.595,
+          "llm": 0.77,
+          "tolerance": 0.07,
+          "met": false
+        },
+        "spent quiet/conversation": {
+          "jev": 0.858,
+          "llm": 0.917,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent quiet/single": {
+          "jev": 0.865,
+          "llm": 0.847,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent task/conversation": {
+          "jev": 1.0,
+          "llm": 1.0,
+          "tolerance": 0.083,
+          "met": true
+        },
+        "spent task/single": {
+          "jev": 0.972,
+          "llm": 1.0,
+          "tolerance": 0.083,
+          "met": true
+        }
+      }
+    },
+    {
+      "config": "link>=0.7 ev>=0.7 ach_conv<0.3 fa>=0.7 ro>=0.5",
+      "cells_within": 16,
+      "cells": 20,
+      "utility": -0.264,
+      "detail": {
+        "e5c ask/single": {
+          "jev": 1.0,
+          "llm": 0.958,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "e5c quiet/single": {
+          "jev": 0.938,
+          "llm": 1.0,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "e8 ask/conversation": {
+          "jev": 0.8,
+          "llm": 1.0,
+          "tolerance": 0.2,
+          "met": true
+        },
+        "e8 ask/single": {
+          "jev": 0.625,
+          "llm": 0.75,
+          "tolerance": 0.125,
+          "met": true
+        },
+        "e8 object/conversation": {
+          "jev": 1.0,
+          "llm": 0.333,
+          "tolerance": 0.167,
+          "met": true
+        },
+        "e8 object/single": {
+          "jev": 0.727,
+          "llm": 0.409,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "e8 quiet/conversation": {
+          "jev": 0.5,
+          "llm": 0.875,
+          "tolerance": 0.125,
+          "met": false
+        },
+        "e8 quiet/single": {
+          "jev": 0.74,
+          "llm": 0.875,
+          "tolerance": 0.07,
+          "met": false
+        },
+        "pairs ask/conversation": {
+          "jev": 0.5,
+          "llm": 0.0,
+          "tolerance": 0.5,
+          "met": true
+        },
+        "pairs ask/single": {
+          "jev": 0.417,
+          "llm": 0.0,
+          "tolerance": 0.25,
+          "met": true
+        },
+        "pairs object/conversation": {
+          "jev": 1.0,
+          "llm": 1.0,
+          "tolerance": 0.5,
+          "met": true
+        },
+        "pairs object/single": {
+          "jev": 1.0,
+          "llm": 1.0,
+          "tolerance": 0.25,
+          "met": true
+        },
+        "spent answered/conversation": {
+          "jev": 0.87,
+          "llm": 1.0,
+          "tolerance": 0.07,
+          "met": false
+        },
+        "spent ask/conversation": {
+          "jev": 0.958,
+          "llm": 0.729,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent ask/single": {
+          "jev": 0.935,
+          "llm": 0.87,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent object/single": {
+          "jev": 0.69,
+          "llm": 0.77,
+          "tolerance": 0.07,
+          "met": false
+        },
+        "spent quiet/conversation": {
+          "jev": 0.858,
+          "llm": 0.917,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent quiet/single": {
+          "jev": 0.865,
+          "llm": 0.847,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent task/conversation": {
+          "jev": 1.0,
+          "llm": 1.0,
+          "tolerance": 0.083,
+          "met": true
+        },
+        "spent task/single": {
+          "jev": 0.972,
+          "llm": 1.0,
+          "tolerance": 0.083,
+          "met": true
+        }
+      }
+    },
+    {
+      "config": "link>=0.7 ev>=0.7 ach_conv<0.3 fa>=0.7 ro>=0.7",
+      "cells_within": 16,
+      "cells": 20,
+      "utility": -0.27,
+      "detail": {
+        "e5c ask/single": {
+          "jev": 1.0,
+          "llm": 0.958,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "e5c quiet/single": {
+          "jev": 0.938,
+          "llm": 1.0,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "e8 ask/conversation": {
+          "jev": 0.8,
+          "llm": 1.0,
+          "tolerance": 0.2,
+          "met": true
+        },
+        "e8 ask/single": {
+          "jev": 0.625,
+          "llm": 0.75,
+          "tolerance": 0.125,
+          "met": true
+        },
+        "e8 object/conversation": {
+          "jev": 1.0,
+          "llm": 0.333,
+          "tolerance": 0.167,
+          "met": true
+        },
+        "e8 object/single": {
+          "jev": 0.682,
+          "llm": 0.409,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "e8 quiet/conversation": {
+          "jev": 0.5,
+          "llm": 0.875,
+          "tolerance": 0.125,
+          "met": false
+        },
+        "e8 quiet/single": {
+          "jev": 0.74,
+          "llm": 0.875,
+          "tolerance": 0.07,
+          "met": false
+        },
+        "pairs ask/conversation": {
+          "jev": 0.5,
+          "llm": 0.0,
+          "tolerance": 0.5,
+          "met": true
+        },
+        "pairs ask/single": {
+          "jev": 0.417,
+          "llm": 0.0,
+          "tolerance": 0.25,
+          "met": true
+        },
+        "pairs object/conversation": {
+          "jev": 1.0,
+          "llm": 1.0,
+          "tolerance": 0.5,
+          "met": true
+        },
+        "pairs object/single": {
+          "jev": 1.0,
+          "llm": 1.0,
+          "tolerance": 0.25,
+          "met": true
+        },
+        "spent answered/conversation": {
+          "jev": 0.87,
+          "llm": 1.0,
+          "tolerance": 0.07,
+          "met": false
+        },
+        "spent ask/conversation": {
+          "jev": 0.958,
+          "llm": 0.729,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent ask/single": {
+          "jev": 0.935,
+          "llm": 0.87,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent object/single": {
+          "jev": 0.635,
+          "llm": 0.77,
+          "tolerance": 0.07,
+          "met": false
+        },
+        "spent quiet/conversation": {
+          "jev": 0.858,
+          "llm": 0.917,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent quiet/single": {
+          "jev": 0.865,
+          "llm": 0.847,
+          "tolerance": 0.07,
+          "met": true
+        },
+        "spent task/conversation": {
+          "jev": 1.0,
+          "llm": 1.0,
+          "tolerance": 0.083,
+          "met": true
+        },
+        "spent task/single": {
+          "jev": 0.972,
+          "llm": 1.0,
+          "tolerance": 0.083,
+          "met": true
+        }
+      }
+    }
+  ],
+  "e5b_baseline": {
+    "cells_within": 15,
+    "cells": 20,
+    "utility": -0.259,
+    "detail": {
+      "e5c ask/single": {
+        "jev": 1.0,
+        "llm": 0.958,
+        "tolerance": 0.07,
+        "met": true
+      },
+      "e5c quiet/single": {
+        "jev": 0.875,
+        "llm": 1.0,
+        "tolerance": 0.07,
+        "met": false
+      },
+      "e8 ask/conversation": {
+        "jev": 0.8,
+        "llm": 1.0,
+        "tolerance": 0.2,
+        "met": true
+      },
+      "e8 ask/single": {
+        "jev": 0.625,
+        "llm": 0.75,
+        "tolerance": 0.125,
+        "met": true
+      },
+      "e8 object/conversation": {
+        "jev": 0.833,
+        "llm": 0.333,
+        "tolerance": 0.167,
+        "met": true
+      },
+      "e8 object/single": {
+        "jev": 0.424,
+        "llm": 0.409,
+        "tolerance": 0.07,
+        "met": true
+      },
+      "e8 quiet/conversation": {
+        "jev": 0.583,
+        "llm": 0.875,
+        "tolerance": 0.125,
+        "met": false
+      },
+      "e8 quiet/single": {
+        "jev": 0.698,
+        "llm": 0.875,
+        "tolerance": 0.07,
+        "met": false
+      },
+      "pairs ask/conversation": {
+        "jev": 0.5,
+        "llm": 0.0,
+        "tolerance": 0.5,
+        "met": true
+      },
+      "pairs ask/single": {
+        "jev": 0.0,
+        "llm": 0.0,
+        "tolerance": 0.25,
+        "met": true
+      },
+      "pairs object/conversation": {
+        "jev": 1.0,
+        "llm": 1.0,
+        "tolerance": 0.5,
+        "met": true
+      },
+      "pairs object/single": {
+        "jev": 1.0,
+        "llm": 1.0,
+        "tolerance": 0.25,
+        "met": true
+      },
+      "spent answered/conversation": {
+        "jev": 1.0,
+        "llm": 1.0,
+        "tolerance": 0.07,
+        "met": true
+      },
+      "spent ask/conversation": {
+        "jev": 0.958,
+        "llm": 0.729,
+        "tolerance": 0.07,
+        "met": true
+      },
+      "spent ask/single": {
+        "jev": 0.928,
+        "llm": 0.87,
+        "tolerance": 0.07,
+        "met": true
+      },
+      "spent object/single": {
+        "jev": 0.762,
+        "llm": 0.77,
+        "tolerance": 0.07,
+        "met": true
+      },
+      "spent quiet/conversation": {
+        "jev": 0.775,
+        "llm": 0.917,
+        "tolerance": 0.07,
+        "met": false
+      },
+      "spent quiet/single": {
+        "jev": 0.856,
+        "llm": 0.847,
+        "tolerance": 0.07,
+        "met": true
+      },
+      "spent task/conversation": {
+        "jev": 0.778,
+        "llm": 1.0,
+        "tolerance": 0.083,
+        "met": false
+      },
+      "spent task/single": {
+        "jev": 0.917,
+        "llm": 1.0,
+        "tolerance": 0.083,
+        "met": true
+      }
+    }
+  }
+}
