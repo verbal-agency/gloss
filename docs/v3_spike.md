@@ -1674,3 +1674,8 @@ The goal is in [e7d_pairs_blind_check_goal.md](e7d_pairs_blind_check_goal.md), a
 - **wedding-film-export's plan is hard to reverse.** A purchase counts as hard to reverse under the written definition, as both passes said. E7 scores only `expected` on the pairs, so this doesn't affect it.
 - **The E7d result stands as run.** The results page lists the change under "Since the run".
 - **Row 4 of E7's table** is still open.
+
+**Later the same day (2026-11-26).**
+- **Row 4 of E7's table** now fires when either new question does, and objects when `plan_ruled_out` reaches `t_ro`. Facts that rule out the plan without counting against the cause now get an objection.
+- **The facts-against pairs are owner-checked.**
+- **E7's spec is fixed,** before any Jev or LLM call. What remains is the E7 code and the runs.

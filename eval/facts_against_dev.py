@@ -24,13 +24,14 @@ reading any other set.
 E7d (2026-11-26): a blind check agreed with 15 of the 16 labels in each pass. The
 owner kept both disputed labels, and made the graphics card in
 wedding-film-export hard to reverse, a purchase under the written definition.
+The owner then checked the set.
 
 Review page: python -m eval.facts_against_dev > docs/facts_against_dev_review.md
 """
 from __future__ import annotations
 
 TAG = "fadev"
-REVIEW = "drafted"
+REVIEW = "owner-checked"
 VERSIONS = ("asked", "objected")
 FACT = {"asked": "against", "objected": "rules_out"}
 DEFEATER = {"asked": "undercutting", "objected": "rebutting"}
