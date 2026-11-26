@@ -20,6 +20,11 @@ A send that fails is tried once more when there's time. One that still fails, an
 it finished, are noted in a small file in the temp folder and reported with the next send that goes
 out, a prompt's note included, so the server can list the turn as one that never arrived.
 
+Everything it sends is gzip-compressed: the firewall in front of a hosted server (Cloudflare, on Render)
+refuses a body whose text looks like an attack, such as `; curl -s` in a command the agent ran, and it
+doesn't look inside a compressed one. The server needs to take compressed bodies (Night Order does from
+2026-11-26).
+
 It never gets in the way: it prints nothing (Claude Code reads a Stop hook's stdout as
 decisions), gives up within Claude Code's time limit, and always exits 0. Standard library only.
 
@@ -31,6 +36,7 @@ CALLMEIF_TOKEN  optional bearer token. In a cloud session leave it unset and sto
 from __future__ import annotations
 
 import glob
+import gzip
 import hashlib
 import json
 import os
@@ -442,8 +448,11 @@ def parse_diff(text):
         def first(lines):
             return next((line for line in lines if line.strip() and not line.strip().startswith(asides)), None)
 
+        def outside(line):  # at the left margin, so not inside the body of the definition before it
+            return driver not in ("markdown", "css", "html") and line[:1] not in (" ", "\t", "}", ")", "]")
+
         starts = [line for line in (first(hunk["minus"]), first(hunk["plus"])) if line is not None]
-        at_boundary = bool(starts) and bool(driver) and all(_name(line, driver) is not None for line in starts)
+        at_boundary = bool(starts) and bool(driver) and all(_name(line, driver) is not None or outside(line) for line in starts)
         if heading and not at_boundary and heading[0] not in current["new"]:
             _add(current["changed"], heading[0])
         kinds = {n[1] for n in [heading] + added + removed if n}
@@ -539,15 +548,21 @@ def turn_changes(start):
     return {"root": root, "files": files[:MAX_CHANGED], "more": max(0, len(files) - MAX_CHANGED)}
 
 
+def blocked_by_firewall(status, text):
+    """Whether a refusal came from the firewall in front of the server rather than from Night Order."""
+    return status == "403" and ("<title>Blocked</title>" in text or "cloudflare" in text.lower())
+
+
 def post(url, body, seconds=SEND_SECONDS):
-    """Send the body once. Returns (the server's answer as a dict, None), or (None, why it didn't get through)."""
+    """Send the body once, compressed. Returns (the server's answer as a dict, None), or (None, why it didn't get through)."""
     token = os.environ.get("CALLMEIF_TOKEN", "")
     seconds = max(1.0, float(seconds))
+    body = gzip.compress(body, compresslevel=6)
     curl = shutil.which("curl")
     try:
         if curl:  # curl follows the machine's proxy and certificate settings, which a cloud session relies on
             command = [curl, "-sS", "-w", "\n%{http_code}", "--max-time", f"{seconds:.1f}", "-H", "Content-Type: application/json",
-                       "--data-binary", "@-", url]
+                       "-H", "Content-Encoding: gzip", "--data-binary", "@-", url]
             if token:
                 command[1:1] = ["-H", f"Authorization: Bearer {token}"]
             done = subprocess.run(command, input=body, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=seconds + 2)
@@ -556,7 +571,7 @@ def post(url, body, seconds=SEND_SECONDS):
                 said = done.stderr.decode("utf-8", errors="replace").strip().splitlines()
                 return None, f"curl exit {done.returncode}" + (f": {said[-1][:200]}" if said else "")
         else:
-            headers = {"Content-Type": "application/json"}
+            headers = {"Content-Type": "application/json", "Content-Encoding": "gzip"}
             if token:
                 headers["Authorization"] = f"Bearer {token}"
             try:
@@ -568,6 +583,8 @@ def post(url, body, seconds=SEND_SECONDS):
         return None, f"no answer within {seconds:.0f} s"
     except Exception as exc:  # noqa: BLE001 - every way of not getting through is worth reporting
         return None, f"{type(exc).__name__}: {exc}"[:240]
+    if blocked_by_firewall(status, text):
+        return None, "HTTP 403: refused by the firewall in front of the server (Cloudflare), before it reached Night Order"
     if not status.startswith("2"):
         return None, f"HTTP {status}" + (f": {text.strip()[:120]}" if text.strip() else "")
     try:
@@ -679,11 +696,13 @@ def note_prompt(url, payload):
     if not curl:
         return
     command = [curl, "-s", "-o", os.devnull, "--max-time", str(SEND_SECONDS), "-H", "Content-Type: application/json",
-               "--data-binary", json.dumps(note), url + "/v1/connectors/claude-code"]
+               "-H", "Content-Encoding: gzip", "--data-binary", "@-", url + "/v1/connectors/claude-code"]
     token = os.environ.get("CALLMEIF_TOKEN", "")
     if token:
         command[1:1] = ["-H", f"Authorization: Bearer {token}"]
-    subprocess.Popen(command, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
+    started = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
+    started.stdin.write(gzip.compress(json.dumps(note).encode("utf-8")))
+    started.stdin.close()  # curl sends it and is left to finish on its own
 
 
 def main():
