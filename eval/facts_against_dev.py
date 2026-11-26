@@ -26,7 +26,7 @@ Review page: python -m eval.facts_against_dev > docs/facts_against_dev_review.md
 from __future__ import annotations
 
 TAG = "fadev"
-REVIEW = "drafted"
+REVIEW = "owner-checked"   # owner, 2026-11-26: E7d's two disagreements keep the set's `asked`
 VERSIONS = ("asked", "objected")
 FACT = {"asked": "against", "objected": "rules_out"}
 DEFEATER = {"asked": "undercutting", "objected": "rebutting"}

@@ -1668,3 +1668,97 @@ The goal is in [e7d_pairs_blind_check_goal.md](e7d_pairs_blind_check_goal.md), a
 - both disagreements keep the set's `asked`;
 - wedding-film-export's reversibility becomes `false`, to match the written definition;
 - row 4 of E7's table fires when either new question does, and objects when `plan_ruled_out` reaches `t_ro`.
+
+**The owner's rulings (2026-11-26).** E7's spec is fixed ([e7_heldout_run_goal.md](e7_heldout_run_goal.md)).
+- **Row 4** fires when either new question does, and objects when `plan_ruled_out` reaches `t_ro`, otherwise asks, as proposed.
+- **The pairs' labels stand.** Both disagreements keep the set's `asked`, and the set is owner-checked.
+- **Not ruled:** wedding-film-export's reversibility. E7 scores only `expected` on the pairs.
+- **The runs:**
+  - Jev model: `jev-latest`, for E7 only; the app's pin stays as it is;
+  - the dev conversations' earlier replies are judged on the user's own turns up to each reply;
+  - the 0.02 AUC drop is measured against the same questions in requests of their own, on the same model;
+  - G43's `button-colour` counts as a 50% chance of a wrong plan, like G44's late facts against the cause.
+
+# E7: the held-out run (spec fixed 2026-11-26)
+
+**The candidate, as code (2026-11-26).** Nothing has run.
+- **One request.** `e7_battery` in `app/pipeline/jev_ground.py` asks all ten questions at once: E5b's five as they were, with its overall-plan note in conversations, then the three reworded and the two new ones.
+- **The table.** `e7_row` gives the spec's seven rows, as a function of the answers and a configuration. `tests/test_e7_table.py` checks every row, the order of the rows and the grid of 32.
+- **The dev run** is `eval/e7_dev.py`: recording the dev conversations, both arms, the check of the combined request, the post-dev lists and selection. Each step refuses to run before the one it depends on, and before the owner's choice it needs.
+- **The held-out run** is in `eval/g43_eval.py`. It refuses to run until the chosen configuration is committed.
+- **Each held-out case's chance of a wrong plan** is checked by `tests/test_e7_heldout_utility.py`, as code only. G44's eight late facts against the cause count as 0.5, so asking scores best on them.
+
+**Fixed in code before any run:**
+- a failed classification is a miss in its cell and counts as `none` in utility, since the app passes the message through;
+- a cell, or the utility margin, is met at exactly its tolerance; cell rates are compared from their counts, not their rounded values;
+- selection ties on cells and utility go to the configuration with the fewest thresholds away from 0.5, then grid order;
+- `t_ach` = 0.3 for conversations is chosen only if it gains 0.02 of utility over the best configuration without it, as G41's per-shape rule.
+
+## E7 result (run 2026-11-26): Jev cannot replace the LLM classifier
+
+**The runs.** Jev ran on `jev-latest`, released 2026-10-22; the release did not change between dev and held-out. Three repeats each.
+
+**Recording the dev conversations.** 29 conversations, judged on the user's own turns. 25 survived:
+- E8: 19 of 21 (`asked` 5 of 6, `none` 8 of 9, `objected` 6 of 6);
+- the pairs: 4 of 8 (`asked` 2 of 4, `objected` 2 of 4).
+
+Every survivor but one also built every step.
+
+**The request check.**
+- `evidence_for_cause` dropped on asserted vs implied: 0.753 in the combined request, 0.782 in its own. That is more than 0.02, so it went back to its own request (`APART`, 2026-11-26).
+- Every other AUC was within 0.002 of its own request's.
+- E5d's mark still passes: 20 of 20 paired cases right in each repeat, the tricky ones all right, and 1, 1 and 2 cheap extras called costly.
+
+**The post-dev check.** Code listed 28 spent-pool cases ([e7_post_dev_check.md](e7_post_dev_check.md)): six quiet cases read as an asserted cause behind a costly plan, and 22 with facts against their cause.
+
+**The owner's rulings (2026-11-26).**
+- **Five relabels, from `objected` to `asked`:** `full/mis-06`, `full/mis-13`, `full/inf-11`, `g41/single/contradicted/trial-conversion` and `g42/single/contradicted/partner-outages`. In each, the user's facts weigh against the cause, but the plan could still help.
+- **The other 23 keep their labels.** None is excluded.
+
+**Selection on dev.**
+
+| | Cells within tolerance | Utility |
+|---|---|---|
+| Chosen: `link>=0.5 ev>=0.5 ach_conv<0.5 fa>=0.7 ro>=0.5` | 16 of 20 | −0.260 |
+| Best overall: the same with `ach_conv<0.3` | 18 of 20 | −0.242 |
+| E5b's table | 15 of 20 | −0.259 |
+| LLM | | −0.237 |
+
+- **The 0.3 setting was not chosen.** It gained 0.018 of utility, under the 0.02 the spec requires.
+- **The owner kept the rule as written (2026-11-26).** The 0.02 bar was fixed for this kind of near-miss.
+- **Where the chosen one missed on dev:** E8 quiet in single messages and in conversations, spent answered in conversations, and spent task in conversations.
+- All 32 configurations are in `results/e7/summary_select.json`.
+
+**The held-out run.** 62 single messages from G43, 38 conversations from G43 and 64 from G44.
+- **One LLM call failed.** `g44/late_fact_for/number-gaps`, repeat 3, returned malformed JSON. As fixed before the run, it counts as a miss and as `none` in utility. It was not rerun.
+
+| Gated cell | Jev | LLM | Tolerance | Met |
+|---|---|---|---|---|
+| quiet/single | 1.00 | 0.87 | 0.07 | yes |
+| task/single | 1.00 | 1.00 | 0.17 | yes |
+| ask/single | 0.65 | 0.82 | 0.07 | **no** |
+| object/single | 0.84 | 0.83 | 0.07 | yes |
+| quiet/conversation | 0.83 | 0.95 | 0.07 | **no** |
+| task/conversation | 0.83 | 1.00 | 0.17 | yes |
+| ask/conversation | 0.67 | 0.54 | 0.07 | yes |
+| answered/conversation | 1.00 | 1.00 | 0.14 | yes |
+| object/conversation (G44) | 0.86 | 1.00 | 0.07 | **no** |
+
+- **Utility:** Jev −0.270, LLM −0.227. Jev is 0.043 worse per decision, against a margin of 0.02.
+- **The decision rule fails on both counts.** Jev cannot replace the LLM classifier. Nothing changes after the result.
+- **G43's object/conversation** has no cell: none of G43's scored conversations is `objected`.
+
+**Where Jev fell short (reported only):**
+- **G44's quiet conversations:** 0.75 against the LLM's 0.99. The losses are in `late_req_met` (0.33) and `late_switch_fits` (0.63): Jev objects to sound plans late in a conversation.
+- **G43's single questions:** 0.65 against 0.82, mostly in `absent` (0.69 against 0.88).
+- **G44's objections:** 0.86 against 1.00, all in `late_switch_misses` (0.75).
+
+**Where Jev did better (reported only):**
+- G44's late facts against the cause: 0.25 against the LLM's 0.00;
+- G43's quiet single messages: 1.00 against 0.87.
+
+**The dev estimate held.** On dev, the chosen configuration was 0.023 behind the LLM on utility, already outside the margin. On held-out it was 0.043 behind.
+
+**Limits.**
+- One author wrote the Jev questions, G43, G44 and the spec.
+- The new 2026-11-22 branch rested on 12 dev cases from the pairs.
