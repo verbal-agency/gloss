@@ -9,7 +9,8 @@ from tests.test_e7_questions import _dev_texts
 from tests.test_g43_heldout import _too_close
 from tests.test_g44_heldout import _all_criteria_examples
 
-_TABLES = {"only_investigation": jg._E9_ONLY_INVESTIGATION, "plan_acts_on_cause": jg._E9_ACTS_ON_CAUSE}
+_TABLES = {"only_investigation": jg._E9_ONLY_INVESTIGATION, "plan_acts_on_cause": jg._E9_ACTS_ON_CAUSE,
+           "only_investigation_a2": jg._E9_ONLY_INVESTIGATION_A2}
 
 
 def _examples() -> list[tuple[str, str, int, str]]:
@@ -62,6 +63,15 @@ def test_the_three_questions_use_different_situations():
     for n, _, _, t in _examples():
         by.setdefault(n, []).append(t)
     names = list(by)
+    same = {frozenset(("only_investigation", "only_investigation_a2"))}   # A2 rewords A, same situation
     bad = [(a, b) for i, a in enumerate(names) for b in names[i + 1:]
-           if any(_too_close(t, by[b]) for t in by[a])]
+           if frozenset((a, b)) not in same and any(_too_close(t, by[b]) for t in by[a])]
     assert not bad, bad
+
+
+def test_a2_changes_one_sentence_and_adds_one_yes_example():
+    a, a2 = jg._E9_ONLY_INVESTIGATION, jg._E9_ONLY_INVESTIGATION_A2
+    assert a2[0].replace("already committed to a fix that goes ahead whatever they find",
+                         "also chosen a fix") == a[0]
+    assert a2[1]["examples"][:2] == a[1]["examples"] and len(a2[1]["examples"]) == 3
+    assert a2[2]["examples"] == a[2]["examples"]
