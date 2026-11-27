@@ -1175,12 +1175,10 @@ async def jev_release(model: str | None = None) -> dict:
 _E9_CHOIR = "Every recording of our community choir has a low hum on it."
 
 _E9_ONLY_INVESTIGATION = (
-    "Is the plan the user has chosen only a way to find out what causes a problem they describe "
-    "(measuring, logging, profiling, reproducing it, or comparing cases), with no fix committed to yet? "
-    "Answer no if the user has also decided on, ordered, scheduled or signed for a fix. Answer no if what "
-    "they are building measures or detects something as its product (a detector, a benchmark, a grader), "
-    "rather than to find the cause of a problem they have.",
-    {"meaning": "Yes: the plan is only to find out what is going on, and no fix is decided yet.",
+    "Is the user's plan only to find out what is causing a problem, for example by measuring, logging or "
+    "testing, with no fix chosen yet? Answer no if they have also chosen a fix. Answer no if what they are "
+    "building is itself a measuring tool, like a detector or a benchmark.",
+    {"meaning": "Yes: the plan is only to find the cause, and no fix is chosen yet.",
      "examples": [
          _E9_CHOIR + " Before changing anything, I'll record ten seconds of silence in the hall with each "
          "microphone in turn, to see which one picks it up. Can you write a script that measures the hum level "
@@ -1189,8 +1187,7 @@ _E9_ONLY_INVESTIGATION = (
          "battery pack, and compare them before deciding what to do. Can you write a script that compares the "
          "two files?",
      ]},
-    {"meaning": "No: the user has also committed to a fix, or the thing built measures something as its "
-                "product, or nothing is going wrong.",
+    {"meaning": "No: a fix is also chosen, the plan is to build a measuring tool, or nothing is going wrong.",
      "examples": [
          _E9_CHOIR + " I'll record ten seconds of silence with each microphone to find the culprit, but I've "
          "already bought a full set of new cables and they go in on Sunday. Can you write a script that "
@@ -1203,27 +1200,24 @@ _E9_ONLY_INVESTIGATION = (
 _E9_KILN = "The glaze on pots from our pottery studio's kiln keeps crazing with fine cracks."
 
 _E9_CAUSE_LEVEL = (
-    "How does the user's own text support the cause that their plan acts on? Rate only what the user says, "
-    "not whether their diagnosis is right. If the user names two causes, judge the one the plan acts on. "
-    "The name or type of the symptom is not a cause, and saying they researched or decided is not support.",
+    "How well does the user back up the cause their plan acts on? Judge only what the user says, not "
+    "whether they are right. If they name two causes, judge the one the plan acts on.",
     {
         "none": {
-            "meaning": "No cause is given: the user names the problem and a plan, but nothing about why it "
-                       "happens. Also answer none if nothing is going wrong and the user just wants work done.",
+            "meaning": "The user gives no cause, or nothing is going wrong. Naming the error is not a cause.",
             "examples": [
                 _E9_KILN + " I've decided to switch to a different glaze supplier. Can you draft the order?",
                 "Can you write a booking page for our pottery studio's weekend classes?",
             ]},
         "implied": {
-            "meaning": "Only the plan's wording hints at a cause, or the plan only says what it will achieve; "
-                       "the user never says what is happening now.",
+            "meaning": "Only the plan hints at a cause. The user never says what is happening now.",
             "examples": [
                 _E9_KILN + " I've decided to fire more slowly so the glaze has time to settle.",
                 _E9_KILN + " I'm adding a cooling stage to the firing schedule so the pots stop cracking.",
             ]},
         "asserted": {
-            "meaning": "The user says what is happening now that causes the problem, as a plain statement, "
-                       "with nothing reported behind it.",
+            "meaning": "The user states the cause but gives nothing to back it up. Saying they researched it "
+                       "doesn't count.",
             "examples": [
                 _E9_KILN + " The kiln cools far too fast once it switches off. I want a slow cooling stage "
                 "added to the firing schedule.",
@@ -1231,10 +1225,9 @@ _E9_CAUSE_LEVEL = (
                 "before.",
             ]},
         "evidenced": {
-            "meaning": "The user reports an observation about that cause that points to it rather than to "
-                       "other causes: a measurement, log, trace, count, test, or before-and-after, or a fact "
-                       "about their setup that accounts for the specific symptom. A measurement of the symptom "
-                       "alone (how often, how bad) is not enough.",
+            "meaning": "The user backs the cause with something they saw, like a measurement, log or test, or "
+                       "a fact about their setup that explains the exact symptom. Measuring only the symptom "
+                       "(how often, how bad) doesn't count.",
             "examples": [
                 _E9_KILN + " The kiln's logger shows it dropping 300 degrees in the first hour after "
                 "switch-off, and the pots we left to cool inside a closed box were fine. I want a slow cooling "
@@ -1249,14 +1242,14 @@ _E9_HALL = ("Our village hall's heating bill doubled this winter. The meter read
             "all night, every night, since the clocks changed.")
 
 _E9_ACTS_ON_CAUSE = (
-    "Does the plan act on the cause that the user's own evidence points to? Judge whether the change is "
-    "aimed at that cause, not whether it will be enough. Answer yes if no cause is evidenced.",
-    {"meaning": "Yes: the plan changes the thing the evidence points to, or no cause is evidenced.",
+    "Does the plan change the thing the user's evidence points to? Don't judge whether the change will be "
+    "enough. Answer yes if there is no evidence.",
+    {"meaning": "Yes: the plan changes what the evidence points to, or there is no evidence.",
      "examples": [
          _E9_HALL + " I'm resetting the boiler timer to the new time and fitting a lock on its cover.",
          _E9_HALL + " We're replacing the old timer with one that adjusts itself for the clocks changing.",
      ]},
-    {"meaning": "No: the evidence points to one cause and the plan changes something else.",
+    {"meaning": "No: the evidence points to one thing and the plan changes another.",
      "examples": [
          _E9_HALL + " We're having the loft insulated before next winter.",
          _E9_HALL + " I'm switching us to a cheaper energy tariff.",

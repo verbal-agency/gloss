@@ -1,6 +1,6 @@
 # E9: narrower Jev questions after E7 (dev only)
 
-**Status:** drafted 2026-11-27. Nothing has run. The owner approves the three wordings before the dev run.
+**Status:** drafted 2026-11-27, wordings simplified the same day at the owner's request. Nothing has run. The owner approves the three wordings before the dev run.
 
 ## Why
 
@@ -22,15 +22,15 @@ On held-out, E7's misses by table row:
 Each change is scored alone and with the others. Every other part of E7's candidate stays as it is: its questions, its chosen configuration, and its moved question.
 
 **A. `only_investigation` replaces `investigation` in row 1.**
-> Is the plan the user has chosen only a way to find out what causes a problem they describe (measuring, logging, profiling, reproducing it, or comparing cases), with no fix committed to yet? Answer no if the user has also decided on, ordered, scheduled or signed for a fix. Answer no if what they are building measures or detects something as its product (a detector, a benchmark, a grader), rather than to find the cause of a problem they have.
+> Is the user's plan only to find out what is causing a problem, for example by measuring, logging or testing, with no fix chosen yet? Answer no if they have also chosen a fix. Answer no if what they are building is itself a measuring tool, like a detector or a benchmark.
 
 **B. One `cause_level` choice replaces `link_stated` and `evidence_for_cause` in rows 5 to 7.**
-> How does the user's own text support the cause that their plan acts on? Rate only what the user says, not whether their diagnosis is right. If the user names two causes, judge the one the plan acts on. The name or type of the symptom is not a cause, and saying they researched or decided is not support.
+> How well does the user back up the cause their plan acts on? Judge only what the user says, not whether they are right. If they name two causes, judge the one the plan acts on.
 
-- **none:** no cause is given, or nothing is going wrong.
-- **implied:** only the plan's wording hints at a cause.
-- **asserted:** the user says what is happening now that causes the problem, with nothing reported behind it.
-- **evidenced:** the user reports an observation about that cause that points to it rather than to other causes. A measurement of the symptom alone is not enough.
+- **none:** the user gives no cause, or nothing is going wrong. Naming the error is not a cause.
+- **implied:** only the plan hints at a cause. The user never says what is happening now.
+- **asserted:** the user states the cause but gives nothing to back it up. Saying they researched it doesn't count.
+- **evidenced:** the user backs the cause with something they saw, like a measurement, log or test, or a fact about their setup that explains the exact symptom. Measuring only the symptom (how often, how bad) doesn't count.
 
 How the table reads it:
 - row 5 fires when P(evidenced) ≥ 0.5;
@@ -42,7 +42,7 @@ Why a choice: the benchmarking paper found choice probabilities close to calibra
 **C. The broad `achieves_goal` goes.**
 - **Row 3** (nothing going wrong) objects only when `plan_ruled_out` ≥ t_ro: the user's own facts show the plan can't deliver. This follows the owner's convention of 2026-11-25: an unstated requirement supports an objection only when the plan breaks it, or the user's own facts show it would.
 - **Row 5** (evidenced cause) objects when the new question is under 0.5:
-  > Does the plan act on the cause that the user's own evidence points to? Judge whether the change is aimed at that cause, not whether it will be enough. Answer yes if no cause is evidenced.
+  > Does the plan change the thing the user's evidence points to? Don't judge whether the change will be enough. Answer yes if there is no evidence.
 
 **Not changed: the input.** Dev conversations are three user turns and about 3,700 characters, so there is little to trim.
 
