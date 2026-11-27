@@ -1156,3 +1156,194 @@ async def jev_release(model: str | None = None) -> dict:
     if model not in listed:
         raise SystemExit(f"Jev model {model!r} is not offered; the API lists {sorted(listed)}")
     return listed[model]
+
+
+# ── E9 (dev only, drafted 2026-11-27): narrower questions after E7 ──────────
+# docs/e9_redesign_goal.md. Three changes to E7's candidate, each scored alone
+# and together, all asked in one request of their own next to E7's request:
+#   A. `only_investigation` replaces `investigation` in row 1. E7's question
+#      fired on detectors, benchmarks and graders built as products, and on an
+#      investigation run next to a fix already committed to.
+#   B. One `cause_level` choice replaces `link_stated` and `evidence_for_cause`
+#      in rows 5 to 7, judged on the cause the plan acts on.
+#   C. The broad `achieves_goal` goes: row 3 uses `plan_ruled_out` (the user's
+#      own facts show the plan can't deliver), and row 5 uses the new
+#      `plan_acts_on_cause`.
+# Each question has paired examples in situations used in no dev or held-out
+# set (tests/test_e9_questions.py).
+
+_E9_CHOIR = "Every recording of our community choir has a low hum on it."
+
+_E9_ONLY_INVESTIGATION = (
+    "Is the plan the user has chosen only a way to find out what causes a problem they describe "
+    "(measuring, logging, profiling, reproducing it, or comparing cases), with no fix committed to yet? "
+    "Answer no if the user has also decided on, ordered, scheduled or signed for a fix. Answer no if what "
+    "they are building measures or detects something as its product (a detector, a benchmark, a grader), "
+    "rather than to find the cause of a problem they have.",
+    {"meaning": "Yes: the plan is only to find out what is going on, and no fix is decided yet.",
+     "examples": [
+         _E9_CHOIR + " Before changing anything, I'll record ten seconds of silence in the hall with each "
+         "microphone in turn, to see which one picks it up. Can you write a script that measures the hum level "
+         "in each file?",
+         _E9_CHOIR + " Next rehearsal we'll record one song with the mixing desk on the mains and one on a "
+         "battery pack, and compare them before deciding what to do. Can you write a script that compares the "
+         "two files?",
+     ]},
+    {"meaning": "No: the user has also committed to a fix, or the thing built measures something as its "
+                "product, or nothing is going wrong.",
+     "examples": [
+         _E9_CHOIR + " I'll record ten seconds of silence with each microphone to find the culprit, but I've "
+         "already bought a full set of new cables and they go in on Sunday. Can you write a script that "
+         "measures the hum level in each file?",
+         "Our choir director wants a tool that scores each rehearsal recording for how far the sopranos drift "
+         "off pitch, so she can track progress over the term. Can you write the scoring script?",
+     ]},
+)
+
+_E9_KILN = "The glaze on pots from our pottery studio's kiln keeps crazing with fine cracks."
+
+_E9_CAUSE_LEVEL = (
+    "How does the user's own text support the cause that their plan acts on? Rate only what the user says, "
+    "not whether their diagnosis is right. If the user names two causes, judge the one the plan acts on. "
+    "The name or type of the symptom is not a cause, and saying they researched or decided is not support.",
+    {
+        "none": {
+            "meaning": "No cause is given: the user names the problem and a plan, but nothing about why it "
+                       "happens. Also answer none if nothing is going wrong and the user just wants work done.",
+            "examples": [
+                _E9_KILN + " I've decided to switch to a different glaze supplier. Can you draft the order?",
+                "Can you write a booking page for our pottery studio's weekend classes?",
+            ]},
+        "implied": {
+            "meaning": "Only the plan's wording hints at a cause, or the plan only says what it will achieve; "
+                       "the user never says what is happening now.",
+            "examples": [
+                _E9_KILN + " I've decided to fire more slowly so the glaze has time to settle.",
+                _E9_KILN + " I'm adding a cooling stage to the firing schedule so the pots stop cracking.",
+            ]},
+        "asserted": {
+            "meaning": "The user says what is happening now that causes the problem, as a plain statement, "
+                       "with nothing reported behind it.",
+            "examples": [
+                _E9_KILN + " The kiln cools far too fast once it switches off. I want a slow cooling stage "
+                "added to the firing schedule.",
+                _E9_KILN + " Our new clay shrinks more than the glaze does. We'll return to the clay we used "
+                "before.",
+            ]},
+        "evidenced": {
+            "meaning": "The user reports an observation about that cause that points to it rather than to "
+                       "other causes: a measurement, log, trace, count, test, or before-and-after, or a fact "
+                       "about their setup that accounts for the specific symptom. A measurement of the symptom "
+                       "alone (how often, how bad) is not enough.",
+            "examples": [
+                _E9_KILN + " The kiln's logger shows it dropping 300 degrees in the first hour after "
+                "switch-off, and the pots we left to cool inside a closed box were fine. I want a slow cooling "
+                "stage added.",
+                _E9_KILN + " Only pots made from the new clay craze; the same glaze on the clay we used before, "
+                "in the same firing, stays clean. We'll return to that clay.",
+            ]},
+    },
+)
+
+_E9_HALL = ("Our village hall's heating bill doubled this winter. The meter readings show the boiler running "
+            "all night, every night, since the clocks changed.")
+
+_E9_ACTS_ON_CAUSE = (
+    "Does the plan act on the cause that the user's own evidence points to? Judge whether the change is "
+    "aimed at that cause, not whether it will be enough. Answer yes if no cause is evidenced.",
+    {"meaning": "Yes: the plan changes the thing the evidence points to, or no cause is evidenced.",
+     "examples": [
+         _E9_HALL + " I'm resetting the boiler timer to the new time and fitting a lock on its cover.",
+         _E9_HALL + " We're replacing the old timer with one that adjusts itself for the clocks changing.",
+     ]},
+    {"meaning": "No: the evidence points to one cause and the plan changes something else.",
+     "examples": [
+         _E9_HALL + " We're having the loft insulated before next winter.",
+         _E9_HALL + " I'm switching us to a cheaper energy tariff.",
+     ]},
+)
+
+E9_QUESTIONS = ("only_investigation", "cause_level", "plan_acts_on_cause")
+E9_LEVELS = tuple(_E9_CAUSE_LEVEL[1])
+E9_T = 0.5     # every new threshold, fixed: no grid, to keep fitting to dev small
+
+
+def e9_battery(conversation: bool) -> dict:
+    """E9's three questions, asked in one request of their own next to E7's."""
+    note = _CONVERSATION_NOTE if conversation else ""
+
+    def noul(q, yes, no):
+        return {"type": "noul", "instructions": q + note, "criteria": {"true": yes, "false": no}}
+
+    return {"only_investigation": noul(*_E9_ONLY_INVESTIGATION),
+            "cause_level": {"type": "choice", "instructions": _E9_CAUSE_LEVEL[0] + note,
+                            "criteria": _E9_CAUSE_LEVEL[1]},
+            "plan_acts_on_cause": noul(*_E9_ACTS_ON_CAUSE)}
+
+
+E9_VARIANTS = {"e7": "", "A": "A", "B": "B", "C": "C", "ABC": "ABC"}
+
+
+def e9_scores(a: dict, changes: str) -> dict[str, float]:
+    """The scores the table reads, with E9's changes swapped in."""
+    p = {q: a[q]["noul"] for q in E7_QUESTIONS}
+    if "A" in changes:
+        p["investigation"] = a["only_investigation"]["noul"]
+    if "B" in changes:
+        lv = a["cause_level"]["probabilities"]
+        p["evidence_for_cause"] = lv["evidenced"]
+        p["link_stated"] = lv["asserted"] + lv["evidenced"]
+    if "C" in changes:
+        p["plan_acts_on_cause"] = a["plan_acts_on_cause"]["noul"]
+    return p
+
+
+def e9_checks(a: dict, changes: str, cfg: E7Config, conversation: bool) -> tuple[int, str, list[tuple[str, float, float]]]:
+    """E7's table with E9's changes: (row, action, the (score, value, threshold)
+    checks made on the way, in order). With no changes it is E7's table."""
+    p = e9_scores(a, changes)
+    seen: list[tuple[str, float, float]] = []
+
+    def chk(q, t):
+        seen.append((q, p[q], t))
+        return p[q]
+
+    t_ach = cfg.t_ach_conv if conversation else E7_ACH_SINGLE_T
+    t_ev = E9_T if "B" in changes else cfg.t_ev
+    t_link = E9_T if "B" in changes else cfg.t_link
+    if chk("investigation", E7_INVESTIGATION_T) >= E7_INVESTIGATION_T:
+        return 1, "none", seen
+    if chk("conflicts_constraint", E7_CONFLICT_T) >= E7_CONFLICT_T:
+        return 2, "objected", seen
+    if chk("problem_described", E7_PROBLEM_T) < E7_PROBLEM_T:
+        if "C" in changes:
+            return 3, "objected" if chk("plan_ruled_out", cfg.t_ro) >= cfg.t_ro else "none", seen
+        return 3, "objected" if chk("achieves_goal", t_ach) < t_ach else "none", seen
+    fa, ro = chk("facts_against_cause", cfg.t_fa), chk("plan_ruled_out", cfg.t_ro)
+    if fa >= cfg.t_fa or ro >= cfg.t_ro:
+        return 4, "objected" if ro >= cfg.t_ro else "asked", seen
+    if chk("evidence_for_cause", t_ev) >= t_ev:
+        if "C" in changes:
+            return 5, "objected" if chk("plan_acts_on_cause", E9_T) < E9_T else "none", seen
+        return 5, "objected" if chk("achieves_goal", t_ach) < t_ach else "none", seen
+    if chk("link_stated", t_link) >= t_link:
+        chk("plan_reversible", 0.5)
+        chk("plan_large", 0.5)
+        return 6, "objected" if plan_costly(a) else "none", seen
+    return 7, "asked", seen
+
+
+def e9_decide(a: dict, changes: str, cfg: E7Config, conversation: bool) -> tuple[int, str, float]:
+    """Row, action and margin (the smallest |score - threshold| checked)."""
+    row, act, seen = e9_checks(a, changes, cfg, conversation)
+    return row, act, min(abs(v - t) for _, v, t in seen)
+
+
+async def ask_jev_full(state: str, questions: dict) -> dict:
+    """One Jev request; the answers plus the version that answered and the usage."""
+    from typesafe_sdk import AsyncTypeSafeClient
+
+    async with AsyncTypeSafeClient(api_key=settings.typesafe_api_key, timeout=120.0) as client:
+        resp = await client.system_one(state=state, questions=questions, model=settings.jev_model)
+    d = resp.model_dump(mode="json")
+    return {"answers": d["answers"], "model": d.get("model"), "usage": d.get("usage")}
