@@ -7,7 +7,7 @@ transcript entries (the prompt, the tool calls and their results, the reply), so
 store them as a transcript of its own. When the project's own writing changes (its README,
 instructions, plans and other Markdown), it sends those files too, so cards can be written with
 the project's context and in its own words, and with them the names its code defines (functions and
-classes, each with the first line of its docstring or comment), for the glossary.
+classes, each with the first sentence of its docstring or comment), for the glossary.
 
 When you send a prompt, it tells the server only that the session has moved on (no text), so the
 card for the turn before is put away while the next one runs. That send doesn't wait for an answer.
@@ -817,10 +817,10 @@ def turn_changes(start):
 
 
 # --- Names for the glossary --------------------------------------------------------------------------------
-# The project's own names (functions and classes, with the first line of what each one's docstring or comment
+# The project's own names (functions and classes, with the first sentence of what each one's docstring or comment
 # says) are a source for the glossary that needs no docs: it's how a card can say what `done_by_command()` is.
 # A file is read again only when it changed (by its size and time), within a time limit each turn, so a big repo
-# is read over a few turns. Private files are left out. Names and first doc lines only, never the code.
+# is read over a few turns. Private files are left out. Names and first sentences of docs only, never the code.
 NAMES_SECONDS = 1.5
 MAX_NAME_FILES = 2000
 NAME_FILE_CHARS = 200_000
@@ -830,43 +830,69 @@ DOC_CHARS = 160
 CODE_DRIVERS = {ext: driver for ext, driver in DRIVERS.items() if driver not in ("markdown", "css", "html")}
 _COMMENT = re.compile(r"^\s*(?:///?|#|--|;+|\*|/\*\*?)\s?(.*?)\s*(?:\*/)?\s*$")
 _QUOTES = ('"""', "'''")
+_INLINE_BODY = re.compile(r"^\s*(?:async\s+)?def\b.*\)\s*(?:->[^:]*)?:\s*[^\s#]|^\s*class\s+\w+(?:\([^)]*\))?\s*:\s*[^\s#]")
+_TRAILING_COMMENT = re.compile(r"\s+#[^'\"]*$")
+
+
+_SENTENCE_END = re.compile(r"(?<=[.!?])\s+(?=[A-Z`(\"'])")
+
+
+def first_sentence(text):
+    """The first sentence of a doc's first paragraph, its lines joined, cut to fit a card."""
+    text = " ".join(text.split())
+    end = _SENTENCE_END.search(text)
+    text = text[: end.start()] if end else text
+    return text if len(text) <= DOC_CHARS else text[:DOC_CHARS].rsplit(" ", 1)[0].rstrip(",;:") + "…"
 
 
 def _docstring(lines, start):
-    """The first line of a Python docstring that opens at `lines[start]`, or ""."""
-    text = lines[start].strip().lstrip("rRuU")
-    quote = text[:3]
-    body = text[3:].split(quote)[0].strip()
-    if body:
-        return body
-    for line in lines[start + 1: start + 4]:  # the text starts on the next line
-        if line.strip():
-            return line.strip().split(quote)[0].strip()
-    return ""
+    """The first sentence of a Python docstring that opens at `lines[start]`, or ""."""
+    text = lines[start].strip().lstrip("rRuUbB")
+    quote, rest, words = text[:3], text[3:], []
+    for n in range(start, min(len(lines), start + 15)):
+        if n > start:
+            rest = lines[n].strip()
+        end = rest.find(quote)
+        part = (rest if end < 0 else rest[:end]).strip()
+        if part:
+            words.append(part)
+        elif words:
+            break  # a blank line ends the first paragraph
+        if end >= 0:
+            break
+    return first_sentence(" ".join(words))
 
 
 def _doc(lines, at, driver):
-    """The first line of what a definition's docstring (Python) or the comment above it says, or ""."""
+    """The first sentence of a definition's docstring (Python) or of the comment above it, or ""."""
     if driver == "python":
-        for n in range(at + 1, min(len(lines), at + 12)):
+        if _INLINE_BODY.search(lines[at]):
+            return ""  # `def f(): return 1`
+        signature = not _TRAILING_COMMENT.sub("", lines[at]).rstrip().endswith(":")
+        for n in range(at + 1, min(len(lines), at + 20)):
             text = lines[n].strip()
+            if signature:  # still inside a signature that runs over several lines
+                signature = not _TRAILING_COMMENT.sub("", text).endswith(":")
+                continue
             if not text:
                 continue
-            if text.lstrip("rRuU").startswith(_QUOTES):
-                return _docstring(lines, n)[:DOC_CHARS]
-            if not lines[n - 1].rstrip().endswith(":") and not text.startswith(("@", ")")):
-                continue  # still inside a signature that runs over several lines
-            return ""
+            return _docstring(lines, n) if text.lstrip("rRuUbB").startswith(_QUOTES) else ""
         return ""
     above = at - 1
     while above >= 0 and lines[above].strip().startswith("@"):
         above -= 1  # decorators and annotations
     block = []
     while above >= 0 and lines[above].strip() and _COMMENT.match(lines[above]) and not lines[above].strip().startswith("#!"):
-        block.append(_COMMENT.match(lines[above]).group(1))
+        block.append(_COMMENT.match(lines[above]).group(1).strip())
         above -= 1
-    text = next((t.strip() for t in reversed(block) if t.strip() and not t.strip().startswith("@")), "")
-    return text[:DOC_CHARS]
+    words = []
+    for text in reversed(block):  # top to bottom: the first paragraph, up to a blank line or a tag
+        if text in ("", "/", "*") or text.startswith("@"):
+            if words:
+                break
+            continue
+        words.append(text)
+    return first_sentence(" ".join(words))
 
 
 def names_in(text, driver):
@@ -894,7 +920,7 @@ def _out_of_time():
 
 
 def project_names(root, private=()):
-    """[[path, kind, name, first doc line]] for the repo's code. A file is read again only when its size or time
+    """[[path, kind, name, its doc's first sentence]] for the repo's code. A file is read again only when its size or time
     changed, for a second and a half a turn; a repo with more to read than that keeps the names it had until the
     reading is done, over the next turns. No line numbers: an edit inside a function changes nothing here, so
     the project isn't sent again for it. None outside a git repo, or before the first reading is done."""
