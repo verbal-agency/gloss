@@ -6,7 +6,8 @@ other than the one Night Order runs on. It posts the hook's payload with the cur
 transcript entries (the prompt, the tool calls and their results, the reply), so the server can
 store them as a transcript of its own. When the project's own writing changes (its README,
 instructions, plans and other Markdown), it sends those files too, so cards can be written with
-the project's context and in its own words.
+the project's context and in its own words, and with them the names its code defines (functions and
+classes, each with the first line of its docstring or comment), for the glossary.
 
 When you send a prompt, it tells the server only that the session has moved on (no text), so the
 card for the turn before is put away while the next one runs. That send doesn't wait for an answer.
@@ -25,6 +26,22 @@ refuses a body whose text looks like an attack, such as `; curl -s` in a command
 doesn't look inside a compressed one. The server needs to take compressed bodies (Night Order does from
 2026-11-26).
 
+What stays on the machine, set per repo in `.claude/night-order.json` (each part optional):
+    {"send": false}                      send nothing from this repo, not even that a prompt came
+    {"private": ["customers", "*.sql"]}  files whose contents are never sent, added to the built-in list
+                                         (.env files, keys and certificates, .ssh, .aws, secrets/ and the like);
+                                         a pattern matches a path's end, and covers a folder of that name
+    {"redact": ["ACME-[0-9]{6}"]}         the repo's own secret patterns, redacted with the built-in ones
+A call that names a private file (a file tool given one, or a command with one among its words or as a
+quoted path, `open('.env')`) is sent without its output, keeping only how it ended, and without what it
+wrote: an edit's text, a command's here-documents and quoted strings. Other output loses the lines it
+printed from a private file under that file's name: a search's `.env:3:…` and a diff of one. Private
+files are left out of the project's writing, its names and the turn's code changes. A private file's
+name can leave. Not caught: what a program prints from a private file the command doesn't name, and what
+the agent itself says about one. Everything sent is redacted first with the server's own patterns (keys,
+tokens, passwords in URLs and assignments) and the repo's. A settings file the hook can't read sends
+nothing: it fails closed.
+
 It never gets in the way: it prints nothing (Claude Code reads a Stop hook's stdout as
 decisions), gives up within Claude Code's time limit, and always exits 0. Standard library only.
 
@@ -35,12 +52,14 @@ CALLMEIF_TOKEN  optional bearer token. In a cloud session leave it unset and sto
 
 from __future__ import annotations
 
+import fnmatch
 import glob
 import gzip
 import hashlib
 import json
 import os
 import re
+import shlex
 import shutil
 import subprocess
 import sys
@@ -210,13 +229,14 @@ def project_root(payload):
         folder = parent
 
 
-def project_files(root):
-    """{path under the root: text} for the project's README, instructions, plans and other Markdown."""
-    names = [n for n in NAMED_FILES if os.path.isfile(os.path.join(root, n))]
+def project_files(root, private=()):
+    """{path under the root: text} for the project's README, instructions, plans and other Markdown, but
+    for the files the repo keeps private."""
+    names = [n for n in NAMED_FILES if os.path.isfile(os.path.join(root, n)) and not is_private(n, private)]
     for pattern in DOC_PATTERNS:
         for path in sorted(glob.glob(os.path.join(root, pattern), recursive=True)):
             name = os.path.relpath(path, root).replace(os.sep, "/")
-            if os.path.isfile(path) and name not in names:
+            if os.path.isfile(path) and name not in names and not is_private(name, private):
                 names.append(name)
     files, size = {}, 0
     for name in names[:MAX_FILES]:
@@ -236,14 +256,16 @@ def stamp_file(root, url):
     return os.path.join(tempfile.gettempdir(), "night-order-" + hashlib.sha256(f"{root}|{url}".encode()).hexdigest()[:16] + ".sent")
 
 
-def the_project(payload, url):
+def the_project(payload, url, private=()):
     """The project's root and a hash of its writing, with the files themselves when the server hasn't
     been sent this version from this machine. Returns (what to send, the stamp to write once it arrives)."""
     root = project_root(payload)
-    files = project_files(root)
-    if not files:
+    files = project_files(root, private)
+    names = project_names(root, private)
+    if not files and not names:
         return None, None
-    digest = hashlib.sha256(json.dumps(files, sort_keys=True).encode("utf-8")).hexdigest()[:16]
+    writing = {"files": files, "names": names} if names else files  # the files alone hash as before
+    digest = hashlib.sha256(json.dumps(writing, sort_keys=True).encode("utf-8")).hexdigest()[:16]
     project = {"root": root, "hash": digest}
     stamp = stamp_file(root, url)
     try:
@@ -253,7 +275,253 @@ def the_project(payload, url):
         sent = ""
     if sent != digest:
         project["files"] = files
+        if names:
+            project["names"] = names
     return project, (stamp, digest)
+
+
+# --- What never leaves the machine ---------------------------------------------------------------------
+# Per repo, in `.claude/night-order.json`: whether to send at all, files whose contents are private, and the
+# repo's own secret patterns. A private file's contents are left out wherever they'd go; everything sent is
+# redacted first, with the server's own patterns (kept the same as `callmeif.redact`, which a test checks).
+SETTINGS_FILE = os.path.join(".claude", "night-order.json")
+PRIVATE = (".env", ".env.*", "*.env", "*.pem", "*.key", "*.p12", "*.pfx", "*.jks", "*.keystore", "*.kdbx", "id_rsa*", "id_dsa*",
+           "id_ecdsa*", "id_ed25519*", ".ssh/*", ".aws/*", ".gnupg/*", ".kube/config", ".docker/config.json", ".netrc", ".npmrc",
+           ".pypirc", "*.tfstate", "*.tfstate.*", "secrets/*", "*/secrets/*", "credentials.json", "*credentials*.json",
+           "service-account*.json")
+LEFT_OUT = "[left out by Night Order's hook: {}]"
+FILE_FIELDS = ("file_path", "notebook_path", "path")
+WRITTEN_FIELDS = ("content", "new_string", "old_string", "new_source", "edits")
+PATTERNS = [
+    ("private_key", re.compile(r"-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*?-----END [A-Z ]*PRIVATE KEY-----")),
+    ("anthropic_key", re.compile(r"\bsk-ant-[A-Za-z0-9_\-]{20,}")),
+    ("openai_key", re.compile(r"\bsk-(?!ant-)(?:proj-|svcacct-|admin-)?[A-Za-z0-9_\-]{20,}")),
+    ("aws_access_key", re.compile(r"\b(?:AKIA|ASIA)[0-9A-Z]{16}\b")),
+    ("github_token", re.compile(r"\b(?:gh[pousr]_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{40,})\b")),
+    ("slack_token", re.compile(r"\bxox[abprs]-[A-Za-z0-9-]{10,}")),
+    ("google_api_key", re.compile(r"\bAIza[0-9A-Za-z_\-]{35}\b")),
+    ("stripe_key", re.compile(r"\b(?:sk|rk|pk)_(?:live|test)_[A-Za-z0-9]{16,}\b")),
+    ("jwt", re.compile(r"\beyJ[A-Za-z0-9_-]{10,}\.eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}")),
+]
+_NOT_ALREADY = r"(?!\[REDACTED)"
+KEEP_PREFIX = [
+    ("url_password", re.compile(rf"(?P<prefix>\b[a-z][a-z0-9+.\-]*://[^/\s:@]+:){_NOT_ALREADY}(?P<secret>[^/\s@]+)(?=@)", re.I)),
+    ("bearer_token", re.compile(rf"(?P<prefix>\bBearer[ \t]+){_NOT_ALREADY}(?P<secret>[A-Za-z0-9._\-~+/]{{20,}}=*)", re.I)),
+    ("assigned_secret", re.compile(
+        r"(?P<prefix>\b[A-Za-z_][A-Za-z0-9_]*(?:api_?key|secret_?key|access_?key|private_?key|token|secret|password|passwd)"
+        rf"[\"']?[ \t]*[=:][ \t]*[\"']?){_NOT_ALREADY}(?P<secret>[^\s\"',;]{{8,}})", re.I)),
+]
+
+
+def settings(root):
+    """The repo's settings: {send, private, redact}. With no settings file, the defaults; with one the hook can't
+    read, or that isn't what it should be, nothing is sent."""
+    base = {"send": True, "private": PRIVATE, "redact": []}
+    path = os.path.join(root, SETTINGS_FILE)
+    if not os.path.exists(path):
+        return base
+    try:
+        with open(path, encoding="utf-8") as fh:
+            raw = json.load(fh)
+        if not isinstance(raw, dict):
+            raise ValueError("not an object")
+        send = raw.get("send", True)
+        private = raw.get("private", [])
+        redact = raw.get("redact", [])
+        if not isinstance(send, bool) or not isinstance(private, list) or not isinstance(redact, list) \
+                or not all(isinstance(p, str) for p in private + redact):
+            raise ValueError("wrong types")
+        return {"send": send, "private": PRIVATE + _own_patterns(private), "redact": [re.compile(r) for r in redact]}
+    except (OSError, ValueError, TypeError, re.error):
+        return {"send": False, "private": PRIVATE, "redact": [], "unreadable": True}
+
+
+def _own_patterns(raw):
+    """A repo's own private patterns, each also covering what's inside a folder of that name (`customers`)."""
+    out = []
+    for pattern in raw:
+        pattern = pattern.strip().lstrip("/").rstrip("/")
+        if pattern:
+            out.append(pattern)
+            if not pattern.endswith("*"):
+                out.append(pattern + "/*")
+    return tuple(out)
+
+
+_matchers = {}
+
+
+def _matcher(private):
+    """One regular expression for a list of private patterns, made once."""
+    key = tuple(private)
+    if key not in _matchers:
+        _matchers[key] = re.compile("|".join(f"(?:{fnmatch.translate(p)})" for p in key))
+    return _matchers[key]
+
+
+def is_private(path, private):
+    """Whether a path (under the repo's top, or anywhere) is one of the private files: a pattern matches the
+    path's end, so `.env` covers `app/.env` and `.aws/*` covers `/home/me/.aws/credentials`."""
+    if not path or not private:
+        return False
+    parts = [p for p in str(path).replace("\\", "/").split("/") if p and p != "."]
+    rx = _matcher(private)
+    return any(rx.match("/".join(parts[i:])) for i in range(len(parts)))
+
+
+_HEREDOC = re.compile(r"(?<!<)<<(?!<)(-?)[ \t]*(['\"]?)\\?([A-Za-z_][A-Za-z0-9_]*)\2")
+_QUOTED_NAME = re.compile(r"""(['"`])([^'"`\s]{1,300})\1""")
+_QUOTED = re.compile(r"""'[^']*'|"(?:[^"\\]|\\.)*\"""")
+
+
+def split_heredocs(command):
+    """A command's text as [(is a here-document body, text)]: each body is the lines between a `<<WORD` and the
+    line that ends it, the rest is shell text."""
+    parts, lines, i = [], command.split("\n"), 0
+    while i < len(lines):
+        parts.append((False, lines[i]))
+        ends = [(m.group(3), bool(m.group(1))) for m in _HEREDOC.finditer(lines[i])]
+        i += 1
+        for word, tabs in ends:
+            body = []
+            while i < len(lines) and (lines[i].lstrip("\t") if tabs else lines[i]) != word:
+                body.append(lines[i])
+                i += 1
+            parts.append((True, "\n".join(body)))
+            if i < len(lines):
+                parts.append((False, lines[i]))
+                i += 1
+    return parts
+
+
+def _paths_in(command):
+    """What a command could name as a file: its shell words and their parts after `=` or `:`, and any quoted
+    string without spaces, here-documents included (`open('.env')`). A here-document's other text is what the
+    command writes or runs, not a name."""
+    parts = split_heredocs(command)
+    shell = "\n".join(text for body, text in parts if not body)
+    try:
+        words = shlex.split(shell, posix=True)
+    except ValueError:
+        words = shell.split()
+    found = []
+    for word in words:
+        for piece in [word] + re.split(r"[=:]", word):
+            piece = piece.strip("<>|&;()'\"")
+            if piece and not piece.startswith("-"):
+                found.append(piece)
+    found.extend(m.group(2) for m in _QUOTED_NAME.finditer(command))
+    return found
+
+
+def private_call(name, tool_input, private):
+    """Whether a tool call touched a private file: a file tool given one, or a command naming one."""
+    if not isinstance(tool_input, dict):
+        return False
+    if any(is_private(tool_input.get(field), private) for field in FILE_FIELDS):
+        return True
+    command = tool_input.get("command")
+    return isinstance(command, str) and any(is_private(p, private) for p in _paths_in(command))
+
+
+def quiet(command):
+    """A command that named a private file, without what it could carry into one: its here-document bodies and
+    quoted strings, over several lines too. What it ran stays readable: its programs, flags and file names."""
+    parts = split_heredocs(command)
+    shell = "\n".join(f"\x00{i}\x00" if body else text for i, (body, text) in enumerate(parts))
+    note = LEFT_OUT.format("a here-document")
+    return re.sub(r"\x00\d+\x00", lambda _: note, _QUOTED.sub('"…"', shell))
+
+
+def _left_out(content):
+    """A private call's result: nothing of what it printed, but how it ended (`Exit code 1`)."""
+    first = content if isinstance(content, str) else next(
+        (str(b.get("text", "")) for b in content or [] if isinstance(b, dict) and b.get("type") == "text"), "")
+    note = LEFT_OUT.format("the output of a call that touched a private file")
+    head = first.split("\n", 1)[0]
+    return f"{head}\n{note}" if re.fullmatch(r"Exit code -?\d+", head.strip()) else note
+
+
+_DIFF_LINE = (" ", "+", "-", "@@", "\\", "index ", "new file mode", "deleted file mode", "old mode", "new mode",
+              "similarity index", "dissimilarity index", "rename from", "rename to", "copy from", "copy to", "Binary files")
+_LABEL = re.compile(r":|-\d+-")
+
+
+def _labelled(line, private):
+    """Whether a line of output says it came from a private file: a search's `path:3:…`, `path-3-…` or `path:…`."""
+    head = line.strip().split(" ", 1)[0]
+    return any(m.start() and is_private(head[: m.start()], private) for m in _LABEL.finditer(head))
+
+
+def _private_lines(text, private):
+    """Output without what it printed from private files under their names: the lines a search labels with one,
+    and the lines of a diff of one (`git diff`, `git show`, `git log -p`), whose header stays."""
+    kept, dropped, hidden = [], 0, False
+    for line in text.split("\n"):
+        if line.startswith("diff "):
+            hidden = any(is_private(w[2:] if w[:2] in ("a/", "b/") else w, private) for w in line[5:].split() if not w.startswith("-"))
+            kept.append(line)
+            continue
+        if hidden and (not line.strip() or line.startswith(_DIFF_LINE)):
+            dropped += 1
+            continue
+        hidden = False
+        if ":" in line or "-" in line:
+            if _labelled(line, private):
+                dropped += 1
+                continue
+        kept.append(line)
+    return text if not dropped else "\n".join(kept + [LEFT_OUT.format(f"{dropped} line(s) from private files")])
+
+
+def privatize(entries, private):
+    """The turn's entries with private files' contents left out: what a call wrote to one, the output of a call
+    that touched one, and what other output printed from one under its name."""
+    touched, out = set(), []
+    for entry in entries:
+        message = entry.get("message")
+        if not isinstance(message, dict) or not isinstance(message.get("content"), list):
+            out.append(entry)
+            continue
+        blocks = []
+        for block in message["content"]:
+            if isinstance(block, dict) and block.get("type") == "tool_use" and private_call(block.get("name"), block.get("input"), private):
+                touched.add(block.get("id"))
+                tool_input = dict(block.get("input") or {})
+                for field in WRITTEN_FIELDS:
+                    if field in tool_input:
+                        tool_input[field] = LEFT_OUT.format("written to a private file")
+                if isinstance(tool_input.get("command"), str):
+                    tool_input["command"] = quiet(tool_input["command"])
+                block = {**block, "input": tool_input}
+            elif isinstance(block, dict) and block.get("type") == "tool_result":
+                if block.get("tool_use_id") in touched:
+                    block = {**block, "content": _left_out(block.get("content"))}
+                elif isinstance(block.get("content"), str):
+                    block = {**block, "content": _private_lines(block["content"], private)}
+                elif isinstance(block.get("content"), list):
+                    block = {**block, "content": [{**b, "text": _private_lines(str(b.get("text", "")), private)}
+                                                  if isinstance(b, dict) and b.get("type") == "text" else b for b in block["content"]]}
+            blocks.append(block)
+        out.append({**entry, "message": {**message, "content": blocks}})
+    return out
+
+
+def redact(value, own=()):
+    """Every string in the value with secrets redacted: the server's patterns, then the repo's own."""
+    if isinstance(value, dict):
+        return {k: redact(v, own) for k, v in value.items()}
+    if isinstance(value, list):
+        return [redact(v, own) for v in value]
+    if not isinstance(value, str):
+        return value
+    for kind, pattern in PATTERNS:
+        value = pattern.sub(f"[REDACTED:{kind}]", value)
+    for kind, pattern in KEEP_PREFIX:
+        value = pattern.sub(lambda m, kind=kind: m.group("prefix") + f"[REDACTED:{kind}]", value)
+    for pattern in own:
+        value = pattern.sub("[REDACTED:repo_pattern]", value)
+    return value
 
 
 # --- What the turn changed in the code ----------------------------------------------------------------
@@ -548,6 +816,136 @@ def turn_changes(start):
     return {"root": root, "files": files[:MAX_CHANGED], "more": max(0, len(files) - MAX_CHANGED)}
 
 
+# --- Names for the glossary --------------------------------------------------------------------------------
+# The project's own names (functions and classes, with the first line of what each one's docstring or comment
+# says) are a source for the glossary that needs no docs: it's how a card can say what `done_by_command()` is.
+# A file is read again only when it changed (by its size and time), within a time limit each turn, so a big repo
+# is read over a few turns. Private files are left out. Names and first doc lines only, never the code.
+NAMES_SECONDS = 1.5
+MAX_NAME_FILES = 2000
+NAME_FILE_CHARS = 200_000
+MAX_NAMES = 3000
+NAMES_PER_FILE = 200
+DOC_CHARS = 160
+CODE_DRIVERS = {ext: driver for ext, driver in DRIVERS.items() if driver not in ("markdown", "css", "html")}
+_COMMENT = re.compile(r"^\s*(?:///?|#|--|;+|\*|/\*\*?)\s?(.*?)\s*(?:\*/)?\s*$")
+_QUOTES = ('"""', "'''")
+
+
+def _docstring(lines, start):
+    """The first line of a Python docstring that opens at `lines[start]`, or ""."""
+    text = lines[start].strip().lstrip("rRuU")
+    quote = text[:3]
+    body = text[3:].split(quote)[0].strip()
+    if body:
+        return body
+    for line in lines[start + 1: start + 4]:  # the text starts on the next line
+        if line.strip():
+            return line.strip().split(quote)[0].strip()
+    return ""
+
+
+def _doc(lines, at, driver):
+    """The first line of what a definition's docstring (Python) or the comment above it says, or ""."""
+    if driver == "python":
+        for n in range(at + 1, min(len(lines), at + 12)):
+            text = lines[n].strip()
+            if not text:
+                continue
+            if text.lstrip("rRuU").startswith(_QUOTES):
+                return _docstring(lines, n)[:DOC_CHARS]
+            if not lines[n - 1].rstrip().endswith(":") and not text.startswith(("@", ")")):
+                continue  # still inside a signature that runs over several lines
+            return ""
+        return ""
+    above = at - 1
+    while above >= 0 and lines[above].strip().startswith("@"):
+        above -= 1  # decorators and annotations
+    block = []
+    while above >= 0 and lines[above].strip() and _COMMENT.match(lines[above]) and not lines[above].strip().startswith("#!"):
+        block.append(_COMMENT.match(lines[above]).group(1))
+        above -= 1
+    text = next((t.strip() for t in reversed(block) if t.strip() and not t.strip().startswith("@")), "")
+    return text[:DOC_CHARS]
+
+
+def names_in(text, driver):
+    """[(line, kind, name, doc)] for the definitions in a file's text (the line is for reading them, not sent)."""
+    lines = text.split("\n")
+    out = []
+    for at, line in enumerate(lines):
+        if len(line) > 300 or not line.strip():
+            continue
+        found = _name(line, driver)
+        if found:
+            name, kind = found
+            out.append((at + 1, kind, name, _doc(lines, at, driver)))
+            if len(out) >= NAMES_PER_FILE:
+                break
+    return out
+
+
+def names_cache(root):
+    return os.path.join(tempfile.gettempdir(), "night-order-names-" + hashlib.sha256(root.encode()).hexdigest()[:16] + ".json")
+
+
+def _out_of_time():
+    return time.monotonic() > _until[0]
+
+
+def project_names(root, private=()):
+    """[[path, kind, name, first doc line]] for the repo's code. A file is read again only when its size or time
+    changed, for a second and a half a turn; a repo with more to read than that keeps the names it had until the
+    reading is done, over the next turns. No line numbers: an edit inside a function changes nothing here, so
+    the project isn't sent again for it. None outside a git repo, or before the first reading is done."""
+    _until[0] = time.monotonic() + NAMES_SECONDS
+    listed = git(root, "ls-files", "-z", "--cached", "--others", "--exclude-standard")
+    if listed is None:
+        return None
+    cache = names_cache(root)
+    try:
+        with open(cache, encoding="utf-8") as fh:
+            kept = json.load(fh)
+    except (OSError, ValueError):
+        kept = {}
+    kept = kept if isinstance(kept, dict) else {}
+    before = kept.get("files") if isinstance(kept.get("files"), dict) else {}
+    files, done = {}, True
+    for path in listed.split("\0"):
+        ext = path.rsplit(".", 1)[-1].lower() if "." in path else ""
+        if ext not in CODE_DRIVERS or is_private(path, private):
+            continue
+        try:
+            stat = os.stat(os.path.join(root, path))
+        except OSError:
+            continue
+        mark = [stat.st_mtime_ns, stat.st_size]
+        old = before.get(path)
+        if isinstance(old, list) and len(old) == 3 and old[:2] == mark:
+            files[path] = old
+        elif _out_of_time():
+            done = False  # read on a later turn
+        else:
+            found = []
+            if stat.st_size <= NAME_FILE_CHARS * 4:
+                try:
+                    with open(os.path.join(root, path), encoding="utf-8", errors="replace") as fh:
+                        found = [[kind, name, doc] for _, kind, name, doc in names_in(fh.read(NAME_FILE_CHARS), CODE_DRIVERS[ext])]
+                except OSError:
+                    pass
+            files[path] = mark + [found]
+        if len(files) >= MAX_NAME_FILES:
+            break
+    names = [[path, *found] for path, (_, _, each) in files.items() for found in each][:MAX_NAMES] if done else kept.get("names")
+    if files != before or names != kept.get("names"):
+        try:
+            with open(cache, "w", encoding="utf-8") as fh:
+                json.dump({"files": files, "names": names}, fh)
+        except OSError:
+            pass
+    return names
+
+
 def blocked_by_firewall(status, text):
     """Whether a refusal came from the firewall in front of the server rather than from Night Order."""
     return status == "403" and ("<title>Blocked</title>" in text or "cloudflare" in text.lower())
@@ -713,6 +1111,9 @@ def main():
     payload = json.load(sys.stdin)
     if not isinstance(payload, dict):
         return
+    rules = settings(project_root(payload))
+    if not rules["send"]:
+        return  # this repo sends nothing, not even that a prompt came
     if payload.get("hook_event_name") == "UserPromptSubmit":
         note_prompt(url, payload)
         return
@@ -732,6 +1133,7 @@ def main():
         try:
             turn = the_turn(payload)
             if turn:
+                turn["entries"] = privatize(turn.get("entries") or [], rules["private"])
                 payload["turn"] = turn
         except Exception:  # the payload alone still makes a card, without its tool calls
             pass
@@ -740,7 +1142,7 @@ def main():
         if os.environ.get("CLAUDE_CODE_REMOTE_SESSION_ID"):
             payload["remote_session_id"] = os.environ["CLAUDE_CODE_REMOTE_SESSION_ID"]
         try:
-            project, stamp = the_project(payload, url)
+            project, stamp = the_project(payload, url, rules["private"])
             if project:
                 payload["project"] = project
         except Exception:
@@ -749,11 +1151,13 @@ def main():
             try:
                 changes = turn_changes(start)
                 if changes is not None:
+                    changes["files"] = [f for f in changes.get("files") or [] if not is_private(f.get("path"), rules["private"])]
                     payload["code_changes"] = changes
             except Exception:  # noqa: BLE001 - the card goes without its code changes
                 pass
         if report:
             payload["hook_report"] = report
+        payload = redact(payload, rules["redact"])  # nothing leaves unredacted
         answer, reason, tries = send(url + "/v1/connectors/claude-code", payload, deadline)
     except Exception as exc:  # noqa: BLE001 - noted below, and reported with the next send
         reason = f"the hook failed before sending: {type(exc).__name__}: {exc}"
