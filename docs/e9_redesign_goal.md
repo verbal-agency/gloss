@@ -1,6 +1,6 @@
 # E9: narrower Jev questions after E7 (dev only)
 
-**Status:** drafted 2026-11-27, wordings simplified the same day at the owner's request. Nothing has run. The owner approves the three wordings before the dev run.
+**Status:** drafted 2026-11-27; the wordings were simplified and the owner approved them the same day. Run on dev the same day: no variant beat E7 (`docs/v3_spike.md`, "E9 result").
 
 ## Why
 

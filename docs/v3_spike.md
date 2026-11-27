@@ -1803,3 +1803,33 @@ A clean test needs a new held-out set.
 - **Lower the fallback rate.** Use narrower questions over a trimmed conversation, and reword `investigation`.
 - **Check it on dev,** with each change scored alone and together.
 - **Then a new held-out set (G45),** written before any tuning.
+
+## E9 result (run 2026-11-27, dev only): the narrower questions do worse
+
+The spec is [e9_redesign_goal.md](e9_redesign_goal.md). The owner approved the simplified wordings on 2026-11-27.
+
+**The run.** 1,152 Jev requests, all answered, all by `jev-1.14.0` (recorded from each response's `model` field). They were merged with E7's dev answers. LLM utility on dev is −0.237.
+
+| Variant | Jev alone: cells | Jev alone: utility | Parity reached at band | Sent to the LLM at parity |
+|---|---|---|---|---|
+| E7 | 16 of 20 | −0.260 | 0.10 | 30% |
+| A: `only_investigation` | 16 of 20 | −0.249 | 0.20 | 55% |
+| B: `cause_level` choice | 12 of 20 | −0.337 | 0.30 | 90% |
+| C: no `achieves_goal` | 13 of 20 | −0.488 | 0.30 | 80% |
+| A, B and C | 8 of 20 | −0.578 | 0.30 | 95% |
+
+**By the spec's rule, E9 does not go to G45.** No variant reaches parity with fewer decisions sent to the LLM than E7. E7's candidate with the fallback goes instead.
+
+**Why each change failed:**
+- **C.** `plan_acts_on_cause` answered "no" on 88% of the sound plans whose cause is evidenced (median 0.35, 293 decisions). That turned 237 correct quiet decisions into objections. Without C, row 3 gained 12 right decisions and lost 22.
+- **B.** The choice question loses the line between implied and asserted causes. On E5c's dev set, Jev rated 20 of 24 implied causes as "asserted". Cases that should get a question went quiet (123 decisions) or got an objection (55). It fixed 30.
+- **A.** It raised Jev-alone utility by 0.011, but a cell then needs a wider band to meet the LLM. It did not lower the fallback rate.
+
+**What it shows.**
+- A narrower wording is not enough on its own. Both new questions were narrow, and both did worse than the broad ones they replaced.
+- E7's questions had been reworded and checked through E5b to E8. E9's were written in a day and checked only for example overlap.
+- The run can't say whether the owner's simplification of the wordings played a part: the longer drafts were never run.
+
+**Next.**
+- **E7's candidate with the fallback band** (E7h) goes to a new held-out set, G45, written before any tuning.
+- **Any further question change** gets its own small dev check first, against the question it replaces, as E5c and E5d did.
