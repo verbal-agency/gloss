@@ -29,7 +29,7 @@ OUT = Path("results/e9")
 ROWS = OUT / "jev_dev.json"
 BANDS = (0.0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3)
 UTILITY_MARGIN = 0.02          # parity: E7's decision rule, on dev
-APPROVED: str | None = None    # the date the owner approved the three wordings; None refuses the run
+APPROVED: str | None = "2026-11-27"   # the owner approved the three simplified wordings; None refuses the run
 
 
 async def ask(st: str, conversation: bool, repeat: int, release: str) -> dict:
