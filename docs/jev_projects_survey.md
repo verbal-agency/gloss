@@ -35,7 +35,7 @@ These are readings, not results: none was tested on Gloss's data.
 - **The code works out the facts and puts them in the state.**
   - Pokémon gives damage, KO and catch estimates per option; the robot arm gives booleans and signed errors.
   - In Neo4j, naming the node instead of passing its id raised the goal-reached score from about 0.7 to 0.96 (fresh calls, one example).
-  - The benchmarking paper found that history in the state isn't used reliably (ALFWorld: 45% of steps repeat).
+  - In the benchmarking paper's ALFWorld runs, where the history is in the state, 44.7% of Jev's steps repeat one of the two before them; the expert's figure is 1.8%. So history in the state isn't enough on its own.
 
   For Gloss, that points to pulling the relevant turns or facts out of a conversation before asking, not sending it whole.
 - **Abstaining and fallback are the code's job, not Jev's:**
@@ -44,8 +44,10 @@ These are readings, not results: none was tested on Gloss's data.
   - the browser benchmark's hybrid hands a task to an LLM agent when Jev's result can't be verified. It doesn't say how often.
 - **Fallback is not free.** In the browser benchmark's desktop lane, Jev-first cost 38% more than the LLM alone, because Jev failed on most tasks first. Gloss should measure the fallback rate per kind of case before counting on savings.
 - **Thresholds should be tuned, not left at 0.5.**
-  - The benchmarking paper raised one dataset's F1 from 0.50 to 0.75 by tuning the threshold. Where ranking (AUROC) is weak, tuning didn't help.
-  - Its choice probabilities were well calibrated, its yes/no probabilities under-confident.
+  - In the benchmarking paper, tuning the threshold on 1,000 dev examples raised UNFAIR-ToS's F1 from 0.50 to 0.75. On the German legal task (AGB-DE), tuning left F1 at 0.20, at an AUROC of 0.78.
+  - Its choice probabilities were close to calibrated: median ECE 0.028, though 20 of 22 lean overconfident.
+  - A single yes/no question ran slightly low: a mean P(yes) of 0.465 against a yes-rate of 0.518.
+  - Many yes/no questions asked over one state over-predicted "yes": a mean of 0.209 against a rate of 0.041. Gloss asks ten such questions at once, so its thresholds need tuning per question for this reason too.
   - Most projects here use untuned defaults.
 - **Confidence carries some signal.**
   - Robot arm: the chosen option's median probability was 0.83 on answers that broke the prompt's rules, and 0.91 on the rest (saved artifacts).
