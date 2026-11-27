@@ -1,0 +1,522 @@
+{
+  "llm_utility": -0.237,
+  "config": "link>=0.5 ev>=0.5 ach_conv<0.5 fa>=0.7 ro>=0.5",
+  "variants": {
+    "e7": {
+      "changes": "",
+      "curve": [
+        {
+          "band": 0.0,
+          "fallback_rate": 0.0,
+          "cells_within": 16,
+          "cells": 20,
+          "utility": -0.26,
+          "parity": false,
+          "misses": [
+            "e8 quiet/conversation",
+            "e8 quiet/single",
+            "spent answered/conversation",
+            "spent task/conversation"
+          ]
+        },
+        {
+          "band": 0.05,
+          "fallback_rate": 0.157,
+          "cells_within": 19,
+          "cells": 20,
+          "utility": -0.238,
+          "parity": false,
+          "misses": [
+            "e8 quiet/single"
+          ]
+        },
+        {
+          "band": 0.1,
+          "fallback_rate": 0.299,
+          "cells_within": 20,
+          "cells": 20,
+          "utility": -0.236,
+          "parity": true,
+          "misses": []
+        },
+        {
+          "band": 0.15,
+          "fallback_rate": 0.394,
+          "cells_within": 20,
+          "cells": 20,
+          "utility": -0.242,
+          "parity": true,
+          "misses": []
+        },
+        {
+          "band": 0.2,
+          "fallback_rate": 0.535,
+          "cells_within": 20,
+          "cells": 20,
+          "utility": -0.247,
+          "parity": true,
+          "misses": []
+        },
+        {
+          "band": 0.25,
+          "fallback_rate": 0.67,
+          "cells_within": 20,
+          "cells": 20,
+          "utility": -0.245,
+          "parity": true,
+          "misses": []
+        },
+        {
+          "band": 0.3,
+          "fallback_rate": 0.782,
+          "cells_within": 20,
+          "cells": 20,
+          "utility": -0.238,
+          "parity": true,
+          "misses": []
+        }
+      ],
+      "parity_at": {
+        "band": 0.1,
+        "fallback_rate": 0.299
+      }
+    },
+    "A": {
+      "changes": "A",
+      "curve": [
+        {
+          "band": 0.0,
+          "fallback_rate": 0.0,
+          "cells_within": 16,
+          "cells": 20,
+          "utility": -0.249,
+          "parity": false,
+          "misses": [
+            "e8 quiet/conversation",
+            "e8 quiet/single",
+            "spent answered/conversation",
+            "spent task/conversation"
+          ]
+        },
+        {
+          "band": 0.05,
+          "fallback_rate": 0.158,
+          "cells_within": 19,
+          "cells": 20,
+          "utility": -0.229,
+          "parity": false,
+          "misses": [
+            "e8 quiet/single"
+          ]
+        },
+        {
+          "band": 0.1,
+          "fallback_rate": 0.307,
+          "cells_within": 19,
+          "cells": 20,
+          "utility": -0.221,
+          "parity": false,
+          "misses": [
+            "e8 quiet/single"
+          ]
+        },
+        {
+          "band": 0.15,
+          "fallback_rate": 0.407,
+          "cells_within": 19,
+          "cells": 20,
+          "utility": -0.225,
+          "parity": false,
+          "misses": [
+            "e8 quiet/single"
+          ]
+        },
+        {
+          "band": 0.2,
+          "fallback_rate": 0.549,
+          "cells_within": 20,
+          "cells": 20,
+          "utility": -0.234,
+          "parity": true,
+          "misses": []
+        },
+        {
+          "band": 0.25,
+          "fallback_rate": 0.69,
+          "cells_within": 20,
+          "cells": 20,
+          "utility": -0.234,
+          "parity": true,
+          "misses": []
+        },
+        {
+          "band": 0.3,
+          "fallback_rate": 0.799,
+          "cells_within": 20,
+          "cells": 20,
+          "utility": -0.233,
+          "parity": true,
+          "misses": []
+        }
+      ],
+      "parity_at": {
+        "band": 0.2,
+        "fallback_rate": 0.549
+      }
+    },
+    "B": {
+      "changes": "B",
+      "curve": [
+        {
+          "band": 0.0,
+          "fallback_rate": 0.0,
+          "cells_within": 12,
+          "cells": 20,
+          "utility": -0.337,
+          "parity": false,
+          "misses": [
+            "e5c ask/single",
+            "e8 ask/conversation",
+            "e8 ask/single",
+            "e8 quiet/single",
+            "spent answered/conversation",
+            "spent ask/conversation",
+            "spent ask/single",
+            "spent task/conversation"
+          ]
+        },
+        {
+          "band": 0.05,
+          "fallback_rate": 0.183,
+          "cells_within": 14,
+          "cells": 20,
+          "utility": -0.3,
+          "parity": false,
+          "misses": [
+            "e5c ask/single",
+            "e8 ask/conversation",
+            "e8 ask/single",
+            "spent answered/conversation",
+            "spent ask/conversation",
+            "spent ask/single"
+          ]
+        },
+        {
+          "band": 0.1,
+          "fallback_rate": 0.362,
+          "cells_within": 15,
+          "cells": 20,
+          "utility": -0.271,
+          "parity": false,
+          "misses": [
+            "e5c ask/single",
+            "e8 ask/conversation",
+            "e8 ask/single",
+            "spent ask/conversation",
+            "spent ask/single"
+          ]
+        },
+        {
+          "band": 0.15,
+          "fallback_rate": 0.468,
+          "cells_within": 16,
+          "cells": 20,
+          "utility": -0.267,
+          "parity": false,
+          "misses": [
+            "e5c ask/single",
+            "e8 ask/single",
+            "spent ask/conversation",
+            "spent ask/single"
+          ]
+        },
+        {
+          "band": 0.2,
+          "fallback_rate": 0.659,
+          "cells_within": 17,
+          "cells": 20,
+          "utility": -0.256,
+          "parity": false,
+          "misses": [
+            "e5c ask/single",
+            "e8 ask/single",
+            "spent ask/conversation"
+          ]
+        },
+        {
+          "band": 0.25,
+          "fallback_rate": 0.797,
+          "cells_within": 18,
+          "cells": 20,
+          "utility": -0.25,
+          "parity": false,
+          "misses": [
+            "e5c ask/single",
+            "spent ask/conversation"
+          ]
+        },
+        {
+          "band": 0.3,
+          "fallback_rate": 0.898,
+          "cells_within": 20,
+          "cells": 20,
+          "utility": -0.244,
+          "parity": true,
+          "misses": []
+        }
+      ],
+      "parity_at": {
+        "band": 0.3,
+        "fallback_rate": 0.898
+      }
+    },
+    "C": {
+      "changes": "C",
+      "curve": [
+        {
+          "band": 0.0,
+          "fallback_rate": 0.0,
+          "cells_within": 13,
+          "cells": 20,
+          "utility": -0.488,
+          "parity": false,
+          "misses": [
+            "e5c quiet/single",
+            "e8 quiet/conversation",
+            "e8 quiet/single",
+            "spent answered/conversation",
+            "spent object/single",
+            "spent quiet/conversation",
+            "spent quiet/single"
+          ]
+        },
+        {
+          "band": 0.05,
+          "fallback_rate": 0.146,
+          "cells_within": 13,
+          "cells": 20,
+          "utility": -0.448,
+          "parity": false,
+          "misses": [
+            "e5c quiet/single",
+            "e8 quiet/conversation",
+            "e8 quiet/single",
+            "spent answered/conversation",
+            "spent object/single",
+            "spent quiet/conversation",
+            "spent quiet/single"
+          ]
+        },
+        {
+          "band": 0.1,
+          "fallback_rate": 0.295,
+          "cells_within": 14,
+          "cells": 20,
+          "utility": -0.406,
+          "parity": false,
+          "misses": [
+            "e5c quiet/single",
+            "e8 quiet/conversation",
+            "e8 quiet/single",
+            "spent answered/conversation",
+            "spent quiet/conversation",
+            "spent quiet/single"
+          ]
+        },
+        {
+          "band": 0.15,
+          "fallback_rate": 0.392,
+          "cells_within": 13,
+          "cells": 20,
+          "utility": -0.37,
+          "parity": false,
+          "misses": [
+            "e5c quiet/single",
+            "e8 quiet/conversation",
+            "e8 quiet/single",
+            "spent answered/conversation",
+            "spent object/single",
+            "spent quiet/conversation",
+            "spent quiet/single"
+          ]
+        },
+        {
+          "band": 0.2,
+          "fallback_rate": 0.54,
+          "cells_within": 15,
+          "cells": 20,
+          "utility": -0.307,
+          "parity": false,
+          "misses": [
+            "e5c quiet/single",
+            "e8 quiet/conversation",
+            "e8 quiet/single",
+            "spent answered/conversation",
+            "spent quiet/single"
+          ]
+        },
+        {
+          "band": 0.25,
+          "fallback_rate": 0.708,
+          "cells_within": 18,
+          "cells": 20,
+          "utility": -0.268,
+          "parity": false,
+          "misses": [
+            "e8 quiet/conversation",
+            "spent answered/conversation"
+          ]
+        },
+        {
+          "band": 0.3,
+          "fallback_rate": 0.804,
+          "cells_within": 20,
+          "cells": 20,
+          "utility": -0.241,
+          "parity": true,
+          "misses": []
+        }
+      ],
+      "parity_at": {
+        "band": 0.3,
+        "fallback_rate": 0.804
+      }
+    },
+    "ABC": {
+      "changes": "ABC",
+      "curve": [
+        {
+          "band": 0.0,
+          "fallback_rate": 0.0,
+          "cells_within": 8,
+          "cells": 20,
+          "utility": -0.578,
+          "parity": false,
+          "misses": [
+            "e5c ask/single",
+            "e5c quiet/single",
+            "e8 ask/conversation",
+            "e8 ask/single",
+            "e8 quiet/conversation",
+            "e8 quiet/single",
+            "spent answered/conversation",
+            "spent ask/conversation",
+            "spent ask/single",
+            "spent object/single",
+            "spent quiet/conversation",
+            "spent quiet/single"
+          ]
+        },
+        {
+          "band": 0.05,
+          "fallback_rate": 0.173,
+          "cells_within": 8,
+          "cells": 20,
+          "utility": -0.522,
+          "parity": false,
+          "misses": [
+            "e5c ask/single",
+            "e5c quiet/single",
+            "e8 ask/conversation",
+            "e8 ask/single",
+            "e8 quiet/conversation",
+            "e8 quiet/single",
+            "spent answered/conversation",
+            "spent ask/conversation",
+            "spent ask/single",
+            "spent object/single",
+            "spent quiet/conversation",
+            "spent quiet/single"
+          ]
+        },
+        {
+          "band": 0.1,
+          "fallback_rate": 0.372,
+          "cells_within": 9,
+          "cells": 20,
+          "utility": -0.449,
+          "parity": false,
+          "misses": [
+            "e5c ask/single",
+            "e5c quiet/single",
+            "e8 ask/conversation",
+            "e8 ask/single",
+            "e8 quiet/conversation",
+            "e8 quiet/single",
+            "spent answered/conversation",
+            "spent ask/conversation",
+            "spent ask/single",
+            "spent quiet/conversation",
+            "spent quiet/single"
+          ]
+        },
+        {
+          "band": 0.15,
+          "fallback_rate": 0.492,
+          "cells_within": 10,
+          "cells": 20,
+          "utility": -0.398,
+          "parity": false,
+          "misses": [
+            "e5c ask/single",
+            "e5c quiet/single",
+            "e8 ask/single",
+            "e8 quiet/conversation",
+            "e8 quiet/single",
+            "spent answered/conversation",
+            "spent ask/conversation",
+            "spent ask/single",
+            "spent quiet/conversation",
+            "spent quiet/single"
+          ]
+        },
+        {
+          "band": 0.2,
+          "fallback_rate": 0.691,
+          "cells_within": 12,
+          "cells": 20,
+          "utility": -0.305,
+          "parity": false,
+          "misses": [
+            "e5c ask/single",
+            "e5c quiet/single",
+            "e8 ask/single",
+            "e8 quiet/conversation",
+            "e8 quiet/single",
+            "spent answered/conversation",
+            "spent ask/conversation",
+            "spent quiet/single"
+          ]
+        },
+        {
+          "band": 0.25,
+          "fallback_rate": 0.866,
+          "cells_within": 15,
+          "cells": 20,
+          "utility": -0.263,
+          "parity": false,
+          "misses": [
+            "e5c ask/single",
+            "e8 quiet/conversation",
+            "e8 quiet/single",
+            "spent answered/conversation",
+            "spent ask/conversation"
+          ]
+        },
+        {
+          "band": 0.3,
+          "fallback_rate": 0.95,
+          "cells_within": 20,
+          "cells": 20,
+          "utility": -0.243,
+          "parity": true,
+          "misses": []
+        }
+      ],
+      "parity_at": {
+        "band": 0.3,
+        "fallback_rate": 0.95
+      }
+    }
+  }
+}

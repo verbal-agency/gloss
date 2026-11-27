@@ -1,0 +1,127 @@
+{
+  "config": "link>=0.5 ev>=0.5 ach_conv<0.5 fa>=0.7 ro>=0.5",
+  "llm_utility": -0.237,
+  "curve": [
+    {
+      "band": 0.0,
+      "fallback_rate": 0.0,
+      "cells_within": 16,
+      "cells": 20,
+      "utility": -0.26,
+      "misses": [
+        "e8 quiet/conversation",
+        "e8 quiet/single",
+        "spent answered/conversation",
+        "spent task/conversation"
+      ]
+    },
+    {
+      "band": 0.05,
+      "fallback_rate": 0.157,
+      "cells_within": 19,
+      "cells": 20,
+      "utility": -0.238,
+      "misses": [
+        "e8 quiet/single"
+      ]
+    },
+    {
+      "band": 0.1,
+      "fallback_rate": 0.299,
+      "cells_within": 20,
+      "cells": 20,
+      "utility": -0.236,
+      "misses": []
+    },
+    {
+      "band": 0.15,
+      "fallback_rate": 0.394,
+      "cells_within": 20,
+      "cells": 20,
+      "utility": -0.242,
+      "misses": []
+    },
+    {
+      "band": 0.2,
+      "fallback_rate": 0.535,
+      "cells_within": 20,
+      "cells": 20,
+      "utility": -0.247,
+      "misses": []
+    },
+    {
+      "band": 0.25,
+      "fallback_rate": 0.67,
+      "cells_within": 20,
+      "cells": 20,
+      "utility": -0.245,
+      "misses": []
+    },
+    {
+      "band": 0.3,
+      "fallback_rate": 0.782,
+      "cells_within": 20,
+      "cells": 20,
+      "utility": -0.238,
+      "misses": []
+    }
+  ],
+  "margins": {
+    "row 1": {
+      "right": 27,
+      "wrong": 18,
+      "wrong_within_0.1": 0.0,
+      "right_within_0.1": 0.0,
+      "wrong_within_0.2": 0.0,
+      "right_within_0.2": 0.0
+    },
+    "row 2": {
+      "right": 52,
+      "wrong": 3,
+      "wrong_within_0.1": 0.0,
+      "right_within_0.1": 0.46,
+      "wrong_within_0.2": 0.33,
+      "right_within_0.2": 0.65
+    },
+    "row 3": {
+      "right": 109,
+      "wrong": 13,
+      "wrong_within_0.1": 0.54,
+      "right_within_0.1": 0.28,
+      "wrong_within_0.2": 1.0,
+      "right_within_0.2": 0.65
+    },
+    "row 4": {
+      "right": 41,
+      "wrong": 11,
+      "wrong_within_0.1": 0.91,
+      "right_within_0.1": 0.63,
+      "wrong_within_0.2": 1.0,
+      "right_within_0.2": 0.9
+    },
+    "row 5": {
+      "right": 312,
+      "wrong": 49,
+      "wrong_within_0.1": 0.63,
+      "right_within_0.1": 0.22,
+      "wrong_within_0.2": 0.94,
+      "right_within_0.2": 0.53
+    },
+    "row 6": {
+      "right": 102,
+      "wrong": 50,
+      "wrong_within_0.1": 0.9,
+      "right_within_0.1": 0.38,
+      "wrong_within_0.2": 1.0,
+      "right_within_0.2": 0.63
+    },
+    "row 7": {
+      "right": 267,
+      "wrong": 38,
+      "wrong_within_0.1": 0.32,
+      "right_within_0.1": 0.12,
+      "wrong_within_0.2": 0.66,
+      "right_within_0.2": 0.25
+    }
+  }
+}

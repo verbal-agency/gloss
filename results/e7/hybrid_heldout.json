@@ -1,0 +1,143 @@
+{
+  "band": 0.1,
+  "fallback_rate": 0.289,
+  "utility": {
+    "llm": -0.227,
+    "jev": -0.27,
+    "hybrid": -0.233
+  },
+  "jev": {
+    "utility": {
+      "llm": -0.227,
+      "jev": -0.27,
+      "margin": 0.02,
+      "met": false
+    },
+    "cells": {
+      "answered/conversation": {
+        "jev": 1.0,
+        "llm": 1.0,
+        "tolerance": 0.143,
+        "met": true
+      },
+      "ask/conversation": {
+        "jev": 0.667,
+        "llm": 0.536,
+        "tolerance": 0.07,
+        "met": true
+      },
+      "ask/single": {
+        "jev": 0.647,
+        "llm": 0.824,
+        "tolerance": 0.07,
+        "met": false
+      },
+      "object/conversation": {
+        "jev": 0.857,
+        "llm": 1.0,
+        "tolerance": 0.071,
+        "met": false
+      },
+      "object/single": {
+        "jev": 0.842,
+        "llm": 0.825,
+        "tolerance": 0.07,
+        "met": true
+      },
+      "quiet/conversation": {
+        "jev": 0.827,
+        "llm": 0.955,
+        "tolerance": 0.07,
+        "met": false
+      },
+      "quiet/single": {
+        "jev": 1.0,
+        "llm": 0.867,
+        "tolerance": 0.07,
+        "met": true
+      },
+      "task/conversation": {
+        "jev": 0.833,
+        "llm": 1.0,
+        "tolerance": 0.167,
+        "met": true
+      },
+      "task/single": {
+        "jev": 1.0,
+        "llm": 1.0,
+        "tolerance": 0.167,
+        "met": true
+      }
+    },
+    "cells_met": false,
+    "replaces_llm": false,
+    "reading": "Jev cannot replace the LLM classifier"
+  },
+  "hybrid": {
+    "utility": {
+      "llm": -0.227,
+      "jev": -0.233,
+      "margin": 0.02,
+      "met": true
+    },
+    "cells": {
+      "answered/conversation": {
+        "jev": 1.0,
+        "llm": 1.0,
+        "tolerance": 0.143,
+        "met": true
+      },
+      "ask/conversation": {
+        "jev": 0.565,
+        "llm": 0.536,
+        "tolerance": 0.07,
+        "met": true
+      },
+      "ask/single": {
+        "jev": 0.765,
+        "llm": 0.824,
+        "tolerance": 0.07,
+        "met": true
+      },
+      "object/conversation": {
+        "jev": 1.0,
+        "llm": 1.0,
+        "tolerance": 0.071,
+        "met": true
+      },
+      "object/single": {
+        "jev": 0.825,
+        "llm": 0.825,
+        "tolerance": 0.07,
+        "met": true
+      },
+      "quiet/conversation": {
+        "jev": 0.929,
+        "llm": 0.955,
+        "tolerance": 0.07,
+        "met": true
+      },
+      "quiet/single": {
+        "jev": 1.0,
+        "llm": 0.867,
+        "tolerance": 0.07,
+        "met": true
+      },
+      "task/conversation": {
+        "jev": 1.0,
+        "llm": 1.0,
+        "tolerance": 0.167,
+        "met": true
+      },
+      "task/single": {
+        "jev": 1.0,
+        "llm": 1.0,
+        "tolerance": 0.167,
+        "met": true
+      }
+    },
+    "cells_met": true,
+    "replaces_llm": true,
+    "reading": "Jev can replace the LLM classifier"
+  }
+}
