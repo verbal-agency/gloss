@@ -1762,3 +1762,44 @@ Every survivor but one also built every step.
 **Limits.**
 - One author wrote the Jev questions, G43, G44 and the spec.
 - The new 2026-11-22 branch rested on 12 dev cases from the pairs.
+
+## E7h (exploratory, 2026-11-27): E7's candidate with an LLM fallback
+
+**Why.** In E7's held-out run, most of Jev's misses came from rows whose scores sat near a threshold. The projects reviewed in [jev_projects_survey.md](jev_projects_survey.md) hand uncertain cases to a heavier model or a person. This checks that idea on answers E7 already recorded. It made no new calls.
+
+**The rule.** A decision goes to the LLM classifier when any score the E7 table checked on the way to its row is within a band of that score's threshold. The LLM's recorded answer for the same case and repeat stands in for the fallback call. The code is `eval/e7_hybrid.py`.
+
+**On dev,** with E7's chosen configuration (LLM utility −0.237):
+
+| Band | Sent to the LLM | Cells within tolerance | Utility |
+|---|---|---|---|
+| none (E7) | 0% | 16 of 20 | −0.260 |
+| 0.05 | 16% | 19 of 20 | −0.238 |
+| **0.10** | **30%** | **20 of 20** | **−0.236** |
+| 0.15 | 39% | 20 of 20 | −0.242 |
+| 0.20 | 54% | 20 of 20 | −0.247 |
+
+- **The band is 0.10,** the smallest with every dev cell within tolerance. It was fixed before the held-out check.
+- **Jev's wrong decisions sit near a threshold.** In rows 3 to 6, 54% to 91% of them are within 0.1 of one, against 22% to 63% of the right ones.
+- **Except in row 1.** All 18 of `investigation`'s wrong decisions are at least 0.2 from the threshold, so no band catches them. That question needs rewording, not a fallback.
+
+**On E7's saved held-out answers,** with the band at 0.10:
+- 28.9% of decisions went to the LLM;
+- utility was −0.233, against the LLM's −0.227, inside the 0.02 margin;
+- all nine gated cells were met.
+
+So the hybrid passes E7's decision rule there, where Jev alone failed both parts.
+
+**What this is not.** It is not a held-out result.
+- G43 and G44 were spent on 2026-11-26.
+- Their misses had been looked at before the band was fixed, although the band was chosen on dev alone.
+- The fallback is replayed from the LLM's recorded answers, not live calls.
+
+A clean test needs a new held-out set.
+
+**What it means for cost.** Jev answers every turn, and the LLM about 30% of them. So LLM calls fall by about 70%. A turn that falls back pays for both, in time as well as money.
+
+**Next.**
+- **Lower the fallback rate.** Use narrower questions over a trimmed conversation, and reword `investigation`.
+- **Check it on dev,** with each change scored alone and together.
+- **Then a new held-out set (G45),** written before any tuning.
