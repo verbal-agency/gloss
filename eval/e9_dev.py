@@ -27,50 +27,58 @@ from eval import g43_eval as ge
 
 OUT = Path("results/e9")
 ROWS = OUT / "jev_dev.json"
+A2_ROWS = OUT / "jev_dev_a2.json"     # A2 alone, in a request of its own
 BANDS = (0.0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3)
 UTILITY_MARGIN = 0.02          # parity: E7's decision rule, on dev
 APPROVED: str | None = "2026-11-27"   # the owner approved the three simplified wordings; None refuses the run
+A2_APPROVED: str | None = "2026-11-27"   # the owner approved A2's wording; None refuses its run
 
 
-async def ask(st: str, conversation: bool, repeat: int, release: str) -> dict:
+async def ask(st: str, conversation: bool, repeat: int, release: str, battery=None) -> dict:
     from eval import cache
-    questions = jg.e9_battery(conversation)
+    questions = (battery or jg.e9_battery)(conversation)
     return await cache.get_or_run(
         "ground_jev_e9", {"model": settings.jev_model, "release": release, "battery": questions,
                           "state": st, "repeat": repeat},
         lambda: jg.ask_jev_full(st, questions))
 
 
-async def run(concurrency: int) -> None:
-    if APPROVED is None:
-        raise SystemExit("the owner approves E9's wordings first (APPROVED)")
-    if ROWS.exists():
-        raise SystemExit(f"{ROWS} exists")
+async def run(concurrency: int, which: str = "e9") -> None:
+    approved, path, battery = ((APPROVED, ROWS, jg.e9_battery) if which == "e9"
+                               else (A2_APPROVED, A2_ROWS, jg.e9_a2_battery))
+    if approved is None:
+        raise SystemExit(f"the owner approves the {which} wording first")
+    if path.exists():
+        raise SystemExit(f"{path} exists")
     model = d._require_model()
     release = await d._release_checked()           # E7's dev release, unchanged
     cases = d.unique_cases(d.dev_sets())
     jobs = [(c["id"], r, lambda c=c, r=r: ask(d.state(c), c["shape"] == "conversation", r,
-                                               release["release_date"]))
+                                               release["release_date"], battery))
             for c in cases for r in range(1, d.REPEATS + 1)]
     rows = await d._gather(jobs, concurrency)
     versions = Counter(r["output"].get("model") for r in rows if "output" in r)
     OUT.mkdir(parents=True, exist_ok=True)
-    ROWS.write_text(json.dumps({"arm": "e9", "model": model, "release": release, "approved": APPROVED,
+    path.write_text(json.dumps({"arm": which, "model": model, "release": release, "approved": approved,
                                 "versions": dict(versions), "repeats": d.REPEATS, "rows": rows}, indent=2))
-    print(f"[e9] {sum('output' in r for r in rows)} answered, {sum('error' in r for r in rows)} failed; "
+    print(f"[{which}] {sum('output' in r for r in rows)} answered, {sum('error' in r for r in rows)} failed; "
           f"versions {dict(versions)}")
     if len(versions) > 1:
         raise SystemExit(f"more than one Jev version answered: {dict(versions)}. Stop and ask the owner.")
 
 
-def merged_answers() -> dict[str, list[dict]]:
-    """E7's dev answers with E9's three merged in, repeat i with repeat i."""
-    e7 = d.jev_answers()
-    e9: dict = {}
-    for r in sorted(json.loads(ROWS.read_text())["rows"], key=lambda r: r["repeat"]):
+def _rows(path: Path) -> dict[str, list[dict]]:
+    out: dict = {}
+    for r in sorted(json.loads(path.read_text())["rows"], key=lambda r: r["repeat"]):
         if "output" in r:
-            e9.setdefault(r["id"], []).append(r["output"]["answers"])
-    return merge(e7, e9)
+            out.setdefault(r["id"], []).append(r["output"]["answers"])
+    return out
+
+
+def merged_answers() -> dict[str, list[dict]]:
+    """E7's dev answers with E9's three, and A2 once it has run, merged in, repeat i with repeat i."""
+    ans = merge(d.jev_answers(), _rows(ROWS))
+    return merge(ans, _rows(A2_ROWS)) if A2_ROWS.exists() else ans
 
 
 def merge(e7: dict, e9: dict) -> dict[str, list[dict]]:
@@ -107,7 +115,10 @@ def score() -> dict:
     llm_cells = d.rates(llm, labelled)
     llm_u = d.weighted_utility(llm, sets["spent"], d.spent_p_wrong)
     report: dict = {"llm_utility": llm_u, "config": ge.E7_CONFIG.name, "variants": {}}
+    have_a2 = A2_ROWS.exists()
     for name, changes in jg.E9_VARIANTS.items():
+        if "D" in changes and not have_a2:
+            continue
         curve = []
         for band in BANDS:
             preds, rate = predictions(ans, labelled, changes, band, llm)
@@ -130,12 +141,15 @@ def main(argv: list[str] | None = None) -> None:
 
     ap = argparse.ArgumentParser(prog="python -m eval.e9_dev")
     ap.add_argument("--run", action="store_true")
+    ap.add_argument("--run-a2", action="store_true", help="A2 alone, in a request of its own")
     ap.add_argument("--score", action="store_true")
     ap.add_argument("--concurrency", type=int, default=6)
     args = ap.parse_args(argv)
     cache.configure(enabled=True)
     if args.run:
         asyncio.run(run(args.concurrency))
+    if args.run_a2:
+        asyncio.run(run(args.concurrency, "a2"))
     if args.score:
         r = score()
         print(f"LLM utility {r['llm_utility']}")

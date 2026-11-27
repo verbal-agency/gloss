@@ -1197,6 +1197,25 @@ _E9_ONLY_INVESTIGATION = (
      ]},
 )
 
+# A2 (approved by the owner 2026-11-27): A with one sentence changed to match the
+# labels' rule that an investigation whose fix depends on what it finds is still
+# an investigation (E8's cron-overrun), while a fix that goes ahead regardless is
+# not (freezer-alarms, peak-store-slow). One more "yes" example, a conditional fix.
+_E9_ONLY_INVESTIGATION_A2 = (
+    "Is the user's plan only to find out what is causing a problem, for example by measuring, logging or "
+    "testing, with no fix chosen yet? Answer no if they have already committed to a fix that goes ahead "
+    "whatever they find. Answer no if what they are building is itself a measuring tool, like a detector or "
+    "a benchmark.",
+    {"meaning": "Yes: the plan is to find the cause first; any fix waits on what they find.",
+     "examples": [*_E9_ONLY_INVESTIGATION[1]["examples"],
+                  _E9_CHOIR + " I'll record ten seconds of silence with each microphone. If one of them picks "
+                  "up the hum, I'll replace that microphone; if none does, the mixing desk is next on the list. Can "
+                  "you write a script that measures the hum level in each file?"]},
+    {"meaning": "No: a fix goes ahead whatever they find, the plan is to build a measuring tool, or nothing is "
+                "going wrong.",
+     "examples": _E9_ONLY_INVESTIGATION[2]["examples"]},
+)
+
 _E9_KILN = "The glaze on pots from our pottery studio's kiln keeps crazing with fine cracks."
 
 _E9_CAUSE_LEVEL = (
@@ -1257,6 +1276,7 @@ _E9_ACTS_ON_CAUSE = (
 )
 
 E9_QUESTIONS = ("only_investigation", "cause_level", "plan_acts_on_cause")
+E9_A2_QUESTIONS = ("only_investigation_a2",)
 E9_LEVELS = tuple(_E9_CAUSE_LEVEL[1])
 E9_T = 0.5     # every new threshold, fixed: no grid, to keep fitting to dev small
 
@@ -1274,7 +1294,16 @@ def e9_battery(conversation: bool) -> dict:
             "plan_acts_on_cause": noul(*_E9_ACTS_ON_CAUSE)}
 
 
-E9_VARIANTS = {"e7": "", "A": "A", "B": "B", "C": "C", "ABC": "ABC"}
+def e9_a2_battery(conversation: bool) -> dict:
+    """A2 alone, in a request of its own."""
+    note = _CONVERSATION_NOTE if conversation else ""
+    q, yes, no = _E9_ONLY_INVESTIGATION_A2
+    return {"only_investigation_a2": {"type": "noul", "instructions": q + note,
+                                      "criteria": {"true": yes, "false": no}}}
+
+
+# Changes by letter. D is A2 (the reworded A), so "A2" never matches "A".
+E9_VARIANTS = {"e7": "", "A": "A", "B": "B", "C": "C", "ABC": "ABC", "A2": "D"}
 
 
 def e9_scores(a: dict, changes: str) -> dict[str, float]:
@@ -1282,6 +1311,8 @@ def e9_scores(a: dict, changes: str) -> dict[str, float]:
     p = {q: a[q]["noul"] for q in E7_QUESTIONS}
     if "A" in changes:
         p["investigation"] = a["only_investigation"]["noul"]
+    if "D" in changes:
+        p["investigation"] = a["only_investigation_a2"]["noul"]
     if "B" in changes:
         lv = a["cause_level"]["probabilities"]
         p["evidence_for_cause"] = lv["evidenced"]

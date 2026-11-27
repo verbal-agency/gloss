@@ -1833,3 +1833,36 @@ The spec is [e9_redesign_goal.md](e9_redesign_goal.md). The owner approved the s
 **Next.**
 - **E7's candidate with the fallback band** (E7h) goes to a new held-out set, G45, written before any tuning.
 - **Any further question change** gets its own small dev check first, against the question it replaces, as E5c and E5d did.
+
+### A2: A with one sentence changed (approved and run 2026-11-27, dev only)
+
+**Why.** A broke two E8 quiet cases that E7 got right, so the E8 quiet single-message cell fell outside tolerance:
+- `cron-overrun`: the fix waits on what the timings show;
+- `null-avatar-trace`: a pure investigation.
+
+A's "answer no if they have also chosen a fix" treated a fix that waits on the findings as one already committed to. The labels' rule, which the owner approved, is different:
+- an investigation whose fix depends on what it finds is still an investigation;
+- a fix that goes ahead regardless is not one (`freezer-alarms`, `peak-store-slow`).
+
+**The change.** One sentence, approved by the owner on 2026-11-27:
+> Answer no if they have already committed to a fix that goes ahead whatever they find.
+
+It also adds one "yes" example, a fix that depends on the result. The bar, fixed before the run: every dev cell met at a band no wider than 0.10.
+
+**The run.** 1,152 requests, all answered, all by `jev-1.14.0`.
+
+| Variant | Jev alone: cells | Jev alone: utility | Band 0.10: sent to the LLM | Band 0.10: cells | Band 0.10: utility | Parity at |
+|---|---|---|---|---|---|---|
+| E7 | 16 of 20 | −0.260 | 30% | 20 of 20 | −0.236 | band 0.10, 30% |
+| A | 16 of 20 | −0.249 | 31% | 19 of 20 | −0.221 | band 0.20, 55% |
+| A2 | 17 of 20 | −0.249 | 31% | 19 of 20 | −0.221 | band 0.15, 40% |
+
+- **A2 fixed `null-avatar-trace`:** it scored 0.68 to 0.74, where A gave 0.38 to 0.57.
+- **It moved `cron-overrun` toward quiet, but not across the line:** 0.23 to 0.28, where A gave 0.06 to 0.08.
+- **It kept the two fixes that go ahead regardless low:** 0.06 to 0.09.
+- **Row 1:** 15 right and 3 wrong decisions, against E7's 27 right and 18 wrong.
+- **At band 0.10, E8's quiet single messages** get 75 of 96 decisions right. The cell needs 78, so it is one case short.
+
+**By the bar fixed before the run, A2 does not replace E7's `investigation`.** E7's candidate with the fallback band stays the candidate for G45. Lowering A2's threshold to catch `cron-overrun` would fit one dev case, so it was not done.
+
+**What it shows.** A one-sentence change taken from the labels' own rule moved both target cases the right way, and gave the best Jev-alone results so far: 17 of 20 cells, utility −0.249. But it falls one case short where E7's broader question happened to be right.
