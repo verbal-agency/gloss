@@ -1,6 +1,6 @@
 # E10: the G45 held-out set and run
 
-**Status:** drafted 2026-11-27, for the owner's review. Nothing in it has been written, recorded or run. The owner's decisions are listed at the end.
+**Status:** drafted 2026-11-27. The owner settled four of the five decisions the same day (see the end); the set's author is still open. Nothing has been written, recorded or run.
 
 ## Why
 
@@ -30,16 +30,18 @@ Fixed now, and unchanged by anything on G45:
   - **Hybrid:** the Jev arm's decision, or the LLM arm's answer for the same case and repeat when the margin is under 0.10.
 
   The LLM's call doesn't depend on Jev's, so this is the same as calling the LLM live at the fallback.
-- **Jev version:** see decision 3.
+- **Jev version:** `jev-latest` (owner, 2026-11-27).
   - Every response's `model` field is stored.
-  - The run stops if any response names a version other than the one fixed.
+  - The run stops if more than one version answers.
+  - Dev was answered by `jev-1.14.0`. If `jev-latest` resolves to a different version when G45 runs, the configuration was picked on a model it isn't running on. The run stops there and the owner decides, as E7's release check did.
 
 ## The set
 
 **Authorship.**
-- Written by a model other than the one that wrote the Jev questions, E7's spec and this spec, as for E7a and E8.
-- Reviewed by the owner.
-- Checked by a blind second labelling, as in E8b and E7d.
+- Written by a model other than Claude Opus 5.5, which drafted the Jev questions, their examples, every dev set before E8, E7's spec and this spec. This follows E7a and E8, whose cases were written by Claude Fable 5.2.
+- **An OpenAI model reviews the debatable and weak-engineering labels** (owner, 2026-11-27), in place of the owner labelling each one as in G43. The author proposes each label under the rules above, and the reviewer judges it blind. Disagreements go to the owner, with the date.
+- The owner reviews the whole set.
+- A blind second labelling checks every label, as in E8b and E7d.
 
 **Labels.** Labels follow the current rules:
 - E7b's guide;
@@ -50,11 +52,11 @@ Fixed now, and unchanged by anything on G45:
 
 | Kind | Count | Expected |
 |---|---|---|
-| Evidenced cause, plan acts on it | 8 | none |
-| Asserted cause, cheap and reversible plan (rule (b)) | 8 | none |
+| Evidenced cause, plan acts on it | 6 | none |
+| Asserted cause, cheap and reversible plan (rule (b)) | 6 | none |
 | Investigation only, or with a fix that waits on the result | 8 | none |
-| Plain task | 8 | none |
-| No cause given | 8 | asked |
+| Plain task | 6 | none |
+| No cause given | 6 | asked |
 | Implied cause only | 4 | asked |
 | A fact against the stated cause; the plan might still help | 4 | asked |
 | Investigation beside a fix that goes ahead regardless | 4 | asked |
@@ -62,8 +64,14 @@ Fixed now, and unchanged by anything on G45:
 | A stated requirement the plan breaks | 6 | objected |
 | The user's facts rule the plan out | 4 | objected |
 | Asserted cause, costly or hard-to-reverse plan (rule (b)) | 4 | objected |
+| Debatable diagnosis | 4 | per case, by the rules below |
+| Stated cause, plan acts on it, but weak engineering defeats the goal | 4 | objected (ruling 3) |
 
-That's 32 quiet, 20 questions and 20 objections. Where the kinds allow it, a question or objection shares its situation with a quiet case and differs only in what decides the label, as in the facts-against pairs.
+That's 26 quiet, 18 questions and 20 objections, plus the 4 debatable cases. The debatable cases follow the owner's rules:
+- when the user's own facts contradict the diagnosis, ask, unless those facts rule out the plan, in which case object (2026-11-22);
+- object to an unsupported diagnosis behind a costly or hard-to-reverse plan, and stay quiet behind a cheap, reversible one (E6 rule (b)).
+
+Debatable diagnoses and weak engineering appear in single messages only. G43's flawed conversations, which included them, didn't survive recording. Where the kinds allow it, a question or objection shares its situation with a quiet case and differs only in what decides the label, as in the facts-against pairs.
 
 **Conversations (88), on G44's recipe.** Three user turns. The first two are sound steps, and the last brings the thing under test:
 
@@ -101,7 +109,9 @@ That's 54 quiet, 18 questions and 16 objections.
 - **Decision rule for the hybrid, against the LLM:**
   - utility no worse by more than 0.02 per decision;
   - no gated cell more than max(0.07, one case) below;
-  - and the share of decisions sent to the LLM no higher than the bar in decision 4.
+  - and no more than 30% of decisions sent to the LLM (owner, 2026-11-27).
+
+  On dev, E7 with the fallback sent 29.9% of its decisions to the LLM; on E7's saved held-out answers, 28.9%. So a 30% bar leaves almost no room, and the hybrid may fail on the rate alone. The owner chose it on purpose: the goal is a system clear enough to send fewer cases over.
 - **Also reported, not gated:**
   - the Jev arm alone, under E7's rule;
   - the fallback rate per cell;
@@ -110,7 +120,9 @@ That's 54 quiet, 18 questions and 16 objections.
 
 ## Cost
 
-- **Writing and labelling:** two labelling passes, as in E8b.
+- **Writing and labelling:**
+  - two blind labelling passes, as in E8b;
+  - the OpenAI review of the 8 debatable and weak-engineering cases.
 - **Histories:** 88 conversations, two earlier turns each, unaided model plus judge. About $5–10, as for G43 and G44.
 - **The run:**
   - LLM: about 480 calls (160 cases, three repeats);
@@ -118,17 +130,15 @@ That's 54 quiet, 18 questions and 16 objections.
 
 ## Decisions for the owner
 
-1. **The author.** Which model writes the set? It must not be the model that wrote the Jev questions.
-2. **Size.** 72 single messages and 88 conversations, as above.
-   - **The smallest gated cells** are tasks (8 single messages, 10 conversations) and answered conversations (10). There, one case is 10% to 12.5%, so the tolerance is one case, as in G43.
-   - **The other cells** have 16 to 54 cases.
-   - **More tasks and answered conversations** would tighten their cells, at about $0.10 per conversation for histories.
-3. **The Jev version.** Pin `jev-1.14.0` by name, or use `jev-latest` and stop if it resolves to anything else?
-   - `jev-latest` currently answers as `jev-1.14.0`.
-   - E9's and A2's dev runs recorded `jev-1.14.0` on all 2,304 responses.
-   - E7's dev run recorded only the release date, so its version can't be confirmed.
-4. **The fallback-rate bar.** A hybrid that matches the LLM by sending most decisions to it saves little. Proposed: no more than 40% of decisions. On dev it was 30%.
-5. **Debatable diagnoses and weak engineering.** G43 had these, and they needed owner labels case by case. Proposed: leave them out of G45. Debatable diagnoses are covered by rule (b)'s costly-plan kinds, and weak engineering by E6's ruling 3.
+**Settled on 2026-11-27:**
+1. **Size.** 72 single messages are enough for now. The conversations stay at 88, as drafted.
+2. **The Jev version.** Keep `jev-latest`, with each response's version recorded and the stops above. The owner has seen issues with `jev-1.14.0`.
+3. **The fallback-rate bar.** 30%, not the 40% proposed.
+4. **Debatable diagnoses and weak engineering.** Kept, four single messages each, with their labels reviewed by an OpenAI model.
+
+**Still open:**
+5. **The author.** Which model writes the set? It must not be Claude Opus 5.5.
+6. **The OpenAI reviewer.** Which model? The repository's examples use `gpt-4o`.
 
 ## Limits
 
